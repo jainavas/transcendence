@@ -1,0 +1,42 @@
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/usr/src/app/data
+      - ./backend/app:/usr/src/app/app
+    restart: always
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "8080:8080"
+    volumes:
+      # Montar archivos específicos, pero NO montar encima de dist
+      - ./frontend/index.html:/app/index.html
+      - ./frontend/main.ts:/app/main.ts
+      - ./frontend/dashboard.ts:/app/dashboard.ts
+      - ./frontend/dashboard.html:/app/dashboard.html
+      - ./frontend/styles.css:/app/styles.css
+      - ./frontend/tailwind.config.js:/app/tailwind.config.js
+      - ./frontend/postcss.config.js:/app/postcss.config.js
+      - ./frontend/tsconfig.json:/app/tsconfig.json
+      - ./frontend/redirect.html:/app/redirect.html
+      - ./.env:/app/.env
+    restart: always
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+    depends_on:
+      - backend

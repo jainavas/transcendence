@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Transcender</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="/favicon.ico" />
+    <link href="/dist/styles.css" rel="stylesheet" />
+    <!-- Cargar primero las variables de entorno -->
+    <script src="/env-config.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+  </head>
+  <body class="bg-gray-100 text-gray-800 font-sans min-h-screen flex items-center justify-center">
+    <script>
+      // Script para verificar inmediatamente si hay un parámetro de éxito y redirigir
+      (function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('success') === 'true') {
+          console.log("Redirección automática a dashboard");
+          window.location.replace('/dashboard');
+        }
+      })();
+    </script>
+    <div class="bg-white shadow-xl rounded-2xl p-8 max-w-md w-full text-center">
+      <h1 class="text-3xl font-bold mb-4">Bienvenido a Transcender</h1>
+      <p class="mb-6 text-gray-600">Inicia sesión para continuar</p>
+      
+      <!-- Contenedor para la información del usuario -->
+      <div id="userInfo" class="mb-6">
+        <!-- Aquí se mostrará la información del usuario -->
+      </div>
+      
+      <!-- Botón único de Google Sign-In -->
+      <div id="googleSignInButton" class="flex justify-center">
+        <!-- Botón de respaldo mientras se carga -->
+        <button class="bg-gray-200 text-gray-500 py-2 px-4 rounded" disabled>
+          Cargando opciones de inicio de sesión...
+        </button>
+      </div>
+      
+      <!-- Información de depuración -->
+      <div id="debug" class="mt-6 text-xs text-gray-400"></div>
+    </div>
+    
+    <script>
+      // Script inline para detectar errores tempranos
+      const debugElement = document.getElementById('debug');
+      if (debugElement) {
+        debugElement.innerHTML = `
+          <p>Fecha y hora: ${new Date().toISOString()}</p>
+          <p>User Agent: ${navigator.userAgent}</p>
+        `;
+      }
+    </script>
+    
+    <script src="/dist/main.js"></script>
+    
+    <!-- Script de respaldo si main.js falla -->
+    <script>
+      setTimeout(() => {
+        const buttonElement = document.getElementById("googleSignInButton");
+        if (buttonElement && buttonElement.innerHTML.includes('Cargando')) {
+          console.warn("El script principal puede no haberse cargado correctamente");
+          buttonElement.innerHTML = `
+            <a href="http://localhost:3000/auth/google" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+              Iniciar sesión con Google (Flujo OAuth)
+            </a>
+          `;
+        }
+      }, 3000);
+    </script>
+  </body>
+</html>

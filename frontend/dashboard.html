@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Dashboard - Transcender</title>
+    <script>
+      // MODIFICAR para que solo redirija si realmente es .html
+      if (window.location.pathname.endsWith('.html')) {
+        window.location.replace(window.location.pathname.replace('.html', ''));
+      }
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="/favicon.ico" />
+    <link href="/dist/styles.css" rel="stylesheet" />
+    <!-- Cargar primero las variables de entorno -->
+    <script src="/env-config.js"></script>
+    
+    <!-- Script de verificación y diagnóstico -->
+    <script>
+      console.log('🔍 Dashboard HTML cargado:', new Date().toISOString());
+      
+      // Variable global para comprobar si dashboard.js se carga
+      window.dashboardJsLoaded = false;
+      window.dashboardCheckCount = 0;
+      
+      // Timeout para verificar la carga del script principal
+      const dashboardCheckInterval = setInterval(() => {
+        window.dashboardCheckCount++;
+        
+        // Detener después de 5 intentos o si se ha marcado como cargado
+        if (window.dashboardJsLoaded || window.stopDashboardCheck || window.dashboardCheckCount > 5) {
+          clearInterval(dashboardCheckInterval);
+          if (!window.dashboardJsLoaded && !window.stopDashboardCheck) {
+            console.error('⚠️ dashboard.js no se cargó correctamente después de varios intentos');
+            document.body.insertAdjacentHTML('afterbegin', 
+              `<div class="bg-yellow-100 text-yellow-800 p-3 fixed top-0 left-0 right-0 z-50">
+                ⚠️ Advertencia: dashboard.js no se cargó correctamente.
+                <button class="ml-2 underline" id="reloadButton">Recargar</button>
+              </div>`
+            );
+            // Usar un eventListener en lugar de onclick inline
+            document.getElementById('reloadButton')?.addEventListener('click', () => {
+              location.reload();
+            });
+          }
+        }
+      }, 1000);
+    </script>
+  </head>
+  <body class="bg-gray-100 font-sans min-h-screen">
+    <!-- Barra de navegación superior -->
+    <nav class="bg-blue-600 text-white shadow-lg">
+      <div class="container mx-auto px-4">
+        <div class="flex justify-between items-center py-3">
+          <div class="flex items-center">
+            <h1 class="text-xl font-bold">Transcender</h1>
+          </div>
+          <div id="userProfileNav"></div>
+        </div>
+      </div>
+    </nav>
+    
+    <div class="container mx-auto px-4 py-8">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Tarjeta de perfil -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <div class="flex flex-col items-center">
+            <div id="userProfileImage" class="mb-4"></div>
+            <h2 id="userName" class="text-xl font-bold mb-1"></h2>
+            <p id="userEmail" class="text-gray-600 text-sm mb-4"></p>
+            <button id="logoutButton" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded">
+              Cerrar sesión
+            </button>
+          </div>
+        </div>
+        
+        <!-- Tarjeta de bienvenida -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <div id="welcomeMessage" class="text-center"></div>
+        </div>
+        
+        <!-- Tarjeta de mensajes recientes -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <h2 class="text-xl font-bold mb-4">Mensajes recientes</h2>
+          <div id="recentMessages" class="space-y-3">
+            <div class="text-center py-8">
+              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+              <p class="text-gray-500 mt-2">Cargando mensajes...</p>
+            </div>
+          </div>
+          
+          <form id="messageForm" class="mt-4">
+            <textarea id="messageText" class="w-full border rounded p-2 mb-2" rows="3" placeholder="Escribe un mensaje..."></textarea>
+            <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+              Enviar mensaje
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scripts incrustados para depuración -->
+    <script>
+      console.log('⏳ Antes de cargar dashboard.js:', new Date().toISOString());
+      
+      // Función de carga de emergencia
+      function cargarDatosUsuario() {
+        console.log("🔄 Iniciando carga de emergencia");
+        
+        fetch('http://localhost:3000/user/me', {
+          credentials: 'include'
+        })
+        .then(response => {
+          console.log("📥 Respuesta recibida:", response.status);
+          return response.json();
+        })
+        .then(data => {
+          console.log("📊 Datos:", data);
+          
+          if (data.authenticated && data.user) {
+            // Actualizar UI
+            document.getElementById('userName').textContent = data.user.name || 'Usuario';
+            document.getElementById('userEmail').textContent = data.user.email || '';
+            
+            // Actualizar imagen
+            document.getElementById('userProfileImage').innerHTML = `
+              <img src="${data.user.picture}" alt="Perfil" 
+                class="h-32 w-32 object-cover rounded-full border-4 border-white"
+                onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(data.user.name)}&size=128&background=random';">
+            `;
+            
+            // Configurar botón de logout
+            document.getElementById('logoutButton').addEventListener('click', function() {
+              console.log("👆 Click en botón de logout");
+              this.textContent = 'Cerrando sesión...';
+              this.disabled = true;
+              
+              fetch('http://localhost:3000/auth/logout', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                credentials: 'include',
+                body: JSON.stringify({action: 'logout'})
+              })
+              .then(() => {
+                window.location.href = "/?logout=true";
+              })
+              .catch(error => {
+                console.error("Error al cerrar sesión:", error);
+                this.textContent = 'Cerrar sesión';
+                this.disabled = false;
+              });
+            });
+          } else {
+            console.error("⚠️ No autenticado");
+            window.location.href = "/";
+          }
+        })
+        .catch(error => {
+          console.error("❌ Error cargando datos:", error);
+        });
+      }
+      
+      // Ejecutar después de 500ms para dar tiempo a dashboard.js
+      setTimeout(function() {
+        if (!window.dashboardLoaded) {
+          console.log("⚠️ dashboard.js no se cargó, usando plan B");
+          cargarDatosUsuario();
+        }
+      }, 500);
+    </script>
+    
+    <!-- Script para marcar como cargado -->
+    <script>
+      window.onerror = function(message, source, lineno, colno, error) {
+        console.error('❌ Error de JavaScript:', message, source, lineno);
+        document.body.insertAdjacentHTML('afterbegin', 
+          `<div class="bg-red-100 text-red-800 p-3 fixed top-0 left-0 right-0 z-50">
+            Error en JavaScript: ${message} (línea ${lineno})
+            <button onclick="location.reload()" class="ml-2 underline">Recargar</button>
+          </div>`
+        );
+        return false;
+      };
+    </script>
+    
+    <!-- Cargar el script compilado de dashboard -->
+    <script type="module" src="/dist/dashboard.js"></script>
+    
+    <!-- Script para marcar como cargado -->
+    <script>
+      // Este script se ejecutará después de dashboard.js
+      window.dashboardJsLoaded = true;
+      console.log('✅ Scripts de página cargados:', new Date().toISOString());
+      
+      // AÑADIR: Desactivar la verificación de recarga automática
+      window.stopDashboardCheck = true;
+    </script>
+  </body>
+</html>

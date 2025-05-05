@@ -1,0 +1,19 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  
+  # Si es una solicitud a /dashboard.html, redirigir a /dashboard
+  RewriteCond %{REQUEST_URI} ^/dashboard\.html$ [NC]
+  RewriteRule ^dashboard\.html$ /dashboard [R=301,L]
+  
+  # Si es una solicitud a /dashboard y no es un archivo existente,
+  # internamente servir dashboard.html
+  RewriteCond %{REQUEST_URI} ^/dashboard$ [NC]
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteRule ^dashboard$ /dashboard.html [L]
+  
+  # Regla para manejo de otras rutas SPA
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{REQUEST_URI} !^/api/ [NC]
+  RewriteRule ^(.*)$ /index.html [L]
+</IfModule>

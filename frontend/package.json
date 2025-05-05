@@ -1,0 +1,19 @@
+{
+  "name": "frontend",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "tsc && postcss styles.css -o dist/styles.css",
+    "start": "http-server . -p 8080 --proxy http://localhost:8080? --ext \"\""
+  },
+  "dependencies": {
+    "http-server": "^14.1.1",
+    "jwt-decode": "^4.0.0"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.14",
+    "postcss": "^8.4.24",
+    "postcss-cli": "^8.3.1",
+    "tailwindcss": "^3.3.3",
+    "typescript": "^5.8.3"
+  }
+}
