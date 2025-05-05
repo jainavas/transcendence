@@ -5,7 +5,8 @@ PROJECT_NAME=transcender
 
 all up start:
 	@echo "Iniciando contenedores..."
-	sudo docker compose up --build --force-recreate
+	sudo docker compose build --no-cache
+	sudo docker compose up --force-recreate
 
 # Comando predeterminado al ejecutar 'make' sin argumentos
 help:

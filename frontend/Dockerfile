@@ -30,6 +30,10 @@ echo "console.log(\\"✅ Tipos de entorno cargados\\");" >> dist/env-types.js\n\
 echo "export {};" >> dist/env-types.js\n\
 echo "✅ Archivo env-types.js creado en dist/"\n\
 \n\
+# Copiar env-types.js a la raíz para compatibilidad con importaciones\n\
+cp dist/env-types.js /app/\n\
+echo "✅ Archivo env-types.js copiado a la raíz"\n\
+\n\
 # Configurar variables de entorno\n\
 sed -i "s|\${process.env.BACKEND_URL|$BACKEND_URL|g" /app/env-config.js\n\
 sed -i "s|\${process.env.FRONTEND_URL|$FRONTEND_URL|g" /app/env-config.js\n\

@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "scripts": {
     "build": "tsc && postcss styles.css -o dist/styles.css",
-    "start": "http-server . -p 8080 --proxy http://localhost:8080? --ext \"\""
+    "start": "http-server . -p 8080 --proxy http://localhost:8080? --ext \"\"",
+    "watch": "tsc --watch & postcss styles.css -o dist/styles.css --watch",
+    "dev": "concurrently \"npm run watch\" \"npm run start\""
   },
   "dependencies": {
     "http-server": "^14.1.1",
@@ -11,6 +13,7 @@
   },
   "devDependencies": {
     "autoprefixer": "^10.4.14",
+    "concurrently": "^8.2.0",
     "postcss": "^8.4.24",
     "postcss-cli": "^8.3.1",
     "tailwindcss": "^3.3.3",

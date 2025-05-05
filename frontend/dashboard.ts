@@ -1,6 +1,4 @@
 // Dashboard functionality
-import './env-types';
-
 console.log("🚀 dashboard.ts cargando...");
 
 // Variables globales

@@ -1,6 +1,5 @@
 // Google Identity Services integration
 export {};
-import './env-types';
 
 // Definición de tipos para el objeto global
 declare global {

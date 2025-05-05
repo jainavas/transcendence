@@ -46,6 +46,9 @@
         }
       }, 1000);
     </script>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
   </head>
   <body class="bg-gray-100 font-sans min-h-screen">
     <!-- Barra de navegación superior -->
@@ -184,7 +187,7 @@
     </script>
     
     <!-- Cargar el script compilado de dashboard -->
-    <script type="module" src="/dist/dashboard.js"></script>
+    <script type="module" src="/dist/dashboard.js?v=<?php echo time(); ?>"></script>
     
     <!-- Script para marcar como cargado -->
     <script>

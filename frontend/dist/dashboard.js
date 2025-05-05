@@ -1,4 +1,4 @@
-console.log("🔍 dashboard.ts siendo cargado...");
+console.log("🔍 dashboard.js siendo cargado...");
 // Variables globales
 let currentUser = null;
 // Función principal que se ejecuta al cargar la página
