@@ -14,35 +14,59 @@ COPY *.html ./
 COPY *.css ./
 COPY env-config.js ./
 COPY env-types.js ./
+COPY pong-bundle.js ./
 
 # Crear directorio dist
 RUN mkdir -p dist
 
-# Compilar TypeScript y CSS
+# Compilar TypeScript y CSS (se mantendrá como referencia pero será reemplazado al inicio)
 RUN npm run build
 
-# Crear script de inicio con creación dinámica del archivo env-types.js en dist
+# Crear script de inicio con build al iniciar
+# Modificar la sección del script de inicio en el Dockerfile
 RUN printf '#!/bin/sh\n\
-# Crear archivo env-types.js en dist en tiempo de ejecución\n\
+# Crear directorio dist si no existe\n\
 mkdir -p dist\n\
+\n\
+# Limpiar archivos antiguos del directorio dist\n\
+echo "🧹 Limpiando archivos antiguos..."\n\
+rm -f dist/*.js dist/*.css dist/*.map\n\
+\n\
+# Ejecutar build al iniciar para asegurar archivos CSS actualizados\n\
+echo "🔄 Ejecutando build al iniciar..."\n\
+npm run build\n\
+echo "✅ Build completado - CSS y JavaScript generados"\n\
+\n\
+# Crear archivo env-types.js en dist en tiempo de ejecución\n\
 echo "// Archivo JavaScript para satisfacer la importación en tiempo de ejecución" > dist/env-types.js\n\
 echo "console.log(\\"✅ Tipos de entorno cargados\\");" >> dist/env-types.js\n\
 echo "export {};" >> dist/env-types.js\n\
 echo "✅ Archivo env-types.js creado en dist/"\n\
 \n\
 # Copiar env-types.js a la raíz para compatibilidad con importaciones\n\
-cp dist/env-types.js /app/\n\
+cp -f dist/env-types.js /app/\n\
 echo "✅ Archivo env-types.js copiado a la raíz"\n\
 \n\
-# Configurar variables de entorno\n\
-sed -i "s|\${process.env.BACKEND_URL|$BACKEND_URL|g" /app/env-config.js\n\
-sed -i "s|\${process.env.FRONTEND_URL|$FRONTEND_URL|g" /app/env-config.js\n\
-sed -i "s|\${process.env.GOOGLE_CLIENT_ID|$GOOGLE_CLIENT_ID|g" /app/env-config.js\n\
-sed -i "s|\${process.env.NODE_ENV|$NODE_ENV|g" /app/env-config.js\n\
+# Configurar variables de entorno con forma diferente\n\
+cat > /app/env-config.js << EOF\n\
+// Variables de entorno para el frontend\n\
+window.env = {\n\
+  BACKEND_URL: "$BACKEND_URL",\n\
+  FRONTEND_URL: "$FRONTEND_URL",\n\
+  GOOGLE_CLIENT_ID: "$GOOGLE_CLIENT_ID",\n\
+  NODE_ENV: "$NODE_ENV"\n\
+};\n\
+\n\
+console.log("✅ Variables de entorno cargadas:", window.env);\n\
+EOF\n\
+\n\
 echo "Entorno configurado con: BACKEND_URL=$BACKEND_URL FRONTEND_URL=$FRONTEND_URL"\n\
 \n\
 # Iniciar servidor HTTP\n\
 http-server . -p 8080 --proxy "http://localhost:8080?" --ext "" --silent\n' > /app/start.sh
+
+
+
 
 # Asegurarnos de que el script tenga permisos de ejecución
 RUN chmod +x /app/start.sh

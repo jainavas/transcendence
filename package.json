@@ -6,6 +6,8 @@
     "tailwindcss": "^4.1.5"
   },
   "dependencies": {
+    "@babylonjs/core": "^8.6.1",
+    "@babylonjs/loaders": "^8.6.1",
     "@fastify/cookie": "^11.0.2",
     "@fastify/cors": "^11.0.1",
     "@fastify/session": "^11.1.0",

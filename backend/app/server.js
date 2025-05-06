@@ -26,10 +26,11 @@ fastify.register(require('@fastify/cookie'));
 fastify.register(require('@fastify/session'), {
   secret: SESSION_SECRET,
   cookie: { 
-    secure: process.env.COOKIE_SECURE === 'true', 
-    httpOnly: process.env.COOKIE_HTTP_ONLY === 'true',
-    sameSite: process.env.COOKIE_SAME_SITE || 'lax',
-    maxAge: parseInt(process.env.COOKIE_MAX_AGE || '86400000')
+    secure: false, // Cambiar a false mientras usas HTTP
+    httpOnly: true,
+    sameSite: 'lax',
+    domain: 'localhost', // Asegurar que el dominio es correcto
+    maxAge: 86400000
   }
 });
 
@@ -54,7 +55,7 @@ fastify.register(require('@fastify/cors'), {
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With', 'Cache-Control', 'Pragma'],
-  exposedHeaders: ['Content-Disposition']
+  exposedHeaders: ['Content-Disposition', 'Set-Cookie'],
 });
 
 // Registrar plugin para archivos estáticos (añade esta línea)
@@ -71,11 +72,11 @@ fastify.addHook('preHandler', (req, reply, done) => {
   done();
 });
 
-// Mejorar el endpoint de mensajes con más información de depuración
-fastify.get('/mensajes', async (req, reply) => {
+// Reemplazar los endpoints de mensajes con los endpoints de puntuaciones de pong
+fastify.get('/pong/scores', async (req, reply) => {
   // Verificar si hay usuario autenticado
   if (!req.session || !req.session.user) {
-    console.log("❌ Acceso denegado a /mensajes - No hay sesión de usuario");
+    console.log("❌ Acceso denegado a /pong/scores - No hay sesión de usuario");
     return reply.code(401).send({ error: 'No autenticado' });
   }
   
@@ -87,100 +88,132 @@ fastify.get('/mensajes', async (req, reply) => {
     return reply.code(400).send({ error: 'No se pudo determinar el ID de usuario' });
   }
   
-  console.log(`🔍 Obteniendo mensajes para usuario: ${userId}`);
+  console.log(`🏓 Obteniendo puntuaciones de Pong para usuario: ${userId}`);
   
   return new Promise((resolve, reject) => {
-    db.all('SELECT * FROM mensajes WHERE user_id = ? ORDER BY fecha DESC', [userId], (err, rows) => {
+    db.all('SELECT * FROM pong_scores WHERE user_id = ? ORDER BY fecha DESC LIMIT 10', [userId], (err, rows) => {
       if (err) {
-        console.error("❌ Error al obtener mensajes:", err);
+        console.error("❌ Error al obtener puntuaciones:", err);
         reject(err);
       } else {
-        console.log(`✅ ${rows.length} mensajes encontrados para ${userId}`);
+        console.log(`✅ ${rows.length} puntuaciones encontradas para ${userId}`);
         resolve(rows);
       }
     });
   });
 });
 
-// Implementar control de identificadores para mensajes
-let lastMessagesByUser = {}; // Para almacenar los últimos mensajes por usuario
-
-// Guardar mensaje asociado al usuario actual
-fastify.post('/mensajes', async (req, reply) => {
+// Guardar puntuación de juego 
+fastify.post('/pong/scores', async (req, reply) => {
   // Verificar si hay usuario autenticado
   if (!req.session || !req.session.user) {
     return reply.code(401).send({ error: 'No autenticado' });
   }
   
-  const { texto, messageId } = req.body;
+  const { score, opponent, winner, game_duration } = req.body;
   
-  // Validar que haya texto
-  if (!texto || texto.trim() === '') {
-    return reply.code(400).send({ error: 'El mensaje no puede estar vacío' });
+  // Validar que haya puntuación
+  if (typeof score !== 'number') {
+    return reply.code(400).send({ error: 'La puntuación debe ser un número' });
   }
   
   // Obtener ID del usuario de la sesión
   const userId = req.session.user.id || req.session.user.sub || req.session.user.email;
   
-  // Control de duplicados: verificar si es el mismo mensaje que el último enviado
-  const userLastMessage = lastMessagesByUser[userId];
-  if (userLastMessage && 
-      userLastMessage.texto === texto && 
-      Date.now() - userLastMessage.timestamp < 5000) {
-    
-    console.log(`⚠️ Posible mensaje duplicado detectado para ${userId}: "${texto.substring(0, 20)}..."`);
-    return reply.code(200).send({ 
-      id: userLastMessage.id,
-      texto: texto,
-      warning: 'duplicate_suspected',
-      user_id: userId
-    });
-  }
-  
-  // Control por messageId (evitar procesamiento doble)
-  if (messageId && userLastMessage && userLastMessage.messageId === messageId) {
-    console.log(`⚠️ Mismo messageId detectado: ${messageId}`);
-    return reply.code(200).send({
-      id: userLastMessage.id,
-      texto: texto,
-      warning: 'message_id_duplicate',
-      user_id: userId
-    });
-  }
-  
-  console.log(`📝 Guardando mensaje para usuario: ${userId}`);
+  console.log(`🏓 Guardando puntuación para usuario ${userId}: ${score} puntos`);
   
   return new Promise((resolve, reject) => {
     db.run(
-      'INSERT INTO mensajes (texto, user_id) VALUES (?, ?)', 
-      [texto, userId],
+      'INSERT INTO pong_scores (user_id, score, opponent, winner, game_duration) VALUES (?, ?, ?, ?, ?)', 
+      [userId, score, opponent || "CPU", winner || false, game_duration || 0],
       function (err) {
         if (err) {
-          console.error("❌ Error al guardar mensaje:", err);
+          console.error("❌ Error al guardar puntuación:", err);
           reject(err);
         } else {
-          const nuevoMensaje = { 
+          const nuevaPuntuacion = { 
             id: this.lastID, 
-            texto, 
             user_id: userId,
+            score,
+            opponent: opponent || "CPU",
+            winner: winner || false,
+            game_duration: game_duration || 0,
             fecha: new Date().toISOString()
           };
           
-          // Guardar referencia al último mensaje
-          lastMessagesByUser[userId] = {
-            id: this.lastID,
-            texto: texto,
-            timestamp: Date.now(),
-            messageId: messageId || null
-          };
-          
-          console.log(`✅ Mensaje guardado con ID: ${nuevoMensaje.id}`);
-          resolve(nuevoMensaje);
+          console.log(`✅ Puntuación guardada con ID: ${nuevaPuntuacion.id}`);
+          resolve(nuevaPuntuacion);
         }
       }
     );
   });
 });
+
+// Get global high scores
+fastify.get('/pong/highscores', async (req, reply) => {
+  return new Promise((resolve, reject) => {
+    db.all(`
+      SELECT ps.*, u.username as user_name, 'https://ui-avatars.com/api/?name=' || u.username || '&background=random&color=fff' as user_picture
+      FROM pong_scores ps
+      JOIN (
+        SELECT user_id, MAX(score) as max_score
+        FROM pong_scores
+        GROUP BY user_id
+      ) top ON ps.user_id = top.user_id AND ps.score = top.max_score
+      LEFT JOIN users u ON ps.user_id = u.email
+      ORDER BY ps.score DESC
+      LIMIT 10
+    `, [], (err, rows) => {
+      if (err) {
+        console.error("❌ Error al obtener mejores puntuaciones:", err);
+        reject(err);
+      } else {
+        console.log(`✅ ${rows.length} mejores puntuaciones obtenidas`);
+        resolve(rows);
+      }
+    });
+  });
+});
+
+// Añadir después de los otros endpoints de pong
+
+// Endpoint para verificar si el juego de Pong está disponible
+fastify.get('/pong/status', async (req, reply) => {
+  // Verificar si el usuario está autenticado
+  if (!req.session || !req.session.user) {
+    return reply.code(401).send({ 
+      available: false, 
+      reason: 'authentication_required', 
+      message: 'Debes iniciar sesión para jugar' 
+    });
+  }
+  
+  const userId = req.session.user.id || req.session.user.sub || req.session.user.email;
+  
+  return {
+    available: true,
+    user: {
+      id: userId,
+      name: req.session.user.name || 'Jugador',
+      email: req.session.user.email || ''
+    },
+    lastScore: await getLastScore(userId)
+  };
+});
+
+// Función para obtener la última puntuación de un usuario
+async function getLastScore(userId) {
+  return new Promise((resolve, reject) => {
+    db.get('SELECT * FROM pong_scores WHERE user_id = ? ORDER BY fecha DESC LIMIT 1', [userId], (err, row) => {
+      if (err) {
+        console.error('Error al obtener última puntuación:', err);
+        resolve(null);
+      } else {
+        resolve(row || null);
+      }
+    });
+  });
+}
 
 // Modificar la verificación del token en el endpoint POST /auth/google
 fastify.post('/auth/google', async (req, reply) => {
@@ -199,10 +232,14 @@ fastify.post('/auth/google', async (req, reply) => {
             picture: payload.picture
         };
         
+        // Verificar si el usuario existe en la base de datos
+        const userExists = await checkUserInDatabase(payload.name, payload.email);
+        
         return { 
             usuario: payload.name, 
             email: payload.email,
-            picture: payload.picture 
+            picture: payload.picture,
+            isNewUser: !userExists
         };
     } catch (err) {
         console.error("Error en autenticación Google:", err);
@@ -250,6 +287,9 @@ fastify.get('/auth/callback', async (req, reply) => {
 
     // Guardar la información del usuario en la sesión
     req.session.user = userInfo;
+    
+    // Verificar si el usuario existe en la base de datos
+    await checkUserInDatabase(userInfo.name, userInfo.email);
     
     // IMPORTANTE: Redirigir directamente a /dashboard sin extensión
     return reply.redirect('http://localhost:8080/dashboard');
@@ -378,22 +418,72 @@ fastify.setErrorHandler(function (error, request, reply) {
   });
 });
 
+// Endpoint de diagnóstico para sesiones
+fastify.get('/debug/session', async (request, reply) => {
+  return {
+    session: request.session || null,
+    cookies: request.headers.cookie || null,
+    headers: request.headers,
+    timestamp: new Date().toISOString(),
+    authenticated: request.session?.user ? true : false
+  };
+});
+
 fastify.listen({ port: PORT, host: HOST });
 
-// Check if user exists before inserting
-db.get("SELECT id FROM users WHERE username = ?", [DEFAULT_USERNAME], function(err, row) {
-  if (err) {
-    console.error("Error al verificar usuario:", err.message);
-  } else if (!row) {
-    // User doesn't exist, insert new user
-    db.run("INSERT INTO users (username, password) VALUES (?, ?)", [DEFAULT_USERNAME, DEFAULT_PASSWORD], function (err) {
+// Check if user is authenticated before database operations
+fastify.post('/users/check', async (request, reply) => {
+	// Verify if user is authenticated
+	if (!request.session || !request.session.user) {
+		return reply.code(401).send({ error: 'Not authenticated' });
+	}
+
+	const user = request.session.user;
+	
+	db.get("SELECT id FROM users WHERE username = ? OR email = ?", [user.name, user.email], function(err, row) {
+		if (err) {
+			console.error("Error al verificar usuario:", err.message);
+			return reply.code(500).send({ error: 'Database error' });
+		} else if (!row) {
+			// User doesn't exist, insert new user
+			db.run("INSERT INTO users (username, email) VALUES (?, ?)", [user.name, user.email], function(err) {
+				if (err) {
+					console.error("Error al insertar usuario:", err.message);
+					return reply.code(500).send({ error: 'Failed to create user' });
+				} else {
+					console.log("Usuario insertado con éxito, ID:", this.lastID);
+					return reply.send({ success: true, id: this.lastID });
+				}
+			});
+		} else {
+			console.log(`Usuario con nombre '${user.name}' o email '${user.email}' ya existe en la base de datos.`);
+			return reply.send({ success: true, id: row.id, existing: true });
+		}
+	});
+});
+
+// Función auxiliar para verificar si un usuario existe y crearlo si no existe
+async function checkUserInDatabase(username, email) {
+  return new Promise((resolve, reject) => {
+    db.get("SELECT id FROM users WHERE username = ? OR email = ?", [username, email], function(err, row) {
       if (err) {
-        console.error("Error al insertar usuario:", err.message);
+        console.error("Error al verificar usuario:", err.message);
+        reject(err);
+      } else if (!row) {
+        // Usuario no existe, insertarlo
+        db.run("INSERT INTO users (username, email) VALUES (?, ?)", [username, email], function(err) {
+          if (err) {
+            console.error("Error al insertar usuario:", err.message);
+            reject(err);
+          } else {
+            console.log("✅ Usuario nuevo creado con ID:", this.lastID);
+            resolve(false); // Retorna false porque el usuario no existía
+          }
+        });
       } else {
-        console.log("Usuario insertado con éxito, ID:", this.lastID);
+        console.log(`✓ Usuario '${username}' o '${email}' ya existe en la BD con ID ${row.id}`);
+        resolve(true); // Retorna true porque el usuario ya existía
       }
     });
-  } else {
-    console.log(`Usuario '${DEFAULT_USERNAME}' ya existe en la base de datos.`);
-  }
-});
+  });
+}

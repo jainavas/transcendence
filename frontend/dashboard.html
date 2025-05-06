@@ -56,7 +56,7 @@
       <div class="container mx-auto px-4">
         <div class="flex justify-between items-center py-3">
           <div class="flex items-center">
-            <h1 class="text-xl font-bold">Transcender</h1>
+            <h1 class="text-xl font-bold">Transcender Pong</h1>
           </div>
           <div id="userProfileNav"></div>
         </div>
@@ -77,27 +77,49 @@
           </div>
         </div>
         
-        <!-- Tarjeta de bienvenida -->
+        <!-- Tarjeta de bienvenida y juego -->
         <div class="bg-white rounded-lg shadow-md p-6">
-          <div id="welcomeMessage" class="text-center"></div>
+          <div id="welcomeMessage" class="text-center mb-6"></div>
+          <div class="text-center">
+            <a href="/pong" id="playPongButton" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg text-lg font-bold inline-block transition-transform hover:scale-105">
+              🏓 Jugar Pong
+            </a>
+          </div>
         </div>
         
-        <!-- Tarjeta de mensajes recientes -->
+        <!-- Tarjeta de puntuaciones -->
         <div class="bg-white rounded-lg shadow-md p-6">
-          <h2 class="text-xl font-bold mb-4">Mensajes recientes</h2>
-          <div id="recentMessages" class="space-y-3">
+          <h2 class="text-xl font-bold mb-4">Mis puntuaciones de Pong</h2>
+          <div id="pongScores" class="space-y-3">
             <div class="text-center py-8">
               <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
-              <p class="text-gray-500 mt-2">Cargando mensajes...</p>
+              <p class="text-gray-500 mt-2">Cargando puntuaciones...</p>
             </div>
           </div>
-          
-          <form id="messageForm" class="mt-4">
-            <textarea id="messageText" class="w-full border rounded p-2 mb-2" rows="3" placeholder="Escribe un mensaje..."></textarea>
-            <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
-              Enviar mensaje
-            </button>
-          </form>
+        </div>
+      </div>
+      
+      <!-- Tabla de mejores puntuaciones globales -->
+      <div class="mt-8">
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <h2 class="text-xl font-bold mb-4">Mejores puntuaciones globales</h2>
+          <div id="globalHighScores" class="overflow-x-auto">
+            <table class="min-w-full bg-white">
+              <thead>
+                <tr>
+                  <th class="py-2 px-4 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Posición</th>
+                  <th class="py-2 px-4 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Jugador</th>
+                  <th class="py-2 px-4 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Puntuación</th>
+                  <th class="py-2 px-4 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Fecha</th>
+                </tr>
+              </thead>
+              <tbody id="highScoresList">
+                <tr>
+                  <td colspan="4" class="py-4 text-center text-gray-500">Cargando mejores puntuaciones...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>

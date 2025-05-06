@@ -8,6 +8,8 @@
     "dev": "concurrently \"npm run watch\" \"npm run start\""
   },
   "dependencies": {
+    "@babylonjs/core": "^8.6.1",
+    "@babylonjs/loaders": "^8.6.1",
     "http-server": "^14.1.1",
     "jwt-decode": "^4.0.0"
   },
@@ -17,6 +19,9 @@
     "postcss": "^8.4.24",
     "postcss-cli": "^8.3.1",
     "tailwindcss": "^3.3.3",
-    "typescript": "^5.8.3"
+    "ts-loader": "^9.5.2",
+    "typescript": "^5.8.3",
+    "webpack": "^5.99.7",
+    "webpack-cli": "^6.0.1"
   }
 }

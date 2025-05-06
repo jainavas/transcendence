@@ -1,12 +1,12 @@
 // Google Identity Services integration
-export {};
+import './env-types.js';
 
-// Definición de tipos para el objeto global
+// No need to redeclare window.google, etc. as they're already in env-types.ts
 declare global {
   interface Window {
     google: any;
     handleCredentialResponse: (response: any) => void;
-    // env ya está definido en env-types.ts con el tipo correcto
+    // env is already defined in env-types.ts
   }
 }
 
