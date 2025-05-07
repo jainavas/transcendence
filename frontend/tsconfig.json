@@ -3,9 +3,9 @@
     "target": "ES2020",
     "module": "ES2020",
     "moduleResolution": "node",
-    "outDir": "./dist",
+    "outDir": "dist",
     "rootDir": "./",
-    "strict": true,
+    "strict": false,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
@@ -13,7 +13,7 @@
     "sourceMap": true,
     "lib": ["DOM", "DOM.Iterable", "ES2020"]
   },
-  "include": ["*.ts", "**/*.ts"],
+  "include": ["*.ts"],
   "files": [
     "env-types.ts"
   ]

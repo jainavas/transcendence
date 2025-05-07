@@ -51,6 +51,8 @@ clean:
 
 # Reconstruir imágenes y reiniciar contenedores
 re:
+	@echo "Deteniendo contenedores..."
+	make clean
 	@echo "Reconstruyendo imágenes..."
 	sudo docker compose build --no-cache
 	@echo "Reiniciando contenedores..."

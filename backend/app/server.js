@@ -64,6 +64,16 @@ fastify.register(require('@fastify/static'), {
   prefix: '/', // Opcional: sirve archivos en la ruta raíz
 });
 
+// Añadir después de la configuración de fastify/static
+// Reescritura de URLs para rutas sin extensión
+fastify.get('/pong', (request, reply) => {
+  return reply.sendFile('pong.html');
+});
+
+fastify.get('/dashboard', (request, reply) => {
+  return reply.sendFile('dashboard.html');
+});
+
 // Añadir un middleware para registrar todas las solicitudes y sus sesiones
 fastify.addHook('preHandler', (req, reply, done) => {
   if (req.url !== '/user/me') { // Evitar spam de logs
@@ -131,27 +141,27 @@ fastify.post('/pong/scores', async (req, reply) => {
           console.error("❌ Error al guardar puntuación:", err);
           reject(err);
         } else {
-          const nuevaPuntuacion = { 
-            id: this.lastID, 
-            user_id: userId,
-            score,
-            opponent: opponent || "CPU",
-            winner: winner || false,
-            game_duration: game_duration || 0,
-            fecha: new Date().toISOString()
-          };
-          
-          console.log(`✅ Puntuación guardada con ID: ${nuevaPuntuacion.id}`);
-          resolve(nuevaPuntuacion);
+            const nuevaPuntuacion = { 
+              id: this.lastID, 
+              user_id: userId,
+              score,
+              opponent: opponent || "CPU",
+              winner: winner || false,
+              game_duration: game_duration || 0,
+              fecha: new Date().toISOString()
+            };
+            
+            console.log("✅ Puntuación guardada:", nuevaPuntuacion);
+            resolve(nuevaPuntuacion);
+          }
         }
-      }
-    );
+      );
+    });
   });
-});
-
-// Get global high scores
-fastify.get('/pong/highscores', async (req, reply) => {
-  return new Promise((resolve, reject) => {
+  
+  // Obtener mejores puntuaciones
+  fastify.get('/pong/leaderboard', async (req, reply) => {
+    return new Promise((resolve, reject) => {
     db.all(`
       SELECT ps.*, u.username as user_name, 'https://ui-avatars.com/api/?name=' || u.username || '&background=random&color=fff' as user_picture
       FROM pong_scores ps
@@ -180,7 +190,7 @@ fastify.get('/pong/highscores', async (req, reply) => {
 // Endpoint para verificar si el juego de Pong está disponible
 fastify.get('/pong/status', async (req, reply) => {
   // Verificar si el usuario está autenticado
-  if (!req.session || !req.session.user) {
+  if (!req.session || req.session.user) {
     return reply.code(401).send({ 
       available: false, 
       reason: 'authentication_required', 

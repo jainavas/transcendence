@@ -14,7 +14,9 @@ COPY *.html ./
 COPY *.css ./
 COPY env-config.js ./
 COPY env-types.js ./
-COPY pong-bundle.js ./
+
+# Copiar carpeta de texturas
+COPY textures/ ./textures/
 
 # Crear directorio dist
 RUN mkdir -p dist
@@ -65,9 +67,6 @@ echo "Entorno configurado con: BACKEND_URL=$BACKEND_URL FRONTEND_URL=$FRONTEND_U
 # Iniciar servidor HTTP\n\
 http-server . -p 8080 --proxy "http://localhost:8080?" --ext "" --silent\n' > /app/start.sh
 
-
-
-
 # Asegurarnos de que el script tenga permisos de ejecución
 RUN chmod +x /app/start.sh
 
@@ -88,3 +87,6 @@ EXPOSE 8080
 
 # Iniciar servidor con el script
 CMD ["/app/start.sh"]
+
+# Copiar carpeta de texturas desde el frontend
+COPY ./textures /app/textures

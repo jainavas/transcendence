@@ -1,106 +1,469 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Transcender Pong</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link href="/dist/styles.css" rel="stylesheet" />
-  <!-- Cargar variables de entorno -->
-  <script src="/env-config.js"></script>
-  <!-- Cargar BabylonJS ANTES de tu script principal -->
-  <script src="https://cdn.babylonjs.com/babylon.js"></script>
-  <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
-  <style>
-    #gameCanvas {
-      width: 100%;
-      height: 100%;
-      touch-action: none;
-    }
-    
-    #uiContainer {
-      position: absolute;
-      top: 10px;
-      left: 0;
-      width: 100%;
-      z-index: 10;
-      pointer-events: none;
-    }
-    
-    #uiContainer button {
-      pointer-events: auto;
-    }
-    
-    #gameOver {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: rgba(0,0,0,0.8);
-      color: white;
-      padding: 2rem;
-      border-radius: 8px;
-      text-align: center;
-      z-index: 20;
-      display: none;
-    }
-  </style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BabylonJS con UI Integrada</title>
+
+    <!-- Babylon.js y dependencias -->
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+
+    <!-- CSS para pantalla completa y UI -->
+    <style>
+        html, body {
+            width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+        #renderCanvas {
+            width: 100%; height: 100%; display: block;
+            touch-action: none;
+            background-color: #000;
+        }
+        #uiContainer {
+            position: absolute; top: 10px; left: 0;
+            width: 100%; z-index: 10; pointer-events: none;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 2 1rem;
+        }
+        #uiContainer > * { pointer-events: auto; }
+        #scoreDisplay {
+            background: rgba(0,0,0,0.5); color: #fff;
+            padding: 0.5rem 1rem; border-radius: 4px;
+        }
+        #gameOver {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.8); color: #fff;
+            padding: 2rem; border-radius: 8px;
+            text-align: center; z-index: 20;
+            display: none;
+        }
+        #gameOver button {
+            display: block; width: 100%; margin: 0.5rem 0;
+            padding: 0.75rem; border: none; border-radius: 4px;
+            font-size: 1rem; cursor: pointer;
+        }
+        .btn-blue { background: #007bff; color: #fff; }
+        .btn-blue:hover { background: #0056b3; }
+        .btn-green { background: #28a745; color: #fff; }
+        .btn-green:hover { background: #218838; }
+        .btn-gray { background: #6c757d; color: #fff; }
+        .btn-gray:hover { background: #5a6268; }
+
+        /* Estilos mejorados para botones */
+        .game-button {
+            border: none;
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.9rem;
+            letter-spacing: 0.5px;
+            margin-left: 10px;
+        }
+        
+        .btn-blue {
+            background: linear-gradient(to bottom, #3498db, #2980b9);
+            color: #fff;
+            border: 1px solid #2980b9;
+        }
+        
+        .btn-blue:hover {
+            background: linear-gradient(to bottom, #2980b9, #2573a7);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        }
+        
+        .btn-orange {
+            background: linear-gradient(to bottom, #e67e22, #d35400);
+            color: #fff;
+            border: 1px solid #d35400;
+        }
+        
+        .btn-orange:hover {
+            background: linear-gradient(to bottom, #d35400, #c04e00);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        }
+        
+        #resetCameraButton {
+            display: none; /* Oculto por defecto */
+			background: linear-gradient(to bottom, #2ecc71, #27ae60);
+			color: #fff;
+			border: 1px solid #27ae60;
+        }
+        
+        #resetCameraButton:hover {
+            background: linear-gradient(to bottom, #27ae60, #1e8449);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        }
+        
+        /* Contenedor de botones */
+        .buttons-container {
+            display: flex;
+            align-items: center;
+        }
+    </style>
 </head>
-<body class="m-0 p-0 overflow-hidden h-screen">
-  <canvas id="gameCanvas" class="w-full h-full bg-black"></canvas>
-  
-  <!-- UI Overlay -->
-  <div id="uiContainer" class="px-4">
-    <div class="container mx-auto flex justify-between items-center">
-      <div id="scoreDisplay" class="bg-black bg-opacity-50 text-white p-2 rounded">
-        Puntuación: <span id="score">0</span>
-      </div>
-      <button id="backButton" class="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded">
-        Volver al Dashboard
-      </button>
+<body>
+    <!-- Canvas 3D -->
+    <canvas id="renderCanvas"></canvas>
+
+    <!-- UI Superior -->
+    <div id="uiContainer">
+        <div id="scoreDisplay">Puntuación: <span id="score">0</span></div>
+        <div class="buttons-container">
+            <button id="resetCameraButton" class="game-button btn-orange">
+                <i>↺</i> Resetear cámara
+            </button>
+            <button id="backButton" class="game-button btn-blue">
+                <i>←</i> Volver al Dashboard
+            </button>
+        </div>
     </div>
-  </div>
-  
-  <!-- Game Over Screen -->
-  <div id="gameOver">
-    <h2 class="text-2xl font-bold mb-4">¡Juego terminado!</h2>
-    <p class="text-xl mb-6">Tu puntuación: <span id="finalScore">0</span></p>
-    <div class="space-y-3">
-      <button id="playAgainButton" class="bg-green-600 hover:bg-green-700 text-white w-full py-2 px-4 rounded">
-        Jugar de nuevo
-      </button>
-      <button id="saveToDashboardButton" class="bg-blue-600 hover:bg-blue-700 text-white w-full py-2 px-4 rounded">
-        Guardar puntuación
-      </button>
-      <button id="returnToDashboardButton" class="bg-gray-600 hover:bg-gray-700 text-white w-full py-2 px-4 rounded">
-        Volver al Dashboard
-      </button>
+
+    <!-- Pantalla Game Over -->
+    <div id="gameOver">
+        <h2>¡Juego terminado!</h2>
+        <p>Tu puntuación: <span id="finalScore">0</span></p>
+        <button id="playAgainButton" class="btn-green">Jugar de nuevo</button>
+        <button id="saveToDashboardButton" class="btn-blue">Guardar puntuación</button>
+        <button id="returnToDashboardButton" class="btn-gray">Volver al Dashboard</button>
     </div>
-  </div>
-  
-  <!-- IMPORTANTE: Usar el archivo bundle en lugar del compilado -->
-  <script src="/pong-bundle.js"></script>
-  
-  <script>
-    // Asegurar que los botones de navegación funcionan correctamente
-    document.addEventListener('DOMContentLoaded', function() {
-      const backButton = document.getElementById('backButton');
-      if (backButton) {
-        backButton.addEventListener('click', function(e) {
-          e.preventDefault();
-          console.log('🏠 Volviendo al dashboard...');
-          window.location.href = '/dashboard';
+
+    <script>
+        // Variables globales
+        var canvas = document.getElementById("renderCanvas");
+        var engine = new BABYLON.Engine(canvas, true);
+        var scene;
+        var score = 0;
+
+        // Inicia bucle de render
+        var startRenderLoop = function () {
+            engine.runRenderLoop(function () {
+                if (scene && scene.activeCamera) {
+                    scene.render();
+                }
+            });
+        };
+
+        // Clase de creación de escena Babylon
+        class Playground {
+            static CreateScene(engine, canvas) {
+                var scene = new BABYLON.Scene(engine);
+
+                // Cámara orbital cenital
+                var camera = new BABYLON.ArcRotateCamera(
+                    "camera1",
+                    -Math.PI/2,
+                    Math.PI/4.5,
+                    2.3,
+                    new BABYLON.Vector3(0,1,0),
+                    scene
+                );
+                camera.attachControl(canvas, true);
+				camera.lowerRadiusLimit = 2.3;
+				camera.upperRadiusLimit = 2.3;
+				
+				var defaultPosition = {
+					alpha: -Math.PI / 2,
+					beta: Math.PI / 4.5,
+					radius: 2.3
+				};
+
+				var resetCameraButton = document.getElementById('resetCameraButton');
+
+				// Función para comprobar si la cámara se ha movido
+				function checkCameraPosition() {
+					var epsilon = 0.05; // Tolerancia para comparaciones
+					
+					// Verificar si el usuario ha movido la cámara significativamente
+					var alphaDiff = Math.abs(camera.alpha - defaultPosition.alpha);
+					var betaDiff = Math.abs(camera.beta - defaultPosition.beta);
+					var radiusDiff = Math.abs(camera.radius - defaultPosition.radius);
+					
+					// Determinar si la cámara está fuera de posición
+					var camaraMovida = (alphaDiff > epsilon || betaDiff > epsilon || radiusDiff > epsilon);
+					
+					// Mostrar u ocultar el botón según la posición de la cámara
+					resetCameraButton.style.display = camaraMovida ? 'flex' : 'none';
+				}
+
+				// Función para resetear la cámara
+				function resetCamera() {
+					camera.alpha = defaultPosition.alpha;
+					camera.beta = defaultPosition.beta;
+					camera.radius = defaultPosition.radius;
+					// Actualizar visibilidad del botón
+					checkCameraPosition();
+				}
+				
+				// Hacer función resetCamera accesible globalmente
+				window.resetCamera = resetCamera;
+				
+				// Detectar movimiento de la cámara
+				camera.onViewMatrixChangedObservable.add(function() {
+					checkCameraPosition();
+				});
+				
+				// Comprobar posición inicial
+				checkCameraPosition();
+
+                // Luz
+                var light = new BABYLON.HemisphericLight(
+                    "light1",
+                    new BABYLON.Vector3(0,1,0),
+                    scene
+                );
+                light.intensity = 0.8;
+				
+				const hdrTexture = new BABYLON.HDRCubeTexture("textures/fondo.hdr", scene, 512, false, true, false, true);
+				scene.environmentTexture = hdrTexture;
+				scene.createDefaultSkybox(hdrTexture, true, 1000);
+				
+                // Material madera PBR
+				var woodMat = new BABYLON.PBRMaterial("woodMat", scene);
+				woodMat.albedoTexture = new BABYLON.Texture(
+					"https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/plywood/plywood_diff_1k.jpg",
+					scene
+				);
+				woodMat.roughness = 1;  // completamente mate
+				woodMat.metallic = 0;
+				// Material metal PBR
+				var metalMat = new BABYLON.PBRMaterial("metalMat", scene);
+				metalMat.albedoTexture = new BABYLON.Texture(
+					"https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rusty_metal_04/rusty_metal_04_diff_1k.jpg",
+					scene
+				);
+				metalMat.roughness = 0.8; // algo de brillo metálico
+				metalMat.metallic = 1;				
+
+                // Material Concrete para las patas
+                var concreteMat = new BABYLON.PBRMaterial("concreteMat", scene);
+                concreteMat.albedoTexture = new BABYLON.Texture("textures/concrete_0014_color_2k.jpg", scene);
+                concreteMat.bumpTexture = new BABYLON.Texture("textures/concrete_0014_normal_opengl_2k.png", scene);
+                concreteMat.ambientTexture = new BABYLON.Texture("textures/concrete_0014_ao_2k.jpg", scene);
+                concreteMat.roughness = 0.9;
+                concreteMat.metallic = 0.1;
+                // Usar parallax para dar profundidad
+                concreteMat.parallaxTexture = new BABYLON.Texture("textures/concrete_0014_height_2k.png", scene);
+                concreteMat.useParallax = true;
+                concreteMat.useParallaxOcclusion = true;
+                concreteMat.parallaxScaleBias = 0.08;
+
+                // Material Aerial para la tabla de la mesa
+                var aerialMat = new BABYLON.PBRMaterial("aerialMat", scene);
+                aerialMat.albedoTexture = new BABYLON.Texture("textures/aerial_rocks_02_diff_2k.jpg", scene);
+                aerialMat.bumpTexture = new BABYLON.Texture("textures/aerial_rocks_02_nor_gl_2k.png", scene);
+                aerialMat.metallicTexture = new BABYLON.Texture("textures/aerial_rocks_02_rough_2k.jpg", scene);
+                aerialMat.useRoughnessFromMetallicTextureAlpha = true;
+                aerialMat.metallic = 0.2;
+                aerialMat.roughness = 0.7;
+                // Parallax
+                aerialMat.parallaxTexture = new BABYLON.Texture("textures/aerial_rocks_02_disp_2k.png", scene);
+                aerialMat.useParallax = true;
+                aerialMat.useParallaxOcclusion = true;
+                aerialMat.parallaxScaleBias = 0.1;
+
+				// Ajuste de definicion de las texturas
+				const scale = 2; // o prueba con 6 u 8 para más detalle
+
+				concreteMat.albedoTexture.uScale = scale;
+				concreteMat.albedoTexture.vScale = scale;
+				concreteMat.bumpTexture.uScale = scale;
+				concreteMat.bumpTexture.vScale = scale;
+				concreteMat.ambientTexture.uScale = scale;
+				concreteMat.ambientTexture.vScale = scale;
+				concreteMat.parallaxTexture.uScale = scale;
+				concreteMat.parallaxTexture.vScale = scale;
+
+				aerialMat.albedoTexture.uScale = scale;
+				aerialMat.albedoTexture.vScale = scale;
+				aerialMat.bumpTexture.uScale = scale;
+				aerialMat.bumpTexture.vScale = scale;
+				aerialMat.metallicTexture.uScale = scale;
+				aerialMat.metallicTexture.vScale = scale;
+				aerialMat.parallaxTexture.uScale = scale;
+				aerialMat.parallaxTexture.vScale = scale;
+
+				concreteMat.albedoTexture.anisotropicFilteringLevel = 16;
+				aerialMat.albedoTexture.anisotropicFilteringLevel = 16;
+
+                // Material de bloques medievales para el borde de la mesa
+                var marbleMat = new BABYLON.PBRMaterial("marbleMat", scene);
+                marbleMat.albedoTexture = new BABYLON.Texture("textures/medieval_blocks_06_diff_2k.jpg", scene);
+                marbleMat.bumpTexture = new BABYLON.Texture("textures/medieval_blocks_06_nor_gl_2k.png", scene);
+                marbleMat.metallicTexture = new BABYLON.Texture("textures/medieval_blocks_06_rough_2k.jpg", scene);
+                marbleMat.useRoughnessFromMetallicTextureAlpha = true;
+                marbleMat.metallic = 0.1;
+                marbleMat.roughness = 0.6; // Ajustado para bloques de piedra
+                marbleMat.parallaxTexture = new BABYLON.Texture("textures/medieval_blocks_06_disp_2k.png", scene);
+                marbleMat.useParallax = true;
+                marbleMat.useParallaxOcclusion = true;
+                marbleMat.parallaxScaleBias = 0.08;
+
+                // Ajustes adicionales para mejor calidad visual
+                marbleMat.albedoTexture.anisotropicFilteringLevel = 16;
+                marbleMat.albedoTexture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
+                marbleMat.albedoTexture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
+
+                // Aplicar el mismo modo de wrap a las otras texturas
+                marbleMat.bumpTexture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
+                marbleMat.bumpTexture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
+                marbleMat.metallicTexture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
+                marbleMat.metallicTexture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
+                marbleMat.parallaxTexture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
+                marbleMat.parallaxTexture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
+
+                // Mesa: tablero y patas
+                var tableTop = BABYLON.MeshBuilder.CreateBox(
+                    "tableTop", {width:2, depth:1, height:0.1}, scene
+                );
+                tableTop.position.y = 1;
+                tableTop.material = aerialMat; // Cambiar de lavaMat a aerialMat
+                var pala1 = BABYLON.MeshBuilder.CreateBox(
+                    "pala1", {width:0.1, depth:0.5, height:0.05}, scene
+                );
+                pala1.position.x = 0.95;
+                pala1.position.y = tableTop.position.y + 0.05 + tableTop.getBoundingInfo().boundingBox.extendSize.y;
+                pala1.material = metalMat;
+                var pala2 = BABYLON.MeshBuilder.CreateBox(
+                    "pala2", {width:0.1, depth:0.5, height:0.05}, scene
+                );
+                pala2.position.x = -0.95;
+                pala2.position.y = tableTop.position.y + 0.05 + tableTop.getBoundingInfo().boundingBox.extendSize.y;
+                pala2.material = metalMat;
+                var bola = BABYLON.MeshBuilder.CreateSphere(
+                    "bola", {diameter: 0.1}, scene
+                );
+                bola.position.y = tableTop.position.y + 0.05 + tableTop.getBoundingInfo().boundingBox.extendSize.y;
+                bola.material = metalMat;
+
+                var legParams = { diameter: 0.1, height: 1 };
+                [ [0.9,0.5,0.4],[-0.9,0.5,0.4],[0.9,0.5,-0.4],[-0.9,0.5,-0.4] ]
+                .forEach(function(pos,i) {
+                    var leg = BABYLON.MeshBuilder.CreateCylinder(
+                        "leg"+i, legParams, scene
+                    );
+                    leg.position = new BABYLON.Vector3(pos[0], pos[1], pos[2]);
+                    leg.material = concreteMat; // Cambiar de woodMat a concreteMat
+                });
+
+                // Crear el borde de la mesa
+                const borderHeight = 0.10; // Altura del borde lateral
+                const borderThickness = 0.05; // Grosor del borde
+                const borderOffset = 0.05; // Cuánto sobresale por encima
+
+                // Borde frontal
+                var frontBorder = BABYLON.MeshBuilder.CreateBox(
+                    "frontBorder", {width: 2.1, depth: borderThickness, height: borderHeight}, scene
+                );
+                frontBorder.position.y = tableTop.position.y + tableTop.getBoundingInfo().boundingBox.extendSize.y + (borderHeight/2 - borderOffset);
+                frontBorder.position.z = 0.5 + borderThickness/2;
+                frontBorder.material = marbleMat;
+
+                // Borde trasero
+                var backBorder = BABYLON.MeshBuilder.CreateBox(
+                    "backBorder", {width: 2.1, depth: borderThickness, height: borderHeight}, scene
+                );
+                backBorder.position.y = tableTop.position.y + tableTop.getBoundingInfo().boundingBox.extendSize.y + (borderHeight/2 - borderOffset);
+                backBorder.position.z = -0.5 - borderThickness/2;
+                backBorder.material = marbleMat;
+
+                // Borde izquierdo
+                var leftBorder = BABYLON.MeshBuilder.CreateBox(
+                    "leftBorder", {width: borderThickness - 0.01, depth: 1.09, height: borderHeight - borderOffset}, scene
+                );
+                leftBorder.position.y = tableTop.position.y + tableTop.getBoundingInfo().boundingBox.extendSize.y + (borderHeight/2 - borderOffset);
+                leftBorder.position.x = -1 - borderThickness/2;
+                leftBorder.material = marbleMat;
+
+                // Borde derecho
+                var rightBorder = BABYLON.MeshBuilder.CreateBox(
+                    "rightBorder", {width: borderThickness - 0.01, depth: 1.09, height: borderHeight - borderOffset}, scene
+                );
+                rightBorder.position.y = tableTop.position.y + tableTop.getBoundingInfo().boundingBox.extendSize.y + (borderHeight/2 - borderOffset);
+                rightBorder.position.x = 1 + borderThickness/2;
+                rightBorder.material = marbleMat;
+
+                // Aplicar escala a las texturas de mármol/bloques medievales diferenciada según la orientación
+                // Para los bordes frontal y trasero (largos y estrechos en anchura)
+                frontBorder.material = marbleMat.clone("frontBorderMat");
+                backBorder.material = marbleMat.clone("backBorderMat");
+
+                // Para los bordes laterales (largos y estrechos en profundidad)
+                leftBorder.material = marbleMat.clone("leftBorderMat");
+                rightBorder.material = marbleMat.clone("rightBorderMat");
+
+                // Método alternativo y más limpio
+                function configureClonedMaterial(original, clone, uScale, vScale) {
+                    // Clonar texturas para evitar afectar al material original
+                    clone.albedoTexture = original.albedoTexture.clone();
+                    clone.bumpTexture = original.bumpTexture.clone();
+                    clone.metallicTexture = original.metallicTexture.clone();
+                    clone.parallaxTexture = original.parallaxTexture.clone();
+                    
+                    // Configurar escalas
+                    clone.albedoTexture.uScale = uScale;
+                    clone.albedoTexture.vScale = vScale;
+                    clone.bumpTexture.uScale = uScale;
+                    clone.bumpTexture.vScale = vScale;
+                    clone.metallicTexture.uScale = uScale;
+                    clone.metallicTexture.vScale = vScale;
+                    clone.parallaxTexture.uScale = uScale;
+                    clone.parallaxTexture.vScale = vScale;
+                }
+
+                // Usar la función
+                configureClonedMaterial(marbleMat, frontBorder.material, 2, 0.5);
+                configureClonedMaterial(marbleMat, backBorder.material, 2, 0.5);
+                configureClonedMaterial(marbleMat, leftBorder.material, 0.5, 2);
+                configureClonedMaterial(marbleMat, rightBorder.material, 0.5, 2);
+
+                return scene;
+            }
+        }
+
+        // Inicialización
+        window.addEventListener('DOMContentLoaded', function() {
+            // Crear escena y bucle
+            scene = Playground.CreateScene(engine, canvas);
+            startRenderLoop();
+
+            // Botones UI
+            document.getElementById('backButton').addEventListener('click', function(e) {
+                e.preventDefault(); window.location.href = '/dashboard';
+            });
+            document.getElementById('returnToDashboardButton').addEventListener('click', function(e) {
+                e.preventDefault(); window.location.href = '/dashboard';
+            });
+            document.getElementById('playAgainButton').addEventListener('click', function() {
+                score = 0;
+                document.getElementById('score').textContent = score;
+                document.getElementById('gameOver').style.display = 'none';
+            });
+            document.getElementById('saveToDashboardButton').addEventListener('click', function() {
+                // Aquí podrías llamar a tu API para guardar puntuación
+                console.log('Guardar puntuación:', score);
+            });
+            document.getElementById('resetCameraButton').addEventListener('click', function() {
+                if (window.resetCamera) {
+                    window.resetCamera();
+                }
+            });
         });
-      }
-      
-      const returnToDashboardButton = document.getElementById('returnToDashboardButton');
-      if (returnToDashboardButton) {
-        returnToDashboardButton.addEventListener('click', function(e) {
-          e.preventDefault();
-          console.log('🏠 Volviendo al dashboard desde game over...');
-          window.location.href = '/dashboard';
+
+        // Redimensionar
+        window.addEventListener('resize', function() {
+            engine.resize();
         });
-      }
-    });
-  </script>
+    </script>
 </body>
 </html>

@@ -27,7 +27,6 @@ services:
       - ./frontend/main.ts:/app/main.ts
       - ./frontend/dashboard.ts:/app/dashboard.ts
       - ./frontend/dashboard.html:/app/dashboard.html
-      - ./frontend/pong.ts:/app/pong.ts
       - ./frontend/pong.html:/app/pong.html
       - ./frontend/styles.css:/app/styles.css
       - ./frontend/tailwind.config.js:/app/tailwind.config.js
@@ -38,7 +37,8 @@ services:
       - ./frontend/env-config.js:/app/env-config.js
       - ./frontend/env-types.js:/app/env-types.js
       - ./.env:/app/.env
-      - ./frontend/pong-bundle.js:/app/pong-bundle.js
+      - ./frontend/pong.ts:/app/pong.ts
+      - ./frontend/pong.html:/app/pong.html
     restart: always
     env_file:
       - .env

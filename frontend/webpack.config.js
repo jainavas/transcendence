@@ -5,7 +5,6 @@ module.exports = {
   entry: {
     main: './main.ts',
     dashboard: './dashboard.ts',
-    pong: './pong.ts'
   },
   module: {
     rules: [

@@ -1,386 +1,387 @@
-import { 
-    Engine, Scene, Vector3, MeshBuilder, StandardMaterial, 
-    Color3, Color4, HemisphericLight, FreeCamera, ActionManager, 
-    ExecuteCodeAction, Animation, KeyboardEventTypes
-} from "@babylonjs/core";
+// Importar tipos de entorno
 import './env-types.js';
 
-// Add env interface declaration
-declare global {
-  interface Window {
-    env: {
-      BACKEND_URL?: string;
-      FRONTEND_URL?: string;
-      GOOGLE_CLIENT_ID?: string;
-      NODE_ENV?: string;
-    };
-  }
-}
+// Declarar BABYLON como variable global ya que lo cargamos desde CDN
+declare var BABYLON: any;
 
-// Game state variables
-let score = 0;
-let gameStarted = false;
-let gameOver = false;
-let gameDuration = 0;
-let startTime = 0;
+// Variables de entorno
 const BACKEND_URL = window.env?.BACKEND_URL || 'http://localhost:3000';
 
+// Game state variables
+let score: number = 0;
+let gameStarted: boolean = false;
+let gameOver: boolean = false;
+
 // Game elements
+let canvas: HTMLCanvasElement;
+let engine: any;
+let scene: any;
+let camera: any;
 let paddle: any;
 let ball: any;
 let opponentPaddle: any;
 let walls: any[] = [];
 
 // Game settings
-const paddleSpeed = 10;
-const ballSpeed = 6;
-let ballDirection = new Vector3(ballSpeed, 0, ballSpeed);
+const paddleSpeed: number = 10;
+const ballSpeed: number = 6;
+let ballDirection: any;
+let currentUser: any = null;
 
-// Añadir después de las variables globales
+// Input variables
+let leftPressed: boolean = false;
+let rightPressed: boolean = false;
 
-// Verificar sesión antes de iniciar el juego
-async function checkSession() {
+/**
+ * Verifica si el usuario está autenticado
+ */
+async function checkSession(): Promise<boolean> {
   try {
-    const response = await fetch(`${BACKEND_URL}/pong/status`, {
+    const response = await fetch(`${BACKEND_URL}/user/me`, {
       credentials: 'include'
     });
     
     if (!response.ok) {
-      throw new Error('No autorizado');
+      throw new Error('No autenticado');
     }
     
     const data = await response.json();
-    
-    if (!data.available) {
-      console.error('El juego no está disponible:', data.reason);
-      alert('Debes iniciar sesión para jugar.');
-      window.location.href = '/';
+    if (!data.authenticated || !data.user) {
       return false;
     }
     
-    console.log('✅ Sesión verificada, jugador:', data.user.name);
+    currentUser = data.user;
+    console.log('✅ Usuario verificado:', currentUser.name);
     return true;
   } catch (error) {
     console.error('Error al verificar sesión:', error);
-    alert('Error al verificar tu sesión. Volviendo al inicio...');
-    window.location.href = '/';
     return false;
   }
 }
 
-// Initialize game
+/**
+ * Inicializa el motor de juego Babylon.js
+ */
 async function initGame() {
-  const sessionValid = await checkSession();
-  if (!sessionValid) return;
+  // Verificar autenticación
+  const isAuthenticated = await checkSession();
+  if (!isAuthenticated) {
+    alert('Debes iniciar sesión para jugar');
+    window.location.href = '/';
+    return;
+  }
+
+  // Setup canvas y engine
+  canvas = document.getElementById('renderCanvas') as HTMLCanvasElement;
+  engine = new BABYLON.Engine(canvas, true);
   
-    // Get canvas element
-    const canvas = document.getElementById("gameCanvas") as HTMLCanvasElement;
-    if (!canvas) throw new Error("Canvas element not found");
-    
-    // Create Babylon.js engine and scene
-    const engine = new Engine(canvas, true);
-    const scene = new Scene(engine);
-    scene.clearColor = new Color4(
-        Color3.FromHexString("#1e293b").r,
-        Color3.FromHexString("#1e293b").g,
-        Color3.FromHexString("#1e293b").b,
-        1
-    );
-    
-    // Create camera
-    const camera = new FreeCamera("camera", new Vector3(0, 15, 0), scene);
-    camera.setTarget(Vector3.Zero());
-    
-    // Create light
-    const light = new HemisphericLight("light", new Vector3(0, 1, 0), scene);
-    light.intensity = 0.7;
-    
-    // Create materials
-    const paddleMaterial = new StandardMaterial("paddleMaterial", scene);
-    paddleMaterial.diffuseColor = Color3.FromHexString("#3b82f6"); // blue
-    
-    const opponentMaterial = new StandardMaterial("opponentMaterial", scene);
-    opponentMaterial.diffuseColor = Color3.FromHexString("#ef4444"); // red
-    
-    const ballMaterial = new StandardMaterial("ballMaterial", scene);
-    ballMaterial.diffuseColor = Color3.FromHexString("#ffffff"); // white
-    
-    const wallMaterial = new StandardMaterial("wallMaterial", scene);
-    wallMaterial.diffuseColor = Color3.FromHexString("#6b7280"); // gray
-    
-    // Create game board (10x10 units)
-    
-    // Create walls
-    const leftWall = MeshBuilder.CreateBox("leftWall", {width: 0.5, height: 1, depth: 10}, scene);
-    leftWall.position = new Vector3(-5.25, 0, 0);
-    leftWall.material = wallMaterial;
-    walls.push(leftWall);
-    
-    const rightWall = MeshBuilder.CreateBox("rightWall", {width: 0.5, height: 1, depth: 10}, scene);
-    rightWall.position = new Vector3(5.25, 0, 0);
-    rightWall.material = wallMaterial;
-    walls.push(rightWall);
-    
-    // Create player paddle
-    paddle = MeshBuilder.CreateBox("paddle", {width: 2, height: 0.5, depth: 0.5}, scene);
-    paddle.position = new Vector3(0, 0, -4.5);
-    paddle.material = paddleMaterial;
-    
-    // Create opponent paddle
-    opponentPaddle = MeshBuilder.CreateBox("opponentPaddle", {width: 2, height: 0.5, depth: 0.5}, scene);
-    opponentPaddle.position = new Vector3(0, 0, 4.5);
-    opponentPaddle.material = opponentMaterial;
-    
-    // Create ball
-    ball = MeshBuilder.CreateSphere("ball", {diameter: 0.5}, scene);
-    ball.position = new Vector3(0, 0.5, 0);
-    ball.material = ballMaterial;
-    
-    // Setup input
-    setupInput(scene);
-    
-    // Game loop
-    engine.runRenderLoop(() => {
-        if (gameStarted && !gameOver) {
-            updateGame();
-            gameDuration = (Date.now() - startTime) / 1000;
-        }
-        scene.render();
-    });
-    
-    // Handle window resize
-    window.addEventListener("resize", () => {
-        engine.resize();
-    });
-}
-
-// Setup user input
-function setupInput(scene: Scene) {
-    // Keyboard controls
-    scene.onKeyboardObservable.add((kbInfo) => {
-        if (gameOver) return;
-        
-        if (kbInfo.type === KeyboardEventTypes.KEYDOWN) {
-            switch (kbInfo.event.code) {
-                case "Space":
-                    if (!gameStarted) {
-                        startGame();
-                    }
-                    break;
-                case "ArrowLeft":
-                    movePaddle(-paddleSpeed / 60);
-                    break;
-                case "ArrowRight":
-                    movePaddle(paddleSpeed / 60);
-                    break;
-            }
-        }
-    });
-    
-    // Mouse/touch controls for paddle
-    scene.onPointerObservable.add((pointerInfo) => {
-        if (gameOver) return;
-        
-        if (!gameStarted) {
-            startGame();
-            return;
-        }
-        
-        // Convert pointer x position to game coordinates
-        const canvas = scene.getEngine().getRenderingCanvas();
-        if (!canvas) return;
-        
-        const normalizedX = (pointerInfo.event.offsetX / canvas.width) * 2 - 1;
-        const targetX = normalizedX * 4; // Scale to game coordinates
-        
-        // Move towards target position
-        const diff = targetX - paddle.position.x;
-        if (Math.abs(diff) > 0.1) {
-            movePaddle(diff / 10);
-        }
-    });
-    
-    // Button controls
-    document.getElementById("backButton")?.addEventListener("click", () => {
-        window.location.href = "/dashboard";
-    });
-    
-    document.getElementById("playAgainButton")?.addEventListener("click", () => {
-        resetGame();
-    });
-    
-    document.getElementById("saveToDashboardButton")?.addEventListener("click", async () => {
-        await saveScore();
-        document.getElementById("saveToDashboardButton")!.textContent = "¡Guardado!";
-        document.getElementById("saveToDashboardButton")!.setAttribute("disabled", "true");
-    });
-    
-    document.getElementById("returnToDashboardButton")?.addEventListener("click", () => {
-        window.location.href = "/dashboard";
-    });
-}
-
-// Move the player paddle
-function movePaddle(amount: number) {
-    paddle.position.x += amount;
-    
-    // Clamp within walls
-    if (paddle.position.x < -4) {
-        paddle.position.x = -4;
-    } else if (paddle.position.x > 4) {
-        paddle.position.x = 4;
+  // Crear escena
+  createScene();
+  
+  // Iniciar renderizado
+  engine.runRenderLoop(() => {
+    if (gameStarted && !gameOver) {
+      updateGame();
     }
+    scene.render();
+  });
+  
+  // Manejar redimensionamiento de ventana
+  window.addEventListener('resize', () => {
+    engine.resize();
+  });
+  
+  // Setup de eventos UI
+  setupUIEvents();
 }
 
-// Start the game
+/**
+ * Crea la escena del juego
+ */
+function createScene() {
+  // Crear escena
+  scene = new BABYLON.Scene(engine);
+  scene.clearColor = new BABYLON.Color4(0, 0, 0.2, 1);
+  
+  // Crear cámara
+  camera = new BABYLON.FreeCamera('camera', new BABYLON.Vector3(0, 15, -5), scene);
+  camera.setTarget(BABYLON.Vector3.Zero());
+  
+  // Crear luz
+  const light = new BABYLON.HemisphericLight('light', new BABYLON.Vector3(0, 1, 0), scene);
+  light.intensity = 0.7;
+  
+  // Crear materiales
+  const paddleMaterial = new BABYLON.StandardMaterial('paddleMaterial', scene);
+  paddleMaterial.diffuseColor = BABYLON.Color3.FromHexString('#3b82f6'); // blue
+  
+  const opponentMaterial = new BABYLON.StandardMaterial('opponentMaterial', scene);
+  opponentMaterial.diffuseColor = BABYLON.Color3.FromHexString('#ef4444'); // red
+  
+  const ballMaterial = new BABYLON.StandardMaterial('ballMaterial', scene);
+  ballMaterial.diffuseColor = BABYLON.Color3.FromHexString('#ffffff'); // white
+  
+  const wallMaterial = new BABYLON.StandardMaterial('wallMaterial', scene);
+  wallMaterial.diffuseColor = BABYLON.Color3.FromHexString('#6b7280'); // gray
+  
+  // Crear paredes
+  const leftWall = BABYLON.MeshBuilder.CreateBox('leftWall', {width: 0.5, height: 1, depth: 20}, scene);
+  leftWall.position = new BABYLON.Vector3(-10, 0, 0);
+  leftWall.material = wallMaterial;
+  walls.push(leftWall);
+  
+  const rightWall = BABYLON.MeshBuilder.CreateBox('rightWall', {width: 0.5, height: 1, depth: 20}, scene);
+  rightWall.position = new BABYLON.Vector3(10, 0, 0);
+  rightWall.material = wallMaterial;
+  walls.push(rightWall);
+  
+  // Crear paddle del jugador
+  paddle = BABYLON.MeshBuilder.CreateBox('paddle', {width: 3, height: 0.5, depth: 1}, scene);
+  paddle.position = new BABYLON.Vector3(0, 0, 8);
+  paddle.material = paddleMaterial;
+  
+  // Crear paddle del oponente
+  opponentPaddle = BABYLON.MeshBuilder.CreateBox('opponentPaddle', {width: 3, height: 0.5, depth: 1}, scene);
+  opponentPaddle.position = new BABYLON.Vector3(0, 0, -8);
+  opponentPaddle.material = opponentMaterial;
+  
+  // Crear pelota
+  ball = BABYLON.MeshBuilder.CreateSphere('ball', {diameter: 0.8}, scene);
+  ball.position = new BABYLON.Vector3(0, 0.5, 0);
+  ball.material = ballMaterial;
+  
+  // Inicializar dirección de la pelota
+  resetBall();
+  
+  // Setup de input
+  setupInput();
+  
+  // Iniciar juego
+  startGame();
+}
+
+/**
+ * Configura los controles de input
+ */
+function setupInput() {
+  scene.onKeyboardObservable.add((kbInfo) => {
+    switch (kbInfo.type) {
+      case BABYLON.KeyboardEventTypes.KEYDOWN:
+        if (kbInfo.event.key === 'ArrowLeft' || kbInfo.event.key === 'a') {
+          leftPressed = true;
+        } else if (kbInfo.event.key === 'ArrowRight' || kbInfo.event.key === 'd') {
+          rightPressed = true;
+        }
+        break;
+      case BABYLON.KeyboardEventTypes.KEYUP:
+        if (kbInfo.event.key === 'ArrowLeft' || kbInfo.event.key === 'a') {
+          leftPressed = false;
+        } else if (kbInfo.event.key === 'ArrowRight' || kbInfo.event.key === 'd') {
+          rightPressed = false;
+        }
+        break;
+    }
+  });
+}
+
+/**
+ * Configura los eventos de UI
+ */
+function setupUIEvents() {
+  const backButton = document.getElementById('backButton');
+  if (backButton) {
+    backButton.addEventListener('click', () => {
+      window.location.href = '/dashboard';
+    });
+  }
+  
+  const playAgainButton = document.getElementById('playAgainButton');
+  if (playAgainButton) {
+    playAgainButton.addEventListener('click', resetGame);
+  }
+  
+  const saveScoreButton = document.getElementById('saveScoreButton');
+  if (saveScoreButton) {
+    saveScoreButton.addEventListener('click', saveScore);
+  }
+  
+  const returnToDashboardButton = document.getElementById('returnToDashboardButton');
+  if (returnToDashboardButton) {
+    returnToDashboardButton.addEventListener('click', () => {
+      window.location.href = '/dashboard';
+    });
+  }
+}
+
+/**
+ * Inicia el juego
+ */
 function startGame() {
-    gameStarted = true;
-    startTime = Date.now();
-    
-    // Reset ball position
-    ball.position = new Vector3(0, 0.5, 0);
-    
-    // Set random initial ball direction
-    const angle = Math.random() * Math.PI / 2 - Math.PI / 4;
-    ballDirection = new Vector3(
-        Math.sin(angle) * ballSpeed, 
-        0, 
-        ballSpeed
-    );
+  gameStarted = true;
+  gameOver = false;
+  score = 0;
+  updateScoreDisplay();
 }
 
-// Update game state
-function updateGame() {
-    // Move ball
-    ball.position.addInPlace(ballDirection.scale(1/60));
-    
-    // Ball collision with walls
-    if (ball.position.x < -4.5 || ball.position.x > 4.5) {
-        ballDirection.x *= -1;
-    }
-    
-    // Ball collision with paddles
-    if (ball.position.z <= -4.25 && 
-        ball.position.x >= paddle.position.x - 1 &&
-        ball.position.x <= paddle.position.x + 1) {
-        
-        ballDirection.z *= -1;
-        
-        // Adjust x direction based on where the ball hit the paddle
-        const hitPos = ball.position.x - paddle.position.x;
-        ballDirection.x = hitPos * 2; // Adjust multiplier for different bounce angles
-        
-        // Normalize ball speed
-        const magnitude = Math.sqrt(ballDirection.x * ballDirection.x + ballDirection.z * ballDirection.z);
-        ballDirection = ballDirection.scale(ballSpeed / magnitude);
-        
-        // Increase score
-        updateScore(10);
-    }
-    
-    // Simple AI for opponent paddle
-    const targetX = ball.position.x * 0.8; // Not perfect tracking
-    const diff = targetX - opponentPaddle.position.x;
-    opponentPaddle.position.x += diff * 0.05; // Adjust for difficulty
-    
-    // Collision with opponent paddle
-    if (ball.position.z >= 4.25 && 
-        ball.position.x >= opponentPaddle.position.x - 1 &&
-        ball.position.x <= opponentPaddle.position.x + 1) {
-        
-        ballDirection.z *= -1;
-        
-        // Adjust x direction based on where the ball hit the paddle
-        const hitPos = ball.position.x - opponentPaddle.position.x;
-        ballDirection.x = hitPos * 2;
-        
-        // Normalize ball speed
-        const magnitude = Math.sqrt(ballDirection.x * ballDirection.x + ballDirection.z * ballDirection.z);
-        ballDirection = ballDirection.scale(ballSpeed / magnitude);
-    }
-    
-    // Game over conditions
-    if (ball.position.z < -5 || ball.position.z > 5) {
-        endGame(ball.position.z < -5);
-    }
-}
-
-// Update the score display
-function updateScore(points: number) {
-    score += points;
-    const scoreDisplay = document.getElementById("score");
-    if (scoreDisplay) {
-        scoreDisplay.textContent = score.toString();
-    }
-}
-
-// End the game
-function endGame(playerLost: boolean) {
-    gameOver = true;
-    
-    const gameOverScreen = document.getElementById("gameOver");
-    const finalScoreDisplay = document.getElementById("finalScore");
-    
-    if (gameOverScreen && finalScoreDisplay) {
-        gameOverScreen.style.display = "block";
-        finalScoreDisplay.textContent = score.toString();
-    }
-}
-
-// Reset the game
+/**
+ * Reinicia el juego
+ */
 function resetGame() {
-    score = 0;
-    updateScore(0);
-    gameOver = false;
-    gameStarted = false;
-    
-    // Hide game over screen
-    const gameOverScreen = document.getElementById("gameOver");
-    if (gameOverScreen) {
-        gameOverScreen.style.display = "none";
-    }
-    
-    // Reset button states
-    const saveButton = document.getElementById("saveToDashboardButton");
-    if (saveButton) {
-        saveButton.textContent = "Guardar puntuación";
-        saveButton.removeAttribute("disabled");
-    }
-    
-    // Reset positions
-    ball.position = new Vector3(0, 0.5, 0);
-    paddle.position = new Vector3(0, 0, -4.5);
-    opponentPaddle.position = new Vector3(0, 0, 4.5);
+  document.getElementById('gameOver').style.display = 'none';
+  resetBall();
+  startGame();
 }
 
-// Save score to the backend
+/**
+ * Reinicia la pelota a su posición inicial
+ */
+function resetBall() {
+  ball.position = new BABYLON.Vector3(0, 0.5, 0);
+  
+  // Dirección aleatoria en X
+  const xDir = Math.random() > 0.5 ? ballSpeed : -ballSpeed;
+  // Dirección aleatoria en Z
+  const zDir = Math.random() > 0.5 ? ballSpeed : -ballSpeed;
+  
+  ballDirection = new BABYLON.Vector3(xDir, 0, zDir);
+}
+
+/**
+ * Actualiza la física y la lógica del juego
+ */
+function updateGame() {
+  // Mover paddle basado en input
+  if (leftPressed) {
+    paddle.position.x -= paddleSpeed * engine.getDeltaTime() / 100;
+  }
+  if (rightPressed) {
+    paddle.position.x += paddleSpeed * engine.getDeltaTime() / 100;
+  }
+  
+  // Limitar posición del paddle
+  if (paddle.position.x < -8) paddle.position.x = -8;
+  if (paddle.position.x > 8) paddle.position.x = 8;
+  
+  // Mover pelota
+  ball.position.addInPlace(
+    ballDirection.scale(engine.getDeltaTime() / 100)
+  );
+  
+  // Mover paddle del oponente (AI simple)
+  moveOpponentPaddle();
+  
+  // Detectar colisiones
+  checkCollisions();
+}
+
+/**
+ * Mueve el paddle oponente con IA simple
+ */
+function moveOpponentPaddle() {
+  const aiSpeed = paddleSpeed * 0.8 * engine.getDeltaTime() / 100;
+  if (ball.position.x < opponentPaddle.position.x - 0.5) {
+    opponentPaddle.position.x -= aiSpeed;
+  } else if (ball.position.x > opponentPaddle.position.x + 0.5) {
+    opponentPaddle.position.x += aiSpeed;
+  }
+  
+  // Limitar posición del paddle
+  if (opponentPaddle.position.x < -8) opponentPaddle.position.x = -8;
+  if (opponentPaddle.position.x > 8) opponentPaddle.position.x = 8;
+}
+
+/**
+ * Verifica colisiones de la pelota
+ */
+function checkCollisions() {
+  // Colisión con paredes laterales
+  if (ball.position.x <= -9.5 || ball.position.x >= 9.5) {
+    ballDirection.x = -ballDirection.x;
+  }
+  
+  // Colisión con paddle del jugador
+  if (ball.position.z >= 7.5 && ball.position.z <= 8.5 &&
+      ball.position.x >= paddle.position.x - 1.5 && 
+      ball.position.x <= paddle.position.x + 1.5) {
+    ballDirection.z = -ballDirection.z;
+    // Aumentar velocidad ligeramente
+    ballDirection = ballDirection.scale(1.05);
+    score += 10;
+    updateScoreDisplay();
+  }
+  
+  // Colisión con paddle del oponente
+  if (ball.position.z <= -7.5 && ball.position.z >= -8.5 &&
+      ball.position.x >= opponentPaddle.position.x - 1.5 && 
+      ball.position.x <= opponentPaddle.position.x + 1.5) {
+    ballDirection.z = -ballDirection.z;
+    // Aumentar velocidad ligeramente
+    ballDirection = ballDirection.scale(1.05);
+    score += 5;
+    updateScoreDisplay();
+  }
+  
+  // Game over si la pelota pasa el paddle del jugador
+  if (ball.position.z > 10) {
+    endGame();
+  }
+}
+
+/**
+ * Actualiza el display de puntuación
+ */
+function updateScoreDisplay() {
+  const scoreElement = document.getElementById('score');
+  if (scoreElement) {
+    scoreElement.textContent = score.toString();
+  }
+}
+
+/**
+ * Finaliza el juego
+ */
+function endGame() {
+  gameOver = true;
+  
+  // Mostrar panel de game over
+  const gameOverPanel = document.getElementById('gameOver');
+  const finalScoreElement = document.getElementById('finalScore');
+  
+  if (gameOverPanel && finalScoreElement) {
+    finalScoreElement.textContent = score.toString();
+    gameOverPanel.style.display = 'block';
+  }
+}
+
+/**
+ * Guarda la puntuación en el servidor
+ */
 async function saveScore() {
-    try {
-        const response = await fetch(`${BACKEND_URL}/pong/scores`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            credentials: 'include',
-            body: JSON.stringify({
-                score: score,
-                opponent: 'CPU',
-                winner: ball.position.z > 5, // Win if the ball passed the opponent
-                game_duration: Math.round(gameDuration)
-            })
-        });
-        
-        if (!response.ok) {
-            throw new Error("Error al guardar puntuación");
-        }
-        
-        console.log("Puntuación guardada con éxito");
-        return await response.json();
-    } catch (error) {
-        console.error("Error guardando puntuación:", error);
-        alert("Error al guardar la puntuación. Por favor, inténtalo de nuevo.");
+  try {
+    const response = await fetch(`${BACKEND_URL}/pong/scores`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ score })
+    });
+    
+    if (!response.ok) {
+      throw new Error('Error al guardar puntuación');
     }
+    
+    const result = await response.json();
+    console.log('✅ Puntuación guardada:', result);
+    alert('¡Puntuación guardada con éxito!');
+    
+    // Redirigir al dashboard
+    window.location.href = '/dashboard';
+  } catch (error) {
+    console.error('Error al guardar puntuación:', error);
+    alert('Error al guardar la puntuación. Inténtalo de nuevo.');
+  }
 }
 
-// Initialize the game when the page loads
-window.addEventListener("DOMContentLoaded", initGame);
+// Iniciar el juego cuando el DOM esté cargado
+document.addEventListener('DOMContentLoaded', initGame);
