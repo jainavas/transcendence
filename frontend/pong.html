@@ -171,7 +171,7 @@
                 camera.attachControl(canvas, true);
 				camera.lowerRadiusLimit = 2.3;
 				camera.upperRadiusLimit = 2.3;
-				
+				canvas.focus();
 				var defaultPosition = {
 					alpha: -Math.PI / 2,
 					beta: Math.PI / 4.5,
@@ -322,6 +322,9 @@
                 marbleMat.parallaxTexture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
                 marbleMat.parallaxTexture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
 
+
+				// Agregar esto cerca del inicio de CreateScene
+				scene.audioEnabled = true;
                 // Mesa: tablero y patas
                 var tableTop = BABYLON.MeshBuilder.CreateBox(
                     "tableTop", {width:2, depth:1, height:0.1}, scene
@@ -329,17 +332,25 @@
                 tableTop.position.y = 1;
                 tableTop.material = aerialMat; // Cambiar de lavaMat a aerialMat
                 var pala1 = BABYLON.MeshBuilder.CreateBox(
-                    "pala1", {width:0.1, depth:0.5, height:0.05}, scene
+                    "pala1", {width:0.1, depth:0.25, height:0.05}, scene
                 );
-                pala1.position.x = 0.95;
-                pala1.position.y = tableTop.position.y + 0.05 + tableTop.getBoundingInfo().boundingBox.extendSize.y;
+                pala1.position = new BABYLON.Vector3(
+                    0.95,
+                    tableTop.position.y + 0.05 + tableTop.getBoundingInfo().boundingBox.extendSize.y,
+                    0 // Posición Z inicial centrada
+                );
                 pala1.material = metalMat;
+
                 var pala2 = BABYLON.MeshBuilder.CreateBox(
-                    "pala2", {width:0.1, depth:0.5, height:0.05}, scene
+                    "pala2", {width:0.1, depth:0.25, height:0.05}, scene
                 );
-                pala2.position.x = -0.95;
-                pala2.position.y = tableTop.position.y + 0.05 + tableTop.getBoundingInfo().boundingBox.extendSize.y;
+                pala2.position = new BABYLON.Vector3(
+                    -0.95,
+                    tableTop.position.y + 0.05 + tableTop.getBoundingInfo().boundingBox.extendSize.y,
+                    0 // Posición Z inicial centrada
+                );
                 pala2.material = metalMat;
+
                 var bola = BABYLON.MeshBuilder.CreateSphere(
                     "bola", {diameter: 0.1}, scene
                 );
@@ -422,10 +433,168 @@
                 }
 
                 // Usar la función
-                configureClonedMaterial(marbleMat, frontBorder.material, 2, 0.5);
-                configureClonedMaterial(marbleMat, backBorder.material, 2, 0.5);
-                configureClonedMaterial(marbleMat, leftBorder.material, 0.5, 2);
-                configureClonedMaterial(marbleMat, rightBorder.material, 0.5, 2);
+                configureClonedMaterial(marbleMat, frontBorder.material, 16, 0.5);
+                configureClonedMaterial(marbleMat, backBorder.material, 16, 0.5);
+                configureClonedMaterial(marbleMat, leftBorder.material, 0.5, 16);
+                configureClonedMaterial(marbleMat, rightBorder.material, 0.5, 16);
+
+				 // 1. Primero desactivar las teclas de flecha para la cámara
+				camera.keysUp = [];    // Tecla arriba (normalmente es 38)
+				camera.keysDown = [];  // Tecla abajo (normalmente es 40)
+				camera.keysLeft = [];  // Tecla izquierda (normalmente es 37)
+				camera.keysRight = []; // Tecla derecha (normalmente es 39)
+
+				const paddleSpeed = 0.01; // Aumentado de 0.0001 a 0.01 (100 veces más rápido)
+				const tableHalfDepth = 0.5;
+                // Reemplace el manejo de teclado existente con este enfoque
+				var keysPressed = {};
+				 // Modificar el listener de teclado para ignorar teclas modificadoras
+				window.addEventListener("keydown", function(e) {
+					// Solo registrar teclas que nos interesan para el juego
+					if (e.key === 'a' || e.key === 'd' || 
+						e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+						keysPressed[e.key] = true;
+						e.preventDefault(); // Prevenir comportamiento predeterminado
+					}
+				});
+
+				window.addEventListener("keyup", function(e) {
+					// Solo registrar teclas que nos interesan para el juego
+					if (e.key === 'a' || e.key === 'd' || 
+						e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+						keysPressed[e.key] = false;
+					}
+				});
+
+				// Movimiento de la bola
+				let ballDirection = new BABYLON.Vector3(0.02, 0 , 0.2); // velocidad inicial
+				let ballSpeed = 0.02;
+				let gameActive = true;
+
+				scene.onBeforeRenderObservable.clear(); // Elimina observadores existentes
+
+				// 3. Crea un único observador para todo el juego
+				scene.onBeforeRenderObservable.add(() => {
+					if (!gameActive) return;
+					
+					// Movimiento de la bola
+					bola.position.addInPlace(ballDirection);
+					
+					// Movimiento de las palas
+					if (keysPressed['a']) pala1.position.z -= paddleSpeed;
+					if (keysPressed['d']) pala1.position.z += paddleSpeed;
+					if (keysPressed['ArrowLeft']) pala2.position.z -= paddleSpeed;
+					if (keysPressed['ArrowRight']) pala2.position.z += paddleSpeed;
+					
+					// Límites de las palas con el tablero
+					const paddlePadding = 0.01;
+					if (pala1.position.z > tableHalfDepth)
+						pala1.position.z = tableHalfDepth - paddlePadding;
+					if (pala1.position.z < -tableHalfDepth)
+						pala1.position.z = -tableHalfDepth + paddlePadding;
+					
+					if (pala2.position.z > tableHalfDepth)
+						pala2.position.z = tableHalfDepth - paddlePadding;
+					if (pala2.position.z < -tableHalfDepth)
+						pala2.position.z = -tableHalfDepth + paddlePadding;
+					
+					// Rebote con bordes laterales de la mesa (más preciso)
+					console.log(tableHalfDepth, bola.position.z);
+					if (bola.position.z + 0.05 > tableHalfDepth || 
+						bola.position.z - 0.05 < -tableHalfDepth) {
+						ballDirection.z *= -1;
+						// Pequeño sonido de rebote
+						if (scene.audioEnabled) {
+							const wallHitSound = new BABYLON.Sound("wallHit", "textures/metal.mp3", scene);
+							wallHitSound.play();
+						}
+					}
+
+					// Rebote con pala1 (todo el código de rebote existente)
+					if (bola.intersectsMesh(pala1, false)) {
+						// Solo invertir dirección si viene de la izquierda
+						if (ballDirection.x > 0) {
+							ballDirection.x *= -1;
+							
+							 // Ajuste de dirección según punto de impacto con más intensidad
+							const deltaZ = (bola.position.z - pala1.position.z) / (pala1.scaling.z/2);
+							ballDirection.z = deltaZ * 0.1;
+							
+							// Incrementar ligeramente la velocidad
+							const currentMagnitude = Math.sqrt(
+								ballDirection.x * ballDirection.x + 
+								ballDirection.z * ballDirection.z
+							);
+							ballSpeed = Math.min(ballSpeed * 1.05, 0.035);
+							const factor = ballSpeed / currentMagnitude;
+							ballDirection.x *= factor;
+							ballDirection.z *= factor;
+							
+							// Incrementar puntuación
+							score += 10;
+							document.getElementById('score').textContent = score;
+							
+							if (scene.audioEnabled) {
+								const paddleHitSound = new BABYLON.Sound("paddleHit", "textures/metal.mp3", scene);
+								paddleHitSound.play();
+							}
+						}
+					}
+
+					// Rebote con pala2 (todo el código de rebote existente)
+					if (bola.intersectsMesh(pala2, false)) {
+						// Solo invertir dirección si viene de la derecha
+						if (ballDirection.x < 0) {
+							ballDirection.x *= -1;
+
+							// Ajuste de dirección según punto de impacto
+							const deltaZ = (bola.position.z - pala2.position.z) / (pala2.scaling.z/2);
+							ballDirection.z = deltaZ * 0.1;
+							
+							// Incrementar ligeramente la velocidad
+							const currentMagnitude = Math.sqrt(
+								ballDirection.x * ballDirection.x + 
+								ballDirection.z * ballDirection.z
+							);
+							ballSpeed = Math.min(ballSpeed * 1.05, 0.035);
+							const factor = ballSpeed / currentMagnitude;
+							ballDirection.x *= factor;
+							ballDirection.z *= factor;
+							
+							// Incrementar puntuación
+							score += 10;
+							document.getElementById('score').textContent = score;
+							
+							if (scene.audioEnabled) {
+								const paddleHitSound = new BABYLON.Sound("paddleHit", "textures/metal.mp3", scene);
+								paddleHitSound.play();
+							}
+						}
+					}
+
+					// Game over si se va demasiado lejos
+					if (bola.position.x > 1.2) {
+						gameOver("¡Punto para el jugador 2!");
+					} else if (bola.position.x < -1.2) {
+						gameOver("¡Punto para el jugador 1!");
+					}
+				});
+
+				// Función para manejar el game over
+				function gameOver(message) {
+					gameActive = false;
+					document.getElementById('finalScore').textContent = score;
+					document.getElementById('gameOver').style.display = 'block';
+					
+					// Reiniciar posición de la bola para el siguiente juego
+					bola.position = new BABYLON.Vector3(0, tableTop.position.y + 0.1, 0);
+					ballDirection = new BABYLON.Vector3(
+						Math.random() > 0.5 ? 0.02 : -0.02, 
+						0, 
+						(Math.random() - 0.5) * 0.01
+					);
+					ballSpeed = 0.02;
+				}
 
                 return scene;
             }
@@ -448,6 +617,7 @@
                 score = 0;
                 document.getElementById('score').textContent = score;
                 document.getElementById('gameOver').style.display = 'none';
+                gameActive = true;
             });
             document.getElementById('saveToDashboardButton').addEventListener('click', function() {
                 // Aquí podrías llamar a tu API para guardar puntuación
