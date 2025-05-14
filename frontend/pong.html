@@ -322,6 +322,38 @@
                 marbleMat.parallaxTexture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
                 marbleMat.parallaxTexture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
 
+				let pezContenedor; // Variable global para acceder después
+
+				BABYLON.SceneLoader.ImportMesh(
+				null,
+				"textures/",
+				"pez.gltf",
+				scene,
+				function (meshes, particleSystems, skeletons, animationGroups) {
+					// Crear un contenedor para rotar libremente
+					pezContenedor = new BABYLON.TransformNode("pezContenedor", scene);
+
+					// Meter todos los meshes dentro del contenedor
+					meshes.forEach(mesh => {
+					mesh.setParent(pezContenedor);
+
+					// Desactivar rotationQuaternion si existe
+					if (mesh.rotationQuaternion) {
+						mesh.rotationQuaternion = null;
+					}
+					});
+
+					// Ajustes de posición y escala al contenedor (no a cada mesh)
+					pezContenedor.position = new BABYLON.Vector3(1.5, 1.2, 0);
+					pezContenedor.scaling = new BABYLON.Vector3(0.5, 0.5, 0.5);
+					pezContenedor.rotation.y = -Math.PI / 2;
+					pezContenedor.rotation.z = Math.PI;
+				},
+				null,
+				function (scene, message, exception) {
+					console.error("Error al cargar pez:", message, exception);
+				}
+				);
 
 				// Agregar esto cerca del inicio de CreateScene
 				scene.audioEnabled = true;
@@ -467,7 +499,7 @@
 				});
 
 				// Movimiento de la bola
-				let ballDirection = new BABYLON.Vector3(0.02, 0 , 0.2); // velocidad inicial
+				let ballDirection = new BABYLON.Vector3(0.02, 0 , 0); // velocidad inicial
 				let ballSpeed = 0.02;
 				let gameActive = true;
 
@@ -481,10 +513,10 @@
 					bola.position.addInPlace(ballDirection);
 					
 					// Movimiento de las palas
-					if (keysPressed['a']) pala1.position.z -= paddleSpeed;
-					if (keysPressed['d']) pala1.position.z += paddleSpeed;
-					if (keysPressed['ArrowLeft']) pala2.position.z -= paddleSpeed;
-					if (keysPressed['ArrowRight']) pala2.position.z += paddleSpeed;
+					if (keysPressed['a']) pala2.position.z -= paddleSpeed;
+					if (keysPressed['d']) pala2.position.z += paddleSpeed;
+					if (keysPressed['ArrowLeft']) pala1.position.z -= paddleSpeed;
+					if (keysPressed['ArrowRight']) pala1.position.z += paddleSpeed;
 					
 					// Límites de las palas con el tablero
 					const paddlePadding = 0.01;
@@ -617,7 +649,8 @@
                 score = 0;
                 document.getElementById('score').textContent = score;
                 document.getElementById('gameOver').style.display = 'none';
-                gameActive = true;
+				gameActive = true;
+                scene = Playground.CreateScene(engine, canvas);
             });
             document.getElementById('saveToDashboardButton').addEventListener('click', function() {
                 // Aquí podrías llamar a tu API para guardar puntuación
@@ -629,7 +662,6 @@
                 }
             });
         });
-
         // Redimensionar
         window.addEventListener('resize', function() {
             engine.resize();
