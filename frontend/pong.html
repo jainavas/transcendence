@@ -322,47 +322,126 @@
                 marbleMat.parallaxTexture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
                 marbleMat.parallaxTexture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
 
-				let pezContenedor; // Variable global para acceder después
+				const personajes = [
+				{
+					nombre: "Vaca",
+					ruta: "textures/vaca/",
+					archivo: "scene.gltf",
+					posicion: new BABYLON.Vector3(2.3, 0, 0),
+					escala: new BABYLON.Vector3(0.6, 0.6, 0.6),
+					rotacion: new BABYLON.Vector3(0, -Math.PI / 2, Math.PI)
+				},
+				{
+					nombre: "Trucha",
+					ruta: "textures/pez/",
+					archivo: "pez.gltf",
+					posicion: new BABYLON.Vector3(1.5, 0.85, 0),
+					escala: new BABYLON.Vector3(0.5, 0.5, 0.5),
+					rotacion: new BABYLON.Vector3(0, Math.PI / 2, Math.PI)
+				}
+				];
 
-				BABYLON.SceneLoader.ImportMesh(
-				null,
-				"textures/",
-				"pez.gltf",
-				scene,
-				function (meshes, particleSystems, skeletons, animationGroups) {
-					// Crear un contenedor para rotar libremente
-					pezContenedor = new BABYLON.TransformNode("pezContenedor", scene);
+				function cargarPersonajeEnLado({ 
+					personajeConfig, 
+					lado = "izquierda", 
+					escena, 
+					callback 
+					}) {
+					const nombreContenedor = `${personajeConfig.nombre}_${lado}`;
+					BABYLON.SceneLoader.ImportMesh(
+						null,
+						personajeConfig.ruta,
+						personajeConfig.archivo,
+						escena,
+						function (meshes, particleSystems, skeletons, animationGroups) {
+						// Eliminar contenedor anterior si existe
+						const anterior = escena.getNodeByName(nombreContenedor);
+						if (anterior) anterior.dispose();
 
-					// Meter todos los meshes dentro del contenedor
-					meshes.forEach(mesh => {
-					mesh.setParent(pezContenedor);
+						const contenedor = new BABYLON.TransformNode(nombreContenedor, escena);
 
-					// Desactivar rotationQuaternion si existe
-					if (mesh.rotationQuaternion) {
-						mesh.rotationQuaternion = null;
+						meshes.forEach(mesh => {
+							mesh.setParent(contenedor);
+							if (mesh.rotationQuaternion) mesh.rotationQuaternion = null;
+							});
+							
+							contenedor.scaling = personajeConfig.escala.clone();
+							
+							// Crear posición correctamente según el lado
+							let posicion = personajeConfig.posicion.clone();
+							if (lado === "izquierda") {
+								posicion.x = posicion.x * -1; // Invertir X para el lado izquierdo
+							}
+							contenedor.position = posicion; // Asignar la posición modificada
+							
+							// Configurar rotación según el lado
+							let rotacion = personajeConfig.rotacion.clone();
+							if (lado === "derecha") {
+								rotacion.y = Math.PI * 2 - rotacion.y; // Invertir rotación Y para el lado derecho
+							}
+							contenedor.rotation = rotacion;
+
+						if (callback) {
+							callback({ contenedor, meshes, skeletons, animationGroups });
+						}
+						}
+					);
+					}
+
+				cargarPersonajeEnLado({
+					personajeConfig: personajes[0],
+					lado: "derecha",
+					escena: scene,
+					callback: function ({ animationGroups }) {
+						const idle = animationGroups[0];
+						if (idle) idle.start(true);
 					}
 					});
 
-					// Ajustes de posición y escala al contenedor (no a cada mesh)
-					pezContenedor.position = new BABYLON.Vector3(1.5, 1.2, 0);
-					pezContenedor.scaling = new BABYLON.Vector3(0.5, 0.5, 0.5);
-					pezContenedor.rotation.y = -Math.PI / 2;
-					pezContenedor.rotation.z = Math.PI;
-				},
-				null,
-				function (scene, message, exception) {
-					console.error("Error al cargar pez:", message, exception);
-				}
-				);
-
+				cargarPersonajeEnLado({
+					personajeConfig: personajes[1],
+					lado: "izquierda",
+					escena: scene,
+					callback: function ({ animationGroups }) {
+						const idle = animationGroups[0];
+						if (idle) idle.start(true);
+					}
+					});
 				// Agregar esto cerca del inicio de CreateScene
 				scene.audioEnabled = true;
+                
+                // Crear el suelo blanco básico
+                var groundMaterial = new BABYLON.PBRMaterial("groundMaterial", scene);
+                groundMaterial.albedoColor = new BABYLON.Color3(0.95, 0.95, 0.95); // Color blanco ligeramente grisáceo
+                groundMaterial.roughness = 0.9; // Muy mate, sin brillo
+                groundMaterial.metallic = 0.1; // Casi nada de aspecto metálico
+
+                // Tamaño suficiente para abarcar la mesa y los personajes 
+                // (ancho 6 unidades para cubrir desde la vaca hasta más allá de la trucha)
+                var ground = BABYLON.MeshBuilder.CreateGround(
+                    "ground",
+                    { width: 6, height: 3.5, subdivisions: 2 },  // Ancho suficiente para cubrir los personajes
+                    scene
+                );
+                ground.position.y = -0.01; // Ligeramente bajo la posición 0 para evitar z-fighting
+                ground.receiveShadows = true; // Para recibir sombras si las implementas
+
+                ground.material = groundMaterial;
+
+                // Si no tienes una textura de rejilla, puedes comentar las 5 líneas anteriores
+                // y usar solo el material con el color blanco básico
+
                 // Mesa: tablero y patas
-                var tableTop = BABYLON.MeshBuilder.CreateBox(
+                // Definir la nueva altura base de la mesa (más baja)
+                const mesaAltura = 0.6; // Reducido de 1.0 a 0.6
+                
+				// Mesa
+				var tableTop = BABYLON.MeshBuilder.CreateBox(
                     "tableTop", {width:2, depth:1, height:0.1}, scene
                 );
-                tableTop.position.y = 1;
-                tableTop.material = aerialMat; // Cambiar de lavaMat a aerialMat
+                tableTop.position.y = mesaAltura;
+                tableTop.material = aerialMat;
+                
                 var pala1 = BABYLON.MeshBuilder.CreateBox(
                     "pala1", {width:0.1, depth:0.25, height:0.05}, scene
                 );
@@ -389,14 +468,21 @@
                 bola.position.y = tableTop.position.y + 0.05 + tableTop.getBoundingInfo().boundingBox.extendSize.y;
                 bola.material = metalMat;
 
-                var legParams = { diameter: 0.1, height: 1 };
-                [ [0.9,0.5,0.4],[-0.9,0.5,0.4],[0.9,0.5,-0.4],[-0.9,0.5,-0.4] ]
+                // Ajustar las patas para que sean proporcionalmente más cortas
+                var legParams = { diameter: 0.1, height: mesaAltura }; // Altura ajustada
+                
+                // Calcular correctamente la posición Y de las patas
+                // La posición Y debe ser la mitad de la altura de la pata, para que su parte superior
+                // coincida exactamente con la parte inferior del tablero
+                const legY = legParams.height / 2;
+                
+                [ [0.9, legY, 0.4], [-0.9, legY, 0.4], [0.9, legY, -0.4], [-0.9, legY, -0.4] ]
                 .forEach(function(pos,i) {
                     var leg = BABYLON.MeshBuilder.CreateCylinder(
                         "leg"+i, legParams, scene
                     );
                     leg.position = new BABYLON.Vector3(pos[0], pos[1], pos[2]);
-                    leg.material = concreteMat; // Cambiar de woodMat a concreteMat
+                    leg.material = concreteMat;
                 });
 
                 // Crear el borde de la mesa
