@@ -8,6 +8,8 @@
     <!-- Babylon.js y dependencias -->
     <script src="https://cdn.babylonjs.com/babylon.js"></script>
     <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+	<script src="https://cdn.babylonjs.com/cannon.js"></script>
+
 
     <!-- CSS para pantalla completa y UI -->
     <style>
@@ -143,7 +145,9 @@
         var canvas = document.getElementById("renderCanvas");
         var engine = new BABYLON.Engine(canvas, true);
         var scene;
-        var score = 0;
+        var scoreP1 = 0;
+        var scoreP2 = 0;
+		var maxScore = 11;
 
         // Inicia bucle de render
         var startRenderLoop = function () {
@@ -180,6 +184,7 @@
 
 				var resetCameraButton = document.getElementById('resetCameraButton');
 
+				scene.enablePhysics(new BABYLON.Vector3(0, -9.81, 0), new BABYLON.CannonJSPlugin());
 				// Función para comprobar si la cámara se ha movido
 				function checkCameraPosition() {
 					var epsilon = 0.05; // Tolerancia para comparaciones
@@ -216,26 +221,81 @@
 				// Comprobar posición inicial
 				checkCameraPosition();
 
-                // Luz
-                var light = new BABYLON.HemisphericLight(
-                    "light1",
-                    new BABYLON.Vector3(0,1,0),
-                    scene
-                );
-                light.intensity = 0.8;
+                const directionalLight = new BABYLON.DirectionalLight(
+					"sunLight",
+					new BABYLON.Vector3(-1, -2, -1), // Luz inclinada
+					scene
+				);
+				directionalLight.position = new BABYLON.Vector3(10, 20, 10);
+				directionalLight.intensity = 1.0;
+				directionalLight.shadowEnabled = true;
+				const ambient = new BABYLON.HemisphericLight(
+					"ambient",
+					new BABYLON.Vector3(0, 1, 0),
+					scene
+				);
+				ambient.diffuse = new BABYLON.Color3(0.3, 0.5, 0.8); // Luz del cielo azulada
+				ambient.intensity = 0.4;
+				const leftCharLight = new BABYLON.PointLight("leftCharLight", new BABYLON.Vector3(-5, 2, 0), scene);
+				leftCharLight.diffuse = new BABYLON.Color3(1, 0.8, 0.6); // Cálida
+				leftCharLight.intensity = 0.6;
+
+				const rightCharLight = new BABYLON.PointLight("rightCharLight", new BABYLON.Vector3(5, 2, 0), scene);
+				rightCharLight.diffuse = new BABYLON.Color3(0.6, 0.9, 1); // Fría
+				rightCharLight.intensity = 0.6;
+
+
 				
 				const hdrTexture = new BABYLON.HDRCubeTexture("textures/fondo.hdr", scene, 512, false, true, false, true);
 				scene.environmentTexture = hdrTexture;
 				scene.createDefaultSkybox(hdrTexture, true, 1000);
 				
-                // Material madera PBR
-				var woodMat = new BABYLON.PBRMaterial("woodMat", scene);
-				woodMat.albedoTexture = new BABYLON.Texture(
-					"https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/plywood/plywood_diff_1k.jpg",
-					scene
-				);
-				woodMat.roughness = 1;  // completamente mate
-				woodMat.metallic = 0;
+				// Material Marmol Negro
+				const marmolnegroMat = new BABYLON.PBRMaterial("marmolnegroMatMaterial", scene);
+				const texturePath = "textures/marmolnegro/Marble016_4K-JPG_";
+				marmolnegroMat.albedoTexture = new BABYLON.Texture(texturePath + "Color.jpg", scene);
+				marmolnegroMat.bumpTexture = new BABYLON.Texture(texturePath + "NormalGL.jpg", scene);
+				marmolnegroMat.roughnessTexture = new BABYLON.Texture(texturePath + "Roughness.jpg", scene);
+				marmolnegroMat.displacementTexture = new BABYLON.Texture(texturePath + "Displacement.jpg", scene);
+				marmolnegroMat.useParallax = true;                // Efecto más suave
+				marmolnegroMat.useParallaxOcclusion = true;       // Más realista pero más pesado
+				marmolnegroMat.parallaxScaleBias = 0.02;          // Ajusta según el efecto deseado
+				marmolnegroMat.metallic = 0.0;  // Mármol no es metálico
+				marmolnegroMat.roughness = 1.0; // Si no se usa textura, define cuán áspero es
+				const marmolnegroRunasMat = marmolnegroMat.clone("marmolnegroRunasMat");
+				marmolnegroRunasMat.emissiveTexture = new BABYLON.Texture("textures/runas.png", scene);
+				marmolnegroRunasMat.emissiveColor = new BABYLON.Color3(1, 0.84, 0);
+
+				// Material Pala 1
+				const pala1Mat = new BABYLON.PBRMaterial("pala1Mat", scene);
+				pala1Mat.albedoColor = new BABYLON.Color3(0.2, 0.6, 1); // Azul celeste
+				pala1Mat.emissiveColor = new BABYLON.Color3(0.2, 0.6, 1); // Emisión tenue
+				pala1Mat.alpha = 0.75;
+				pala1Mat.transparencyMode = BABYLON.PBRMaterial.PBRMATERIAL_ALPHABLEND;
+				pala1Mat.indexOfRefraction = 1.4;
+				pala1Mat.metallic = 0.1;
+				pala1Mat.roughness = 0.2;
+				pala1Mat.subSurface.isRefractionEnabled = true;
+				pala1Mat.subSurface.refractionIntensity = 0.6;
+				pala1Mat.subSurface.indexOfRefraction = 1.4;
+
+				// Material Pala 2
+				const pala2Mat = new BABYLON.PBRMaterial("pala2Mat", scene);
+				pala2Mat.albedoColor = new BABYLON.Color3(0.0, 0.8, 0.5); // Verde jade
+				pala2Mat.emissiveColor = new BABYLON.Color3(0.0, 0.6, 0.4); // Emisión tenue
+				pala2Mat.alpha = 0.75;
+				pala2Mat.transparencyMode = BABYLON.PBRMaterial.PBRMATERIAL_ALPHABLEND;
+				pala2Mat.indexOfRefraction = 1.4;
+				pala2Mat.metallic = 0.1;
+				pala2Mat.roughness = 0.2;
+				pala2Mat.subSurface.isRefractionEnabled = true;
+				pala2Mat.subSurface.refractionIntensity = 0.6;
+				pala2Mat.subSurface.indexOfRefraction = 1.4;
+
+				// Brillo general
+				const glow = new BABYLON.GlowLayer("glow", scene);
+				glow.intensity = 0.3;
+
 				// Material metal PBR
 				var metalMat = new BABYLON.PBRMaterial("metalMat", scene);
 				metalMat.albedoTexture = new BABYLON.Texture(
@@ -258,20 +318,6 @@
                 concreteMat.useParallaxOcclusion = true;
                 concreteMat.parallaxScaleBias = 0.08;
 
-                // Material Aerial para la tabla de la mesa
-                var aerialMat = new BABYLON.PBRMaterial("aerialMat", scene);
-                aerialMat.albedoTexture = new BABYLON.Texture("textures/aerial_rocks_02_diff_2k.jpg", scene);
-                aerialMat.bumpTexture = new BABYLON.Texture("textures/aerial_rocks_02_nor_gl_2k.png", scene);
-                aerialMat.metallicTexture = new BABYLON.Texture("textures/aerial_rocks_02_rough_2k.jpg", scene);
-                aerialMat.useRoughnessFromMetallicTextureAlpha = true;
-                aerialMat.metallic = 0.2;
-                aerialMat.roughness = 0.7;
-                // Parallax
-                aerialMat.parallaxTexture = new BABYLON.Texture("textures/aerial_rocks_02_disp_2k.png", scene);
-                aerialMat.useParallax = true;
-                aerialMat.useParallaxOcclusion = true;
-                aerialMat.parallaxScaleBias = 0.1;
-
 				// Ajuste de definicion de las texturas
 				const scale = 2; // o prueba con 6 u 8 para más detalle
 
@@ -284,17 +330,7 @@
 				concreteMat.parallaxTexture.uScale = scale;
 				concreteMat.parallaxTexture.vScale = scale;
 
-				aerialMat.albedoTexture.uScale = scale;
-				aerialMat.albedoTexture.vScale = scale;
-				aerialMat.bumpTexture.uScale = scale;
-				aerialMat.bumpTexture.vScale = scale;
-				aerialMat.metallicTexture.uScale = scale;
-				aerialMat.metallicTexture.vScale = scale;
-				aerialMat.parallaxTexture.uScale = scale;
-				aerialMat.parallaxTexture.vScale = scale;
-
 				concreteMat.albedoTexture.anisotropicFilteringLevel = 16;
-				aerialMat.albedoTexture.anisotropicFilteringLevel = 16;
 
                 // Material de bloques medievales para el borde de la mesa
                 var marbleMat = new BABYLON.PBRMaterial("marbleMat", scene);
@@ -337,6 +373,14 @@
 					archivo: "pez.gltf",
 					posicion: new BABYLON.Vector3(1.5, 0.85, 0),
 					escala: new BABYLON.Vector3(0.5, 0.5, 0.5),
+					rotacion: new BABYLON.Vector3(0, Math.PI / 2, Math.PI)
+				},
+				{
+					nombre: "Tiburon",
+					ruta: "textures/tiburon/",
+					archivo: "scene.gltf",
+					posicion: new BABYLON.Vector3(1.8, 0.75, 0),
+					escala: new BABYLON.Vector3(0.004, 0.004, 0.004),
 					rotacion: new BABYLON.Vector3(0, Math.PI / 2, Math.PI)
 				}
 				];
@@ -389,7 +433,7 @@
 					}
 
 				cargarPersonajeEnLado({
-					personajeConfig: personajes[0],
+					personajeConfig: personajes[1],
 					lado: "derecha",
 					escena: scene,
 					callback: function ({ animationGroups }) {
@@ -399,7 +443,7 @@
 					});
 
 				cargarPersonajeEnLado({
-					personajeConfig: personajes[1],
+					personajeConfig: personajes[2],
 					lado: "izquierda",
 					escena: scene,
 					callback: function ({ animationGroups }) {
@@ -409,38 +453,42 @@
 					});
 				// Agregar esto cerca del inicio de CreateScene
 				scene.audioEnabled = true;
-                
-                // Crear el suelo blanco básico
-                var groundMaterial = new BABYLON.PBRMaterial("groundMaterial", scene);
-                groundMaterial.albedoColor = new BABYLON.Color3(0.95, 0.95, 0.95); // Color blanco ligeramente grisáceo
-                groundMaterial.roughness = 0.9; // Muy mate, sin brillo
-                groundMaterial.metallic = 0.1; // Casi nada de aspecto metálico
-
-                // Tamaño suficiente para abarcar la mesa y los personajes 
-                // (ancho 6 unidades para cubrir desde la vaca hasta más allá de la trucha)
-                var ground = BABYLON.MeshBuilder.CreateGround(
-                    "ground",
-                    { width: 6, height: 3.5, subdivisions: 2 },  // Ancho suficiente para cubrir los personajes
-                    scene
-                );
-                ground.position.y = -0.01; // Ligeramente bajo la posición 0 para evitar z-fighting
-                ground.receiveShadows = true; // Para recibir sombras si las implementas
-
-                ground.material = groundMaterial;
-
-                // Si no tienes una textura de rejilla, puedes comentar las 5 líneas anteriores
-                // y usar solo el material con el color blanco básico
 
                 // Mesa: tablero y patas
                 // Definir la nueva altura base de la mesa (más baja)
                 const mesaAltura = 0.6; // Reducido de 1.0 a 0.6
-                
+                const faceUV = [];
+				for (let i = 0; i < 6; i++) {
+					if (i === 4 || i === 5) {
+						// Cara superior
+						faceUV.push(new BABYLON.Vector4(0, 0, 1, 1)); // UVs para la cara superior
+					} else if (i === 2 || i === 3) {
+						// Cara izquierda
+						faceUV.push(new BABYLON.Vector4(0, 0, 0.066, 1)); // UVs para la cara izquierda
+					} else {
+						// Otras caras (frontal, trasera, inferior, derecha)
+						// Usar UVs por defecto o ajustar según sea necesario
+						faceUV.push(new BABYLON.Vector4(0, 0, 1, 0.066)); // Default UVs
+					}
+				}
 				// Mesa
 				var tableTop = BABYLON.MeshBuilder.CreateBox(
-                    "tableTop", {width:2, depth:1, height:0.1}, scene
+                    "tableTop", {width:2, depth:1, height:0.1, faceUV: faceUV}, scene
                 );
+				tableTop.subMeshes = [];
+				const verticesCount = tableTop.getTotalVertices();
+				for (let i = 0; i < 6; i++) {
+					tableTop.subMeshes.push(new BABYLON.SubMesh(i, 0, verticesCount, i * 6, 6, tableTop));
+				}
+				const multiMat = new BABYLON.MultiMaterial("multi", scene);
+				multiMat.subMaterials.push(marmolnegroMat);      // Cara 0: frontal
+				multiMat.subMaterials.push(marmolnegroMat);      // Cara 1: trasera
+				multiMat.subMaterials.push(marmolnegroMat);  // Cara 2: lateral
+				multiMat.subMaterials.push(marmolnegroMat);      // Cara 3: lateral
+				multiMat.subMaterials.push(marmolnegroRunasMat);      // Cara 4: superior
+				multiMat.subMaterials.push(marmolnegroMat);      // Cara 5: inferior
                 tableTop.position.y = mesaAltura;
-                tableTop.material = aerialMat;
+                tableTop.material = multiMat;
                 
                 var pala1 = BABYLON.MeshBuilder.CreateBox(
                     "pala1", {width:0.1, depth:0.25, height:0.05}, scene
@@ -450,7 +498,7 @@
                     tableTop.position.y + 0.05 + tableTop.getBoundingInfo().boundingBox.extendSize.y,
                     0 // Posición Z inicial centrada
                 );
-                pala1.material = metalMat;
+                pala1.material = pala1Mat;
 
                 var pala2 = BABYLON.MeshBuilder.CreateBox(
                     "pala2", {width:0.1, depth:0.25, height:0.05}, scene
@@ -460,13 +508,20 @@
                     tableTop.position.y + 0.05 + tableTop.getBoundingInfo().boundingBox.extendSize.y,
                     0 // Posición Z inicial centrada
                 );
-                pala2.material = metalMat;
+                pala2.material = pala2Mat;
 
                 var bola = BABYLON.MeshBuilder.CreateSphere(
                     "bola", {diameter: 0.1}, scene
                 );
                 bola.position.y = tableTop.position.y + 0.05 + tableTop.getBoundingInfo().boundingBox.extendSize.y;
-                bola.material = metalMat;
+				bola.material = new BABYLON.StandardMaterial("bolaMat", scene);
+				bola.material.emissiveColor = new BABYLON.Color3(0.2, 0.2, 0.2); // Luz dorada cálida
+				bola.physicsImpostor = new BABYLON.PhysicsImpostor(
+				bola,
+				BABYLON.PhysicsImpostor.SphereImpostor,
+				{ mass: 0, restitution: 0.6 },
+				scene
+				);
 
                 // Ajustar las patas para que sean proporcionalmente más cortas
                 var legParams = { diameter: 0.1, height: mesaAltura }; // Altura ajustada
@@ -485,76 +540,6 @@
                     leg.material = concreteMat;
                 });
 
-                // Crear el borde de la mesa
-                const borderHeight = 0.10; // Altura del borde lateral
-                const borderThickness = 0.05; // Grosor del borde
-                const borderOffset = 0.05; // Cuánto sobresale por encima
-
-                // Borde frontal
-                var frontBorder = BABYLON.MeshBuilder.CreateBox(
-                    "frontBorder", {width: 2.1, depth: borderThickness, height: borderHeight}, scene
-                );
-                frontBorder.position.y = tableTop.position.y + tableTop.getBoundingInfo().boundingBox.extendSize.y + (borderHeight/2 - borderOffset);
-                frontBorder.position.z = 0.5 + borderThickness/2;
-                frontBorder.material = marbleMat;
-
-                // Borde trasero
-                var backBorder = BABYLON.MeshBuilder.CreateBox(
-                    "backBorder", {width: 2.1, depth: borderThickness, height: borderHeight}, scene
-                );
-                backBorder.position.y = tableTop.position.y + tableTop.getBoundingInfo().boundingBox.extendSize.y + (borderHeight/2 - borderOffset);
-                backBorder.position.z = -0.5 - borderThickness/2;
-                backBorder.material = marbleMat;
-
-                // Borde izquierdo
-                var leftBorder = BABYLON.MeshBuilder.CreateBox(
-                    "leftBorder", {width: borderThickness - 0.01, depth: 1.09, height: borderHeight - borderOffset}, scene
-                );
-                leftBorder.position.y = tableTop.position.y + tableTop.getBoundingInfo().boundingBox.extendSize.y + (borderHeight/2 - borderOffset);
-                leftBorder.position.x = -1 - borderThickness/2;
-                leftBorder.material = marbleMat;
-
-                // Borde derecho
-                var rightBorder = BABYLON.MeshBuilder.CreateBox(
-                    "rightBorder", {width: borderThickness - 0.01, depth: 1.09, height: borderHeight - borderOffset}, scene
-                );
-                rightBorder.position.y = tableTop.position.y + tableTop.getBoundingInfo().boundingBox.extendSize.y + (borderHeight/2 - borderOffset);
-                rightBorder.position.x = 1 + borderThickness/2;
-                rightBorder.material = marbleMat;
-
-                // Aplicar escala a las texturas de mármol/bloques medievales diferenciada según la orientación
-                // Para los bordes frontal y trasero (largos y estrechos en anchura)
-                frontBorder.material = marbleMat.clone("frontBorderMat");
-                backBorder.material = marbleMat.clone("backBorderMat");
-
-                // Para los bordes laterales (largos y estrechos en profundidad)
-                leftBorder.material = marbleMat.clone("leftBorderMat");
-                rightBorder.material = marbleMat.clone("rightBorderMat");
-
-                // Método alternativo y más limpio
-                function configureClonedMaterial(original, clone, uScale, vScale) {
-                    // Clonar texturas para evitar afectar al material original
-                    clone.albedoTexture = original.albedoTexture.clone();
-                    clone.bumpTexture = original.bumpTexture.clone();
-                    clone.metallicTexture = original.metallicTexture.clone();
-                    clone.parallaxTexture = original.parallaxTexture.clone();
-                    
-                    // Configurar escalas
-                    clone.albedoTexture.uScale = uScale;
-                    clone.albedoTexture.vScale = vScale;
-                    clone.bumpTexture.uScale = uScale;
-                    clone.bumpTexture.vScale = vScale;
-                    clone.metallicTexture.uScale = uScale;
-                    clone.metallicTexture.vScale = vScale;
-                    clone.parallaxTexture.uScale = uScale;
-                    clone.parallaxTexture.vScale = vScale;
-                }
-
-                // Usar la función
-                configureClonedMaterial(marbleMat, frontBorder.material, 16, 0.5);
-                configureClonedMaterial(marbleMat, backBorder.material, 16, 0.5);
-                configureClonedMaterial(marbleMat, leftBorder.material, 0.5, 16);
-                configureClonedMaterial(marbleMat, rightBorder.material, 0.5, 16);
 
 				 // 1. Primero desactivar las teclas de flecha para la cámara
 				camera.keysUp = [];    // Tecla arriba (normalmente es 38)
@@ -588,9 +573,36 @@
 				let ballDirection = new BABYLON.Vector3(0.02, 0 , 0); // velocidad inicial
 				let ballSpeed = 0.02;
 				let gameActive = true;
+				let glowTarget = 0.3; // Valor deseado al final
+				let glowDecaySpeed = 0.01; // Cuánto baja por frame
+
+
+
+				// IMPORTANTE CAMBIAR FISICAS POR LAS DE CANNON, MOTOR FISICO
+
+
+
+				// Función de caida de la bola
+
+				function puntoPerdido(bola) {
+					bola.physicsImpostor.setMass(1); // Vuelve a tener masa
+					if (bola.position.x > 0)
+						bola.physicsImpostor.setLinearVelocity(new BABYLON.Vector3(3, -2, 0)); // Cae
+					else
+						bola.physicsImpostor.setLinearVelocity(new BABYLON.Vector3(-3, -2, 0)); // Cae
+					bola.physicsImpostor.setAngularVelocity(new BABYLON.Vector3(1, 1, 0.5)); // Gira un poco
+				}
 
 				scene.onBeforeRenderObservable.clear(); // Elimina observadores existentes
 
+				scene.registerBeforeRender(() => {
+				if (glow.intensity > glowTarget) {
+					glow.intensity -= glowDecaySpeed;
+					if (glow.intensity < glowTarget) {
+					glow.intensity = glowTarget;
+					}
+				}
+				});
 				// 3. Crea un único observador para todo el juego
 				scene.onBeforeRenderObservable.add(() => {
 					if (!gameActive) return;
@@ -648,10 +660,8 @@
 							ballDirection.x *= factor;
 							ballDirection.z *= factor;
 							
-							// Incrementar puntuación
-							score += 10;
-							document.getElementById('score').textContent = score;
-							
+							glow.intensity = 0.7;
+
 							if (scene.audioEnabled) {
 								const paddleHitSound = new BABYLON.Sound("paddleHit", "textures/metal.mp3", scene);
 								paddleHitSound.play();
@@ -678,11 +688,9 @@
 							const factor = ballSpeed / currentMagnitude;
 							ballDirection.x *= factor;
 							ballDirection.z *= factor;
-							
-							// Incrementar puntuación
-							score += 10;
-							document.getElementById('score').textContent = score;
-							
+
+							glow.intensity = 0.7; // Aumentar brillo al golpear
+
 							if (scene.audioEnabled) {
 								const paddleHitSound = new BABYLON.Sound("paddleHit", "textures/metal.mp3", scene);
 								paddleHitSound.play();
@@ -691,27 +699,62 @@
 					}
 
 					// Game over si se va demasiado lejos
-					if (bola.position.x > 1.2) {
+					if (bola.position.x > pala1.position.x + 0.05) {
 						gameOver("¡Punto para el jugador 2!");
-					} else if (bola.position.x < -1.2) {
+					} else if (bola.position.x < -pala1.position.x - 0.05) {
 						gameOver("¡Punto para el jugador 1!");
 					}
 				});
 
+
 				// Función para manejar el game over
 				function gameOver(message) {
+					puntoPerdido(bola);
+					// Detener el juego temporalmente
 					gameActive = false;
-					document.getElementById('finalScore').textContent = score;
-					document.getElementById('gameOver').style.display = 'block';
-					
-					// Reiniciar posición de la bola para el siguiente juego
-					bola.position = new BABYLON.Vector3(0, tableTop.position.y + 0.1, 0);
-					ballDirection = new BABYLON.Vector3(
-						Math.random() > 0.5 ? 0.02 : -0.02, 
-						0, 
-						(Math.random() - 0.5) * 0.01
-					);
-					ballSpeed = 0.02;
+
+					// Actualizar puntuaciones según el mensaje
+					if (message.includes("jugador 1")) {
+						scoreP1++;
+					} else if (message.includes("jugador 2")) {
+						scoreP2++;
+					}
+
+					// Actualizar el marcador en pantalla
+					document.getElementById('score').textContent = `${scoreP1} - ${scoreP2}`;
+
+					if (scoreP1 >= maxScore || scoreP2 >= maxScore) {
+						// Mostrar pantalla de Game Over
+						document.getElementById('gameOver').style.display = 'block';
+						document.getElementById('finalScore').textContent = `${scoreP1} - ${scoreP2}`;
+						gameActive = false;
+						return;
+					}
+					// Esperar 1 segundo y luego reiniciar la posición de la bola
+					setTimeout(() => {
+						// Reiniciar posición de la bola al centro
+						bola.position = new BABYLON.Vector3(
+							0,
+							tableTop.position.y + 0.05 + tableTop.getBoundingInfo().boundingBox.extendSize.y,
+							0
+						);
+						
+						// Reiniciar física
+						bola.physicsImpostor.setMass(0);
+						bola.physicsImpostor.setLinearVelocity(BABYLON.Vector3.Zero());
+						bola.physicsImpostor.setAngularVelocity(BABYLON.Vector3.Zero());
+						
+						// Reiniciar dirección de la bola (alternar dirección inicial según quién anotó)
+						ballSpeed = 0.02; // Reiniciar velocidad
+						ballDirection = new BABYLON.Vector3(
+							message.includes("jugador 1") ? -0.02 : 0.02, 
+							0, 
+							0
+						);
+						
+						// Reactivar el juego
+						gameActive = true;
+					}, 2000);
 				}
 
                 return scene;
@@ -732,7 +775,8 @@
                 e.preventDefault(); window.location.href = '/dashboard';
             });
             document.getElementById('playAgainButton').addEventListener('click', function() {
-                score = 0;
+                scoreP1 = 0;
+                scoreP2 = 0;
                 document.getElementById('score').textContent = score;
                 document.getElementById('gameOver').style.display = 'none';
 				gameActive = true;
