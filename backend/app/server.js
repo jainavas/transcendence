@@ -120,22 +120,22 @@ fastify.post('/pong/scores', async (req, reply) => {
     return reply.code(401).send({ error: 'No autenticado' });
   }
   
-  const { score, opponent, winner, game_duration } = req.body;
+  const { p1score, p2score, opponent, winner, game_duration } = req.body;
   
   // Validar que haya puntuación
-  if (typeof score !== 'number') {
+  if (typeof p1score !== 'number' || typeof p2score !== 'number') {
     return reply.code(400).send({ error: 'La puntuación debe ser un número' });
   }
   
   // Obtener ID del usuario de la sesión
   const userId = req.session.user.id || req.session.user.sub || req.session.user.email;
   
-  console.log(`🏓 Guardando puntuación para usuario ${userId}: ${score} puntos`);
+  console.log(`🏓 Guardando puntuación para usuario ${userId}: ${p1score} puntos`);
   
   return new Promise((resolve, reject) => {
     db.run(
-      'INSERT INTO pong_scores (user_id, score, opponent, winner, game_duration) VALUES (?, ?, ?, ?, ?)', 
-      [userId, score, opponent || "CPU", winner || false, game_duration || 0],
+      'INSERT INTO pong_scores (user_id, p1score, p2score, opponent, winner, game_duration) VALUES (?, ?, ?, ?, ?, ?)', 
+      [userId, p1score, p2score, opponent || "CPU", winner || false, game_duration || 0],
       function (err) {
         if (err) {
           console.error("❌ Error al guardar puntuación:", err);
@@ -144,7 +144,8 @@ fastify.post('/pong/scores', async (req, reply) => {
             const nuevaPuntuacion = { 
               id: this.lastID, 
               user_id: userId,
-              score,
+              p1score: p1score,
+			  p2score: p2score,
               opponent: opponent || "CPU",
               winner: winner || false,
               game_duration: game_duration || 0,
@@ -158,39 +159,44 @@ fastify.post('/pong/scores', async (req, reply) => {
       );
     });
   });
-  
+
   // Obtener mejores puntuaciones
   fastify.get('/pong/leaderboard', async (req, reply) => {
-    return new Promise((resolve, reject) => {
-    db.all(`
-      SELECT ps.*, u.username as user_name, 'https://ui-avatars.com/api/?name=' || u.username || '&background=random&color=fff' as user_picture
-      FROM pong_scores ps
-      JOIN (
-        SELECT user_id, MAX(score) as max_score
-        FROM pong_scores
-        GROUP BY user_id
-      ) top ON ps.user_id = top.user_id AND ps.score = top.max_score
-      LEFT JOIN users u ON ps.user_id = u.email
-      ORDER BY ps.score DESC
-      LIMIT 10
-    `, [], (err, rows) => {
-      if (err) {
-        console.error("❌ Error al obtener mejores puntuaciones:", err);
-        reject(err);
-      } else {
-        console.log(`✅ ${rows.length} mejores puntuaciones obtenidas`);
-        resolve(rows);
-      }
-    });
+    try {
+      const rows = await new Promise((resolve, reject) => {
+        db.all(`
+          SELECT ps.*, u.username as user_name, 'https://ui-avatars.com/api/?name=' || u.username || '&background=random&color=fff' as user_picture
+          FROM pong_scores ps
+          JOIN (
+            SELECT user_id, MAX(p1score) as max_score
+            FROM pong_scores
+            GROUP BY user_id
+          ) top ON ps.user_id = top.user_id AND ps.p1score = top.max_score
+          LEFT JOIN users u ON ps.user_id = u.email
+          ORDER BY ps.p1score DESC
+          LIMIT 10
+        `, [], (err, rows) => {
+          if (err) {
+            console.error("❌ Error al obtener mejores puntuaciones:", err);
+            reject(err);
+          } else {
+            console.log(`✅ ${rows.length} mejores puntuaciones obtenidas`);
+            resolve(rows);
+          }
+        });
+      });
+      
+      return rows;
+    } catch (error) {
+      console.error("Error al obtener leaderboard:", error);
+      return reply.code(500).send({ error: "Error al obtener leaderboard" });
+    }
   });
-});
-
-// Añadir después de los otros endpoints de pong
 
 // Endpoint para verificar si el juego de Pong está disponible
 fastify.get('/pong/status', async (req, reply) => {
   // Verificar si el usuario está autenticado
-  if (!req.session || req.session.user) {
+  if (!req.session || !req.session.user) {  // Corregido: añadido "!" antes de req.session.user
     return reply.code(401).send({ 
       available: false, 
       reason: 'authentication_required', 

@@ -8,6 +8,7 @@
     <!-- Babylon.js y dependencias -->
     <script src="https://cdn.babylonjs.com/babylon.js"></script>
     <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+	<script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
 	<script src="https://cdn.babylonjs.com/cannon.js"></script>
 
 
@@ -147,7 +148,7 @@
         var scene;
         var scoreP1 = 0;
         var scoreP2 = 0;
-		var maxScore = 11;
+		var maxScore = 5;
 
         // Inicia bucle de render
         var startRenderLoop = function () {
@@ -162,7 +163,6 @@
         class Playground {
             static CreateScene(engine, canvas) {
                 var scene = new BABYLON.Scene(engine);
-
                 // Cámara orbital cenital
                 var camera = new BABYLON.ArcRotateCamera(
                     "camera1",
@@ -221,7 +221,17 @@
 				// Comprobar posición inicial
 				checkCameraPosition();
 
-                const directionalLight = new BABYLON.DirectionalLight(
+				
+				const hdrTexture = new BABYLON.HDRCubeTexture("textures/espacio.hdr", scene, 512, false, true, false, true);
+				scene.environmentTexture = hdrTexture;
+				scene.createDefaultSkybox(hdrTexture, true, 1000);
+				scene.environmentIntensity = 5;
+				const fillLight = new BABYLON.HemisphericLight("fill", new BABYLON.Vector3(0, 1, 0), scene);
+				fillLight.intensity = 0.5; // Puedes ajustar entre 0.3–0.7
+				fillLight.diffuse = new BABYLON.Color3(1, 1, 1); // Luz blanca suave
+
+
+				const directionalLight = new BABYLON.DirectionalLight(
 					"sunLight",
 					new BABYLON.Vector3(-1, -2, -1), // Luz inclinada
 					scene
@@ -244,12 +254,6 @@
 				rightCharLight.diffuse = new BABYLON.Color3(0.6, 0.9, 1); // Fría
 				rightCharLight.intensity = 0.6;
 
-
-				
-				const hdrTexture = new BABYLON.HDRCubeTexture("textures/fondo.hdr", scene, 512, false, true, false, true);
-				scene.environmentTexture = hdrTexture;
-				scene.createDefaultSkybox(hdrTexture, true, 1000);
-				
 				// Material Marmol Negro
 				const marmolnegroMat = new BABYLON.PBRMaterial("marmolnegroMatMaterial", scene);
 				const texturePath = "textures/marmolnegro/Marble016_4K-JPG_";
@@ -358,10 +362,17 @@
                 marbleMat.parallaxTexture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
                 marbleMat.parallaxTexture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
 
+				const personajesContenedores = {
+					izquierda: null,
+					derecha: null
+				};
+
+
 				const personajes = [
 				{
 					nombre: "Vaca",
 					ruta: "textures/vaca/",
+					miniatura: "minivaca.png",
 					archivo: "scene.gltf",
 					posicion: new BABYLON.Vector3(2.3, 0, 0),
 					escala: new BABYLON.Vector3(0.6, 0.6, 0.6),
@@ -370,6 +381,7 @@
 				{
 					nombre: "Trucha",
 					ruta: "textures/pez/",
+					miniatura: "minitrucha.png",
 					archivo: "pez.gltf",
 					posicion: new BABYLON.Vector3(1.5, 0.85, 0),
 					escala: new BABYLON.Vector3(0.5, 0.5, 0.5),
@@ -378,6 +390,7 @@
 				{
 					nombre: "Tiburon",
 					ruta: "textures/tiburon/",
+					miniatura: "minitibu.png",
 					archivo: "scene.gltf",
 					posicion: new BABYLON.Vector3(1.8, 0.75, 0),
 					escala: new BABYLON.Vector3(0.004, 0.004, 0.004),
@@ -391,6 +404,10 @@
 					escena, 
 					callback 
 					}) {
+					if (personajesContenedores[lado]) {
+						personajesContenedores[lado].dispose();
+						personajesContenedores[lado] = null;
+					}
 					const nombreContenedor = `${personajeConfig.nombre}_${lado}`;
 					BABYLON.SceneLoader.ImportMesh(
 						null,
@@ -403,6 +420,7 @@
 						if (anterior) anterior.dispose();
 
 						const contenedor = new BABYLON.TransformNode(nombreContenedor, escena);
+						personajesContenedores[lado] = contenedor;
 
 						meshes.forEach(mesh => {
 							mesh.setParent(contenedor);
@@ -431,6 +449,61 @@
 						}
 					);
 					}
+
+				const advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+				const panelIzquierda = new BABYLON.GUI.StackPanel();
+				panelIzquierda.isVertical = true;
+				panelIzquierda.height = "300px";
+				panelIzquierda.width = "120px";
+				panelIzquierda.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+				panelIzquierda.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+				panelIzquierda.top = "70px";
+				panelIzquierda.left = "-15px";
+				advancedTexture.addControl(panelIzquierda);
+
+				const panelDerecha = new BABYLON.GUI.StackPanel();
+				panelDerecha.isVertical = true;
+				panelDerecha.height = "300px";
+				panelDerecha.width = "120px";
+				panelDerecha.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+				panelDerecha.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+				panelDerecha.top = "70px";
+				panelDerecha.left = "15px";  // para separarlo del borde derecho
+				advancedTexture.addControl(panelDerecha);
+
+				// Luego rellenas cada panel con sus botones correspondientes
+				personajes.forEach((p, index) => {
+				const btnIzq = BABYLON.GUI.Button.CreateImageOnlyButton("izq_" + p.nombre, (p.ruta + "izq" + p.miniatura));
+				btnIzq.width = "100px";
+				btnIzq.height = "100px";
+				btnIzq.cornerRadius = 20;
+				btnIzq.thickness = 0;
+				btnIzq.paddingRight = "0px";
+				btnIzq.background = "transparent";
+				btnIzq.onPointerUpObservable.add(() => {
+					cargarPersonajeEnLado({ personajeConfig: personajes[index], lado: "izquierda", escena: scene, callback: function({ animationGroups }) {
+					const idle = animationGroups[0];
+					if (idle) idle.start(true);
+					}});
+				});
+				panelIzquierda.addControl(btnIzq);
+
+				const btnDer = BABYLON.GUI.Button.CreateImageOnlyButton("der_" + p.nombre, (p.ruta + p.miniatura));
+				btnDer.width = "100px";
+				btnDer.height = "100px";
+				btnDer.cornerRadius = 20;
+				btnDer.thickness = 0;
+				btnDer.paddingLeft = "0px";
+				btnDer.background = "transparent";
+				btnDer.onPointerUpObservable.add(() => {
+					cargarPersonajeEnLado({ personajeConfig: personajes[index], lado: "derecha", escena: scene, callback: function({ animationGroups }) {
+					const idle = animationGroups[0];
+					if (idle) idle.start(true);
+					}});
+				});
+				panelDerecha.addControl(btnDer);
+				});
+
 
 				cargarPersonajeEnLado({
 					personajeConfig: personajes[1],
@@ -547,7 +620,7 @@
 				camera.keysLeft = [];  // Tecla izquierda (normalmente es 37)
 				camera.keysRight = []; // Tecla derecha (normalmente es 39)
 
-				const paddleSpeed = 0.01; // Aumentado de 0.0001 a 0.01 (100 veces más rápido)
+				const paddleSpeed = 0.024; // Aumentado de 0.0001 a 0.01 (100 veces más rápido)
 				const tableHalfDepth = 0.5;
                 // Reemplace el manejo de teclado existente con este enfoque
 				var keysPressed = {};
@@ -606,7 +679,6 @@
 				// 3. Crea un único observador para todo el juego
 				scene.onBeforeRenderObservable.add(() => {
 					if (!gameActive) return;
-					
 					// Movimiento de la bola
 					bola.position.addInPlace(ballDirection);
 					
@@ -655,13 +727,12 @@
 								ballDirection.x * ballDirection.x + 
 								ballDirection.z * ballDirection.z
 							);
-							ballSpeed = Math.min(ballSpeed * 1.05, 0.035);
+							ballSpeed = Math.min(ballSpeed * 1.05, 0.135);
 							const factor = ballSpeed / currentMagnitude;
 							ballDirection.x *= factor;
 							ballDirection.z *= factor;
 							
 							glow.intensity = 0.7;
-
 							if (scene.audioEnabled) {
 								const paddleHitSound = new BABYLON.Sound("paddleHit", "textures/metal.mp3", scene);
 								paddleHitSound.play();
@@ -684,7 +755,7 @@
 								ballDirection.x * ballDirection.x + 
 								ballDirection.z * ballDirection.z
 							);
-							ballSpeed = Math.min(ballSpeed * 1.05, 0.035);
+							ballSpeed = Math.min(ballSpeed * 1.05, 0.135);
 							const factor = ballSpeed / currentMagnitude;
 							ballDirection.x *= factor;
 							ballDirection.z *= factor;
@@ -777,15 +848,62 @@
             document.getElementById('playAgainButton').addEventListener('click', function() {
                 scoreP1 = 0;
                 scoreP2 = 0;
-                document.getElementById('score').textContent = score;
+                document.getElementById('score').textContent = `${scoreP1} - ${scoreP2}`;
                 document.getElementById('gameOver').style.display = 'none';
 				gameActive = true;
                 scene = Playground.CreateScene(engine, canvas);
             });
-            document.getElementById('saveToDashboardButton').addEventListener('click', function() {
-                // Aquí podrías llamar a tu API para guardar puntuación
-                console.log('Guardar puntuación:', score);
-            });
+			document.getElementById('saveToDashboardButton').addEventListener('click', function() {
+				const playerWon = scoreP1 > scoreP2;
+				
+				const scoreData = {
+
+					p1score: scoreP1,
+					p2score: scoreP2,
+					opponent: "Human Player",
+					winner: playerWon ? 1 : 0,
+					game_duration: Math.floor(performance.now() / 1000) // Tiempo aproximado en segundos
+				};
+				
+				this.disabled = true;
+				this.textContent = "Guardando...";
+				
+				fetch('http://localhost:3000/pong/scores', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					credentials: 'include', // Importante para enviar cookies de sesión
+					body: JSON.stringify(scoreData)
+				})
+				.then(response => {
+					if (!response.ok) {
+						throw new Error('Error al guardar la puntuación');
+					}
+					return response.json();
+				})
+				.then(data => {
+					console.log('Puntuación guardada exitosamente', data);
+					alert('¡Puntuación guardada exitosamente!');
+					this.textContent = "¡Guardado!";
+					// Opcional: redirigir al dashboard después de un breve retraso
+					setTimeout(() => {
+						window.location.href = '/dashboard';
+					}, 1500);
+				})
+				.catch(error => {
+					console.error('Error:', error);
+					alert('Error al guardar la puntuación: ' + error.message);
+					this.textContent = "Error al guardar";
+				})
+				.finally(() => {
+					// Re-habilitar el botón después de un tiempo
+					setTimeout(() => {
+						this.disabled = false;
+						this.textContent = "Guardar puntuación";
+					}, 2000);
+				});
+			});
             document.getElementById('resetCameraButton').addEventListener('click', function() {
                 if (window.resetCamera) {
                     window.resetCamera();

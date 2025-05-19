@@ -187,11 +187,11 @@
       
       // Ejecutar después de 500ms para dar tiempo a dashboard.js
       setTimeout(function() {
-        if (!window.dashboardLoaded) {
+        if (!window.dashboardJsLoaded) {
           console.log("⚠️ dashboard.js no se cargó, usando plan B");
           cargarDatosUsuario();
         }
-      }, 500);
+      }, 1500); // FIXED: Increased timeout from 500ms to 1500ms
     </script>
     
     <!-- Script para marcar como cargado -->

@@ -13,7 +13,7 @@
     "sourceMap": true,
     "lib": ["DOM", "DOM.Iterable", "ES2020"]
   },
-  "include": ["*.ts"],
+  "include": ["*.ts", "scoreManager.js"],
   "files": [
     "env-types.ts"
   ]

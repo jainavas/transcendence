@@ -13,8 +13,9 @@ db.serialize(() => {
   db.run(`CREATE TABLE IF NOT EXISTS pong_scores (
     id INTEGER PRIMARY KEY,
     user_id TEXT NOT NULL,
-    score INTEGER NOT NULL,
-    opponent TEXT,
+    p1score INTEGER NOT NULL,
+    p2score INTEGER NOT NULL,
+    opponent TEXT DEFAULT LOCALHUMAN,
     winner BOOLEAN,
     game_duration INTEGER,
     fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
