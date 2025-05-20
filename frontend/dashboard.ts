@@ -78,16 +78,6 @@ async function init(): Promise<void> {
 
 // Verificar sesión de usuario
 async function checkUserSession(): Promise<User | null> {
-  // SOLUCIÓN INMEDIATA: Verificar modo debug al inicio
-  if (window.location.search.includes('debug=true')) {
-    console.warn("⚠️ MODO DEPURACIÓN: Usando usuario ficticio");
-    return {
-      name: "Usuario Debug",
-      email: "debug@example.com",
-      picture: "https://ui-avatars.com/api/?name=Debug+User&background=random&color=fff"
-    };
-  }
-
   try {
     console.log("🔍 Verificando sesión...");
     
@@ -465,7 +455,14 @@ async function loadGlobalHighScores(): Promise<void> {
               <span>${userName}</span>
             </div>
           </td>
-          <td class="py-3 px-4 font-bold">${score.p1score}</td>
+		  <td class="py-3 px-4">
+            <div class="flex items-center">
+              <img src="${score.user_picture || 'https://ui-avatars.com/api/?name=User&size=32&background=random'}" 
+                   class="h-8 w-8 rounded-full mr-2" alt="${score.opponent}">
+              <span>${score.opponent}</span>
+            </div>
+          </td>
+          <td class="py-3 px-4 font-bold">${score.p1score} - ${score.p2score}</td>
           <td class="py-3 px-4 text-gray-500">${formattedDate}</td>
         `;
         

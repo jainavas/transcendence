@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>BabylonJS con UI Integrada</title>
+    <title>MegaPong</title>
 
     <!-- Babylon.js y dependencias -->
     <script src="https://cdn.babylonjs.com/babylon.js"></script>
@@ -113,15 +113,82 @@
             display: flex;
             align-items: center;
         }
+
+		.loading-screen {
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			background: linear-gradient(135deg, #000428, #004e92);
+			z-index: 1000;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			transition: opacity 0.5s ease-in-out;
+		}
+
+		.loading-container {
+			width: 80%;
+			max-width: 500px;
+			text-align: center;
+		}
+		
+		.loading-logo {
+			font-size: 2.5rem;
+			font-weight: 700;
+			color: white;
+			margin-bottom: 2rem;
+			text-shadow: 0 0 10px rgba(0,150,255,0.8);
+			animation: pulse 2s infinite;
+		}
+		
+		@keyframes pulse {
+			0% { transform: scale(1); }
+			50% { transform: scale(1.05); }
+			100% { transform: scale(1); }
+		}
+
+		.loading-progress-container {
+			height: 24px;
+			background: rgba(255, 255, 255, 0.1);
+			border-radius: 12px;
+			padding: 2px;
+			margin-bottom: 1rem;
+			box-shadow: 0 0 20px rgba(0,150,255,0.3);
+		}
+		
+		.loading-progress-bar {
+			height: 100%;
+			width: 0%;
+			background: linear-gradient(90deg, #00d2ff, #3a7bd5);
+			border-radius: 10px;
+			transition: width 0.2s ease;
+		}
+		
+		.loading-text {
+			color: white;
+			font-size: 1rem;
+			text-shadow: 0 0 5px rgba(0,0,0,0.5);
+		}
     </style>
 </head>
 <body>
+	<div id="loadingScreen" class="loading-screen">
+		<div class="loading-container">
+			<div class="loading-logo">🏓 TRANSCENDER PONG</div>
+			<div class="loading-progress-container">
+				<div id="loadingProgressBar" class="loading-progress-bar"></div>
+			</div>
+			<div id="loadingText" class="loading-text">Cargando recursos (0%)...</div>
+		</div>
+	</div>
     <!-- Canvas 3D -->
     <canvas id="renderCanvas"></canvas>
 
     <!-- UI Superior -->
     <div id="uiContainer">
-        <div id="scoreDisplay">Puntuación: <span id="score">0</span></div>
+        <div id="scoreDisplay">Puntuación: <span id="score">0 - 0</span></div>
         <div class="buttons-container">
             <button id="resetCameraButton" class="game-button btn-orange">
                 <i>↺</i> Resetear cámara
@@ -150,14 +217,23 @@
         var scoreP2 = 0;
 		var maxScore = 5;
 
-        // Inicia bucle de render
-        var startRenderLoop = function () {
+        // Update the startRenderLoop function
+        var startRenderLoop = function (sceneToRender) {
             engine.runRenderLoop(function () {
-                if (scene && scene.activeCamera) {
-                    scene.render();
+                if (sceneToRender && sceneToRender.activeCamera) {
+                    sceneToRender.render();
                 }
             });
         };
+
+        // Inicia bucle de render
+        // var startRenderLoop = function () {
+        //     engine.runRenderLoop(function () {
+        //         if (scene && scene.activeCamera) {
+        //             scene.render();
+        //         }
+        //     });
+        // };
 
         // Clase de creación de escena Babylon
         class Playground {
@@ -222,7 +298,7 @@
 				checkCameraPosition();
 
 				
-				const hdrTexture = new BABYLON.HDRCubeTexture("textures/espacio.hdr", scene, 512, false, true, false, true);
+				const hdrTexture = new BABYLON.HDRCubeTexture("textures/galaxia.hdr", scene, 1024, false, true, false, true);
 				scene.environmentTexture = hdrTexture;
 				scene.createDefaultSkybox(hdrTexture, true, 1000);
 				scene.environmentIntensity = 5;
@@ -285,8 +361,8 @@
 
 				// Material Pala 2
 				const pala2Mat = new BABYLON.PBRMaterial("pala2Mat", scene);
-				pala2Mat.albedoColor = new BABYLON.Color3(0.0, 0.8, 0.5); // Verde jade
-				pala2Mat.emissiveColor = new BABYLON.Color3(0.0, 0.6, 0.4); // Emisión tenue
+				pala2Mat.albedoColor = new BABYLON.Color3(1, 0.0, 0.1); // Verde jade
+				pala2Mat.emissiveColor = new BABYLON.Color3(1, 0.0, 0.05); // Emisión tenue
 				pala2Mat.alpha = 0.75;
 				pala2Mat.transparencyMode = BABYLON.PBRMaterial.PBRMATERIAL_ALPHABLEND;
 				pala2Mat.indexOfRefraction = 1.4;
@@ -367,6 +443,23 @@
 					derecha: null
 				};
 
+				const entornos = {
+					"galaxia": new BABYLON.HDRCubeTexture("textures/galaxia.hdr", scene, 1024, false, true, false, true),
+					"cielo": new BABYLON.HDRCubeTexture("textures/cielo.hdr", scene, 1024, false, true, false, true)
+				};
+
+				let skyboxActual = null;
+
+				function cambiarEntorno(nombre) {
+					const nuevoHDR = entornos[nombre];
+					scene.environmentTexture = nuevoHDR;
+
+					if (skyboxActual) {
+						skyboxActual.dispose();
+					}
+
+					skyboxActual = scene.createDefaultSkybox(nuevoHDR, true, 1000);
+				}
 
 				const personajes = [
 				{
@@ -473,37 +566,63 @@
 
 				// Luego rellenas cada panel con sus botones correspondientes
 				personajes.forEach((p, index) => {
-				const btnIzq = BABYLON.GUI.Button.CreateImageOnlyButton("izq_" + p.nombre, (p.ruta + "izq" + p.miniatura));
-				btnIzq.width = "100px";
-				btnIzq.height = "100px";
-				btnIzq.cornerRadius = 20;
-				btnIzq.thickness = 0;
-				btnIzq.paddingRight = "0px";
-				btnIzq.background = "transparent";
-				btnIzq.onPointerUpObservable.add(() => {
-					cargarPersonajeEnLado({ personajeConfig: personajes[index], lado: "izquierda", escena: scene, callback: function({ animationGroups }) {
-					const idle = animationGroups[0];
-					if (idle) idle.start(true);
-					}});
-				});
-				panelIzquierda.addControl(btnIzq);
+					const btnIzq = BABYLON.GUI.Button.CreateImageOnlyButton("izq_" + p.nombre, (p.ruta + "izq" + p.miniatura));
+					btnIzq.width = "100px";
+					btnIzq.height = "100px";
+					btnIzq.cornerRadius = 20;
+					btnIzq.thickness = 0;
+					btnIzq.paddingRight = "0px";
+					btnIzq.background = "transparent";
+					btnIzq.onPointerUpObservable.add(() => {
+						cargarPersonajeEnLado({ personajeConfig: personajes[index], lado: "izquierda", escena: scene, callback: function({ animationGroups }) {
+						const idle = animationGroups[0];
+						if (idle) idle.start(true);
+						}});
+					});
+					panelIzquierda.addControl(btnIzq);
 
-				const btnDer = BABYLON.GUI.Button.CreateImageOnlyButton("der_" + p.nombre, (p.ruta + p.miniatura));
-				btnDer.width = "100px";
-				btnDer.height = "100px";
-				btnDer.cornerRadius = 20;
-				btnDer.thickness = 0;
-				btnDer.paddingLeft = "0px";
-				btnDer.background = "transparent";
-				btnDer.onPointerUpObservable.add(() => {
-					cargarPersonajeEnLado({ personajeConfig: personajes[index], lado: "derecha", escena: scene, callback: function({ animationGroups }) {
-					const idle = animationGroups[0];
-					if (idle) idle.start(true);
-					}});
-				});
-				panelDerecha.addControl(btnDer);
+					const btnDer = BABYLON.GUI.Button.CreateImageOnlyButton("der_" + p.nombre, (p.ruta + p.miniatura));
+					btnDer.width = "100px";
+					btnDer.height = "100px";
+					btnDer.cornerRadius = 20;
+					btnDer.thickness = 0;
+					btnDer.paddingLeft = "0px";
+					btnDer.background = "transparent";
+					btnDer.onPointerUpObservable.add(() => {
+						cargarPersonajeEnLado({ personajeConfig: personajes[index], lado: "derecha", escena: scene, callback: function({ animationGroups }) {
+						const idle = animationGroups[0];
+						if (idle) idle.start(true);
+						}});
+					});
+					panelDerecha.addControl(btnDer);
 				});
 
+				const panelCentro = new BABYLON.GUI.StackPanel();
+				panelCentro.isVertical = false;
+				panelCentro.height = "100px";
+				panelCentro.width = "200px";
+				panelCentro.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+				panelCentro.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+				panelCentro.top = "20px";
+				panelCentro.left = "0px";
+				advancedTexture.addControl(panelCentro);
+
+				Object.keys(entornos).forEach(nombre => {
+					const boton = BABYLON.GUI.Button.CreateImageOnlyButton("btn_" + nombre, "textures/mini" + nombre + ".png");
+					boton.width = "100px";
+					boton.height = "60px";
+					boton.cornerRadius = 6;
+					boton.background = "transparent";
+					boton.thickness = 0;
+					boton.paddingLeft = "10px";
+					boton.onPointerUpObservable.add(() => {
+						if (nombre === "cielo") scene.environmentIntensity = 0.5;
+						else scene.environmentIntensity = 5;
+						cambiarEntorno(nombre);
+					});
+
+					panelCentro.addControl(boton);
+				});
 
 				cargarPersonajeEnLado({
 					personajeConfig: personajes[1],
@@ -701,7 +820,6 @@
 						pala2.position.z = -tableHalfDepth + paddlePadding;
 					
 					// Rebote con bordes laterales de la mesa (más preciso)
-					console.log(tableHalfDepth, bola.position.z);
 					if (bola.position.z + 0.05 > tableHalfDepth || 
 						bola.position.z - 0.05 < -tableHalfDepth) {
 						ballDirection.z *= -1;
@@ -828,6 +946,71 @@
 					}, 2000);
 				}
 
+				// Add loading screen functionality
+				function showLoadingUI() {
+					const loadingScreen = document.getElementById('loadingScreen');
+					const loadingText = document.getElementById('loadingText');
+					const loadingProgressBar = document.getElementById('loadingProgressBar');
+					
+					// Show loading screen
+					loadingScreen.style.opacity = "1";
+					loadingScreen.style.display = "flex";
+					
+					// Track loading progress
+					let totalAssets = 0;
+					let loadedAssets = 0;
+					
+					// Create asset manager to track all asset loading
+					const assetsManager = new BABYLON.AssetsManager(scene);
+					
+					// Add handler for tracking progress
+					assetsManager.onProgress = (remainingCount, totalCount) => {
+						loadedAssets = totalCount - remainingCount;
+						totalAssets = totalCount;
+						
+						const progress = Math.floor((loadedAssets / totalAssets) * 100);
+						loadingProgressBar.style.width = progress + "%";
+						loadingText.textContent = `Cargando recursos (${progress}%)...`;
+					};
+					
+					// Add handler for when all assets are loaded
+					assetsManager.onFinish = () => {
+						// Delay the hiding a bit for smoother transition
+						setTimeout(() => {
+							loadingScreen.style.opacity = "0";
+							setTimeout(() => {
+								loadingScreen.style.display = "none";
+							}, 500);
+						}, 500);
+					};
+					
+					// Register all textures to be tracked
+					Object.values(entornos).forEach(texture => {
+						const task = assetsManager.addTextureTask("envTexture", texture.url);
+						task.onSuccess = function(task) {
+							// Texture loaded
+						};
+					});
+					
+					// Register all material textures
+					[concreteMat, marbleMat, metalMat, marmolnegroMat].forEach(material => {
+						if (material.albedoTexture) assetsManager.addTextureTask("texture", material.albedoTexture.url);
+						if (material.bumpTexture) assetsManager.addTextureTask("texture", material.bumpTexture.url);
+						if (material.ambientTexture) assetsManager.addTextureTask("texture", material.ambientTexture.url);
+						if (material.parallaxTexture) assetsManager.addTextureTask("texture", material.parallaxTexture.url);
+						if (material.metallicTexture) assetsManager.addTextureTask("texture", material.metallicTexture.url);
+					});
+					
+					// Add sounds to track
+					assetsManager.addBinaryFileTask("soundFile", "textures/metal.mp3");
+					
+					// Start loading all assets
+					assetsManager.load();
+				}
+
+				// Call the function to start tracking and showing load progress
+				showLoadingUI();
+
                 return scene;
             }
         }
@@ -836,8 +1019,25 @@
         window.addEventListener('DOMContentLoaded', function() {
             // Crear escena y bucle
             scene = Playground.CreateScene(engine, canvas);
-            startRenderLoop();
-
+            
+            // Start render loop only after assets load
+            // The assets manager will take care of tracking load progress
+            scene.executeWhenReady(() => {
+                startRenderLoop(scene);
+                
+                // The loading screen will be hidden by the assets manager
+                // but we can add a backup timeout just in case
+                setTimeout(() => {
+                    const loadingScreen = document.getElementById('loadingScreen');
+                    if (loadingScreen && loadingScreen.style.opacity !== "0") {
+                        loadingScreen.style.opacity = "0";
+                        setTimeout(() => {
+                            loadingScreen.style.display = "none";
+                        }, 500);
+                    }
+                }, 5000);
+            });
+            
             // Botones UI
             document.getElementById('backButton').addEventListener('click', function(e) {
                 e.preventDefault(); window.location.href = '/dashboard';
@@ -852,6 +1052,7 @@
                 document.getElementById('gameOver').style.display = 'none';
 				gameActive = true;
                 scene = Playground.CreateScene(engine, canvas);
+				startRenderLoop(scene);
             });
 			document.getElementById('saveToDashboardButton').addEventListener('click', function() {
 				const playerWon = scoreP1 > scoreP2;
@@ -903,7 +1104,7 @@
 						this.textContent = "Guardar puntuación";
 					}, 2000);
 				});
-			});
+            });
             document.getElementById('resetCameraButton').addEventListener('click', function() {
                 if (window.resetCamera) {
                     window.resetCamera();
