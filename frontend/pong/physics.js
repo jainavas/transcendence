@@ -1,12 +1,15 @@
 import { maxScore, scoreP1, scoreP2, changeScore1, changeScore2 } from "./main.js";
 import { setGameActive, gameActive } from "./scene.js";
+import { puntoTexto, anunciarPunto } from "./menus.js";
 
-function gameOver(message, bola, pala1, pala2, tableTop) {
+function gameOver(message, bola, pala1, pala2, tableTop, scene) {
 	// Actualizar puntuaciones
 	if (message.includes("jugador 1") && gameActive) {
 		changeScore1();
+		anunciarPunto(puntoTexto, "¡Punto para el jugador 1!", scene);
 	} else if (message.includes("jugador 2") && gameActive) {
 		changeScore2();
+		anunciarPunto(puntoTexto, "¡Punto para el jugador 2!", scene);
 	}
 	setGameActive(false);
 	// Lanzar la bola hacia abajo con rotación
@@ -199,10 +202,10 @@ export function createPhysics(scene, engine, camera, tableTop, materiales, glow)
 
 		// Game over
 		if (bolaPos.x > 1.2) {
-			if (!gameOver("¡Punto para el jugador 2!", bola, pala1, pala2, tableTop, scene.gameActive))
+			if (!gameOver("¡Punto para el jugador 2!", bola, pala1, pala2, tableTop, scene))
 				return;
 		} else if (bolaPos.x < -1.2) {
-			if (!gameOver("¡Punto para el jugador 1!", bola, pala1, pala2, tableTop, scene.gameActive))
+			if (!gameOver("¡Punto para el jugador 1!", bola, pala1, pala2, tableTop, scene))
 				return;
 		}
 

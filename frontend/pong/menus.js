@@ -8,6 +8,41 @@ export function cambiarEntorno(nombre, scene, entornos, skyboxActual) {
 	skyboxActual = scene.createDefaultSkybox(nuevoHDR, true, 1000);
 }
 
+export var puntoTexto = null;
+export function anunciarPunto(puntoTexto, message, scene) {
+	puntoTexto.text = message; // "¡Punto para el jugador 1!"
+	puntoTexto.alpha = 1;
+	puntoTexto.scaleX = 0.5;
+	puntoTexto.scaleY = 0.5;
+
+	// Animación de escala y fade-in
+	const animScaleX = new BABYLON.Animation("scaleX", "scaleX", 60, BABYLON.Animation.ANIMATIONTYPE_FLOAT);
+	const animScaleY = new BABYLON.Animation("scaleY", "scaleY", 60, BABYLON.Animation.ANIMATIONTYPE_FLOAT);
+	const animAlpha = new BABYLON.Animation("alpha", "alpha", 60, BABYLON.Animation.ANIMATIONTYPE_FLOAT);
+
+	animScaleX.setKeys([
+		{ frame: 0, value: 0.5 },
+		{ frame: 10, value: 1.2 },
+		{ frame: 20, value: 1.0 }
+	]);
+
+	animScaleY.setKeys([
+		{ frame: 0, value: 0.5 },
+		{ frame: 10, value: 1.2 },
+		{ frame: 20, value: 1.0 }
+	]);
+
+	animAlpha.setKeys([
+		{ frame: 0, value: 0 },
+		{ frame: 5, value: 1 },
+		{ frame: 60, value: 1 },
+		{ frame: 90, value: 0 }
+	]);
+
+	scene.beginDirectAnimation(puntoTexto, [animScaleX, animScaleY, animAlpha], 0, 90, false);
+
+}
+
 export function cargarPersonajeEnLado({
 	personajeConfig,
 	lado = "izquierda",
@@ -168,4 +203,18 @@ export function createUI(scene, personajes, personajesContenedores, entornos, sk
 			if (idle) idle.start(true);
 		}
 	});
+
+	puntoTexto = new BABYLON.GUI.TextBlock("puntoTexto");
+	puntoTexto.text = "";
+	puntoTexto.color = "#FFD700"; // dorado
+	puntoTexto.fontSize = 60;
+	puntoTexto.fontStyle = "bold";
+	puntoTexto.fontFamily = "Arial";
+	puntoTexto.outlineColor = "black";
+	puntoTexto.outlineWidth = 8;
+	puntoTexto.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+	puntoTexto.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+	puntoTexto.alpha = 0;
+	puntoTexto.top = "-200px"; // Ajusta la posición vertical
+	advancedTexture.addControl(puntoTexto);
 }
