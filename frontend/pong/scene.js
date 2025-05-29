@@ -1,5 +1,5 @@
 import { createMaterials } from "./materials.js";
-import { createUI } from "./menus.js";
+import { advancedTexture, createUI } from "./menus.js";
 import { createPhysics } from "./physics.js";
 
 
@@ -151,6 +151,7 @@ export class Playground {
 		];
 
 		createUI(
+			advancedTexture,
 			scene,
 			personajes,
 			personajesContenedores,
@@ -219,8 +220,6 @@ export class Playground {
 		camera.keysDown = [];  // Tecla abajo (normalmente es 40)
 		camera.keysLeft = [];  // Tecla izquierda (normalmente es 37)
 		camera.keysRight = []; // Tecla derecha (normalmente es 39)
-		gameActive = true; // Activar el juego al inicio
-
 		scene.onBeforeRenderObservable.clear(); // Elimina observadores existentes
 
 		createPhysics(

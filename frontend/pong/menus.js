@@ -7,6 +7,7 @@ export function cambiarEntorno(nombre, scene, entornos, skyboxActual) {
 
 	skyboxActual = scene.createDefaultSkybox(nuevoHDR, true, 1000);
 }
+export var mensajeInicio = null;
 
 export var puntoTexto = null;
 export function anunciarPunto(puntoTexto, message, scene) {
@@ -96,8 +97,9 @@ export function cargarPersonajeEnLado({
 	);
 }
 
-export function createUI(scene, personajes, personajesContenedores, entornos, skyboxActual) {
-	const advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+export var advancedTexture = null;
+export function createUI(advancedTexture, scene, personajes, personajesContenedores, entornos, skyboxActual) {
+	advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
 	const panelIzquierda = new BABYLON.GUI.StackPanel();
 	panelIzquierda.isVertical = true;
 	panelIzquierda.height = "300px";
@@ -216,5 +218,21 @@ export function createUI(scene, personajes, personajesContenedores, entornos, sk
 	puntoTexto.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
 	puntoTexto.alpha = 0;
 	puntoTexto.top = "-200px"; // Ajusta la posición vertical
+	puntoTexto.isHitTestVisible = false;
 	advancedTexture.addControl(puntoTexto);
+
+	mensajeInicio = new BABYLON.GUI.TextBlock("mensajeInicio");
+	mensajeInicio.text = "Elige tu personaje y entorno\nPresiona ESPACIO para iniciar";
+	mensajeInicio.color = "#FFFFFF";
+	mensajeInicio.fontSize = 48;
+	mensajeInicio.fontStyle = "bold";
+	mensajeInicio.fontFamily = "Arial";
+	mensajeInicio.outlineColor = "black";
+	mensajeInicio.outlineWidth = 6;
+	mensajeInicio.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+	mensajeInicio.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+	mensajeInicio.alpha = 1;
+	mensajeInicio.top = "-50px"; // Ajusta la posición vertical
+	mensajeInicio.isHitTestVisible = false;
+	advancedTexture.addControl(mensajeInicio);
 }

@@ -1,6 +1,6 @@
 import { maxScore, scoreP1, scoreP2, changeScore1, changeScore2 } from "./main.js";
 import { setGameActive, gameActive } from "./scene.js";
-import { puntoTexto, anunciarPunto } from "./menus.js";
+import { puntoTexto, anunciarPunto, mensajeInicio } from "./menus.js";
 
 function gameOver(message, bola, pala1, pala2, tableTop, scene) {
 	// Actualizar puntuaciones
@@ -61,7 +61,7 @@ function gameOver(message, bola, pala1, pala2, tableTop, scene) {
 export function createPhysics(scene, engine, camera, tableTop, materiales, glow) {
 	// Configurar physics engine
 	scene.enablePhysics(new BABYLON.Vector3(0, 0, 0), new BABYLON.CannonJSPlugin());
-	scene.getPhysicsEngine().setTimeStep(1 / 60); // Más estable que 1/240
+	scene.getPhysicsEngine().setTimeStep(1 / 60);
 
 	const tableHalfDepth = 0.5;
 	const paddleSpeed = 0.024;
@@ -103,8 +103,23 @@ export function createPhysics(scene, engine, camera, tableTop, materiales, glow)
 		friction: 0
 	}, scene);
 
+	function prepararInicioJuego(bola) {
+		window.addEventListener("keydown", (e) => {
+			if (e.code === "Space" && !gameActive) {
+				setGameActive(true);
+
+				// Ocultar mensaje
+				if (mensajeInicio) mensajeInicio.alpha = 0;
+
+				// Lanzar bola
+				bola.physicsImpostor.setLinearVelocity(new BABYLON.Vector3(0.5, 0, 0));
+			}
+		});
+	}
+
+	prepararInicioJuego(bola);
+
 	// Velocidad inicial de la bola
-	bola.physicsImpostor.setLinearVelocity(new BABYLON.Vector3(0.5, 0, 0));
 
 	// Variables para tracking de colisiones
 	let lastCollisionTime = 0;
@@ -201,10 +216,10 @@ export function createPhysics(scene, engine, camera, tableTop, materiales, glow)
 		}
 
 		// Game over
-		if (bolaPos.x > 1.2) {
+		if (bolaPos.x > 1.05) {
 			if (!gameOver("¡Punto para el jugador 2!", bola, pala1, pala2, tableTop, scene))
 				return;
-		} else if (bolaPos.x < -1.2) {
+		} else if (bolaPos.x < -1.05) {
 			if (!gameOver("¡Punto para el jugador 1!", bola, pala1, pala2, tableTop, scene))
 				return;
 		}
