@@ -1,118 +1,174 @@
 <!doctype html>
 <html lang="es">
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MegaPong</title>
 
-    <!-- Babylon.js y dependencias -->
-    <script src="https://cdn.babylonjs.com/babylon.js"></script>
-    <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>MegaPong</title>
+
+	<!-- Babylon.js y dependencias -->
+	<script src="https://cdn.babylonjs.com/babylon.js"></script>
+	<script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
 	<script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
 	<script src="https://cdn.babylonjs.com/cannon.js"></script>
 
 
-    <!-- CSS para pantalla completa y UI -->
-    <style>
-        html, body {
-            width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden;
-            font-family: Arial, sans-serif;
-        }
-        #renderCanvas {
-            width: 100%; height: 100%; display: block;
-            touch-action: none;
-            background-color: #000;
-        }
-        #uiContainer {
-            position: absolute; top: 10px; left: 0;
-            width: 100%; z-index: 10; pointer-events: none;
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 2 1rem;
-        }
-        #uiContainer > * { pointer-events: auto; }
-        #scoreDisplay {
-            background: rgba(0,0,0,0.5); color: #fff;
-            padding: 0.5rem 1rem; border-radius: 4px;
-        }
-        #gameOver {
-            position: absolute; top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0,0,0,0.8); color: #fff;
-            padding: 2rem; border-radius: 8px;
-            text-align: center; z-index: 20;
-            display: none;
-        }
-        #gameOver button {
-            display: block; width: 100%; margin: 0.5rem 0;
-            padding: 0.75rem; border: none; border-radius: 4px;
-            font-size: 1rem; cursor: pointer;
-        }
-        .btn-blue { background: #007bff; color: #fff; }
-        .btn-blue:hover { background: #0056b3; }
-        .btn-green { background: #28a745; color: #fff; }
-        .btn-green:hover { background: #218838; }
-        .btn-gray { background: #6c757d; color: #fff; }
-        .btn-gray:hover { background: #5a6268; }
+	<!-- CSS para pantalla completa y UI -->
+	<style>
+		html,
+		body {
+			width: 100%;
+			height: 100%;
+			margin: 0;
+			padding: 0;
+			overflow: hidden;
+			font-family: Arial, sans-serif;
+		}
 
-        /* Estilos mejorados para botones */
-        .game-button {
-            border: none;
-            padding: 8px 14px;
-            border-radius: 6px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 0.9rem;
-            letter-spacing: 0.5px;
-            margin-left: 10px;
-        }
-        
-        .btn-blue {
-            background: linear-gradient(to bottom, #3498db, #2980b9);
-            color: #fff;
-            border: 1px solid #2980b9;
-        }
-        
-        .btn-blue:hover {
-            background: linear-gradient(to bottom, #2980b9, #2573a7);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-        }
-        
-        .btn-orange {
-            background: linear-gradient(to bottom, #e67e22, #d35400);
-            color: #fff;
-            border: 1px solid #d35400;
-        }
-        
-        .btn-orange:hover {
-            background: linear-gradient(to bottom, #d35400, #c04e00);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-        }
-        
-        #resetCameraButton {
-            display: none; /* Oculto por defecto */
+		#renderCanvas {
+			width: 100%;
+			height: 100%;
+			display: block;
+			touch-action: none;
+			background-color: #000;
+		}
+
+		#uiContainer {
+			position: absolute;
+			top: 10px;
+			left: 0;
+			width: 100%;
+			z-index: 10;
+			pointer-events: none;
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			padding: 2 1rem;
+		}
+
+		#uiContainer>* {
+			pointer-events: auto;
+		}
+
+		#scoreDisplay {
+			background: rgba(0, 0, 0, 0.5);
+			color: #fff;
+			padding: 0.5rem 1rem;
+			border-radius: 4px;
+		}
+
+		#gameOver {
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+			background: rgba(0, 0, 0, 0.8);
+			color: #fff;
+			padding: 2rem;
+			border-radius: 8px;
+			text-align: center;
+			z-index: 20;
+			display: none;
+		}
+
+		#gameOver button {
+			display: block;
+			width: 100%;
+			margin: 0.5rem 0;
+			padding: 0.75rem;
+			border: none;
+			border-radius: 4px;
+			font-size: 1rem;
+			cursor: pointer;
+		}
+
+		.btn-blue {
+			background: #007bff;
+			color: #fff;
+		}
+
+		.btn-blue:hover {
+			background: #0056b3;
+		}
+
+		.btn-green {
+			background: #28a745;
+			color: #fff;
+		}
+
+		.btn-green:hover {
+			background: #218838;
+		}
+
+		.btn-gray {
+			background: #6c757d;
+			color: #fff;
+		}
+
+		.btn-gray:hover {
+			background: #5a6268;
+		}
+
+		/* Estilos mejorados para botones */
+		.game-button {
+			border: none;
+			padding: 8px 14px;
+			border-radius: 6px;
+			font-weight: 600;
+			cursor: pointer;
+			transition: all 0.2s ease;
+			box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+			display: flex;
+			align-items: center;
+			gap: 6px;
+			font-size: 0.9rem;
+			letter-spacing: 0.5px;
+			margin-left: 10px;
+		}
+
+		.btn-blue {
+			background: linear-gradient(to bottom, #3498db, #2980b9);
+			color: #fff;
+			border: 1px solid #2980b9;
+		}
+
+		.btn-blue:hover {
+			background: linear-gradient(to bottom, #2980b9, #2573a7);
+			transform: translateY(-2px);
+			box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+		}
+
+		.btn-orange {
+			background: linear-gradient(to bottom, #e67e22, #d35400);
+			color: #fff;
+			border: 1px solid #d35400;
+		}
+
+		.btn-orange:hover {
+			background: linear-gradient(to bottom, #d35400, #c04e00);
+			transform: translateY(-2px);
+			box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+		}
+
+		#resetCameraButton {
+			display: none;
+			/* Oculto por defecto */
 			background: linear-gradient(to bottom, #2ecc71, #27ae60);
 			color: #fff;
 			border: 1px solid #27ae60;
-        }
-        
-        #resetCameraButton:hover {
-            background: linear-gradient(to bottom, #27ae60, #1e8449);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-        }
-        
-        /* Contenedor de botones */
-        .buttons-container {
-            display: flex;
-            align-items: center;
-        }
+		}
+
+		#resetCameraButton:hover {
+			background: linear-gradient(to bottom, #27ae60, #1e8449);
+			transform: translateY(-2px);
+			box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+		}
+
+		/* Contenedor de botones */
+		.buttons-container {
+			display: flex;
+			align-items: center;
+		}
 
 		.loading-screen {
 			position: absolute;
@@ -125,7 +181,7 @@
 			display: flex;
 			align-items: center;
 			justify-content: center;
-			transition: opacity 0.5s ease-in-out;
+			transition: opacity 0.8s ease-in-out;
 		}
 
 		.loading-container {
@@ -133,20 +189,28 @@
 			max-width: 500px;
 			text-align: center;
 		}
-		
+
 		.loading-logo {
 			font-size: 2.5rem;
 			font-weight: 700;
 			color: white;
 			margin-bottom: 2rem;
-			text-shadow: 0 0 10px rgba(0,150,255,0.8);
+			text-shadow: 0 0 10px rgba(0, 150, 255, 0.8);
 			animation: pulse 2s infinite;
 		}
-		
+
 		@keyframes pulse {
-			0% { transform: scale(1); }
-			50% { transform: scale(1.05); }
-			100% { transform: scale(1); }
+			0% {
+				transform: scale(1);
+			}
+
+			50% {
+				transform: scale(1.05);
+			}
+
+			100% {
+				transform: scale(1);
+			}
 		}
 
 		.loading-progress-container {
@@ -155,9 +219,9 @@
 			border-radius: 12px;
 			padding: 2px;
 			margin-bottom: 1rem;
-			box-shadow: 0 0 20px rgba(0,150,255,0.3);
+			box-shadow: 0 0 20px rgba(0, 150, 255, 0.3);
 		}
-		
+
 		.loading-progress-bar {
 			height: 100%;
 			width: 0%;
@@ -165,14 +229,15 @@
 			border-radius: 10px;
 			transition: width 0.2s ease;
 		}
-		
+
 		.loading-text {
 			color: white;
 			font-size: 1rem;
-			text-shadow: 0 0 5px rgba(0,0,0,0.5);
+			text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
 		}
-    </style>
+	</style>
 </head>
+
 <body>
 	<div id="loadingScreen" class="loading-screen">
 		<div class="loading-container">
@@ -183,938 +248,79 @@
 			<div id="loadingText" class="loading-text">Cargando recursos (0%)...</div>
 		</div>
 	</div>
-    <!-- Canvas 3D -->
-    <canvas id="renderCanvas"></canvas>
+	<!-- Canvas 3D -->
+	<canvas id="renderCanvas"></canvas>
 
-    <!-- UI Superior -->
-    <div id="uiContainer">
-        <div id="scoreDisplay">Puntuación: <span id="score">0 - 0</span></div>
-        <div class="buttons-container">
-            <button id="resetCameraButton" class="game-button btn-orange">
-                <i>↺</i> Resetear cámara
-            </button>
-            <button id="backButton" class="game-button btn-blue">
-                <i>←</i> Volver al Dashboard
-            </button>
-        </div>
-    </div>
+	<!-- UI Superior -->
+	<div id="uiContainer">
+		<div id="scoreDisplay">Puntuación: <span id="score">0 - 0</span></div>
+		<div class="buttons-container">
+			<button id="resetCameraButton" class="game-button btn-orange">
+				<i>↺</i> Resetear cámara
+			</button>
+			<button id="backButton" class="game-button btn-blue">
+				<i>←</i> Volver al Dashboard
+			</button>
+		</div>
+	</div>
 
-    <!-- Pantalla Game Over -->
-    <div id="gameOver">
-        <h2>¡Juego terminado!</h2>
-        <p>Tu puntuación: <span id="finalScore">0</span></p>
-        <button id="playAgainButton" class="btn-green">Jugar de nuevo</button>
-        <button id="saveToDashboardButton" class="btn-blue">Guardar puntuación</button>
-        <button id="returnToDashboardButton" class="btn-gray">Volver al Dashboard</button>
-    </div>
+	<!-- Pantalla Game Over -->
+	<div id="gameOver">
+		<h2>¡Juego terminado!</h2>
+		<p>Tu puntuación: <span id="finalScore">0</span></p>
+		<button id="playAgainButton" class="btn-green">Jugar de nuevo</button>
+		<button id="saveToDashboardButton" class="btn-blue">Guardar puntuación</button>
+		<button id="returnToDashboardButton" class="btn-gray">Volver al Dashboard</button>
+	</div>
 
-    <script>
-        // Variables globales
-        var canvas = document.getElementById("renderCanvas");
-        var engine = new BABYLON.Engine(canvas, true);
-        var scene;
-        var scoreP1 = 0;
-        var scoreP2 = 0;
-		var maxScore = 5;
+	<!-- Scripts del juego -->
+	<script type="module" src="pong/main.js"></script>
+	<script>
+		// Simple file watcher that checks if files have changed
+		(function () {
+			const CHECK_INTERVAL = 2000; // Check every 2 seconds
+			const files = [
+				'pong/main.js',
+				'pong/scene.js',
+				'pong/materials.js',
+				'pong/physics.js'
+			];
 
-        // Update the startRenderLoop function
-        var startRenderLoop = function (sceneToRender) {
-            engine.runRenderLoop(function () {
-                if (sceneToRender && sceneToRender.activeCamera) {
-                    sceneToRender.render();
-                }
-            });
-        };
+			let lastModified = {};
 
-        // Inicia bucle de render
-        // var startRenderLoop = function () {
-        //     engine.runRenderLoop(function () {
-        //         if (scene && scene.activeCamera) {
-        //             scene.render();
-        //         }
-        //     });
-        // };
+			// Initialize with current file timestamps
+			files.forEach(file => {
+				fetch(file + '?t=' + Date.now(), { method: 'HEAD' })
+					.then(response => {
+						lastModified[file] = response.headers.get('last-modified');
+					})
+					.catch(err => console.log('Error checking ' + file, err));
+			});
 
-        // Clase de creación de escena Babylon
-        class Playground {
-            static CreateScene(engine, canvas) {
-                var scene = new BABYLON.Scene(engine);
-                // Cámara orbital cenital
-                var camera = new BABYLON.ArcRotateCamera(
-                    "camera1",
-                    -Math.PI/2,
-                    Math.PI/4.5,
-                    2.3,
-                    new BABYLON.Vector3(0,1,0),
-                    scene
-                );
-                camera.attachControl(canvas, true);
-				camera.lowerRadiusLimit = 2.3;
-				camera.upperRadiusLimit = 2.3;
-				canvas.focus();
-				var defaultPosition = {
-					alpha: -Math.PI / 2,
-					beta: Math.PI / 4.5,
-					radius: 2.3
-				};
+			// Periodically check for file changes
+			setInterval(() => {
+				let needsReload = false;
 
-				var resetCameraButton = document.getElementById('resetCameraButton');
-
-				scene.enablePhysics(new BABYLON.Vector3(0, -9.81, 0), new BABYLON.CannonJSPlugin());
-				// Función para comprobar si la cámara se ha movido
-				function checkCameraPosition() {
-					var epsilon = 0.05; // Tolerancia para comparaciones
-					
-					// Verificar si el usuario ha movido la cámara significativamente
-					var alphaDiff = Math.abs(camera.alpha - defaultPosition.alpha);
-					var betaDiff = Math.abs(camera.beta - defaultPosition.beta);
-					var radiusDiff = Math.abs(camera.radius - defaultPosition.radius);
-					
-					// Determinar si la cámara está fuera de posición
-					var camaraMovida = (alphaDiff > epsilon || betaDiff > epsilon || radiusDiff > epsilon);
-					
-					// Mostrar u ocultar el botón según la posición de la cámara
-					resetCameraButton.style.display = camaraMovida ? 'flex' : 'none';
-				}
-
-				// Función para resetear la cámara
-				function resetCamera() {
-					camera.alpha = defaultPosition.alpha;
-					camera.beta = defaultPosition.beta;
-					camera.radius = defaultPosition.radius;
-					// Actualizar visibilidad del botón
-					checkCameraPosition();
-				}
-				
-				// Hacer función resetCamera accesible globalmente
-				window.resetCamera = resetCamera;
-				
-				// Detectar movimiento de la cámara
-				camera.onViewMatrixChangedObservable.add(function() {
-					checkCameraPosition();
-				});
-				
-				// Comprobar posición inicial
-				checkCameraPosition();
-
-				
-				const hdrTexture = new BABYLON.HDRCubeTexture("textures/galaxia.hdr", scene, 1024, false, true, false, true);
-				scene.environmentTexture = hdrTexture;
-				scene.createDefaultSkybox(hdrTexture, true, 1000);
-				scene.environmentIntensity = 5;
-				const fillLight = new BABYLON.HemisphericLight("fill", new BABYLON.Vector3(0, 1, 0), scene);
-				fillLight.intensity = 0.5; // Puedes ajustar entre 0.3–0.7
-				fillLight.diffuse = new BABYLON.Color3(1, 1, 1); // Luz blanca suave
-
-
-				const directionalLight = new BABYLON.DirectionalLight(
-					"sunLight",
-					new BABYLON.Vector3(-1, -2, -1), // Luz inclinada
-					scene
-				);
-				directionalLight.position = new BABYLON.Vector3(10, 20, 10);
-				directionalLight.intensity = 1.0;
-				directionalLight.shadowEnabled = true;
-				const ambient = new BABYLON.HemisphericLight(
-					"ambient",
-					new BABYLON.Vector3(0, 1, 0),
-					scene
-				);
-				ambient.diffuse = new BABYLON.Color3(0.3, 0.5, 0.8); // Luz del cielo azulada
-				ambient.intensity = 0.4;
-				const leftCharLight = new BABYLON.PointLight("leftCharLight", new BABYLON.Vector3(-5, 2, 0), scene);
-				leftCharLight.diffuse = new BABYLON.Color3(1, 0.8, 0.6); // Cálida
-				leftCharLight.intensity = 0.6;
-
-				const rightCharLight = new BABYLON.PointLight("rightCharLight", new BABYLON.Vector3(5, 2, 0), scene);
-				rightCharLight.diffuse = new BABYLON.Color3(0.6, 0.9, 1); // Fría
-				rightCharLight.intensity = 0.6;
-
-				// Material Marmol Negro
-				const marmolnegroMat = new BABYLON.PBRMaterial("marmolnegroMatMaterial", scene);
-				const texturePath = "textures/marmolnegro/Marble016_4K-JPG_";
-				marmolnegroMat.albedoTexture = new BABYLON.Texture(texturePath + "Color.jpg", scene);
-				marmolnegroMat.bumpTexture = new BABYLON.Texture(texturePath + "NormalGL.jpg", scene);
-				marmolnegroMat.roughnessTexture = new BABYLON.Texture(texturePath + "Roughness.jpg", scene);
-				marmolnegroMat.displacementTexture = new BABYLON.Texture(texturePath + "Displacement.jpg", scene);
-				marmolnegroMat.useParallax = true;                // Efecto más suave
-				marmolnegroMat.useParallaxOcclusion = true;       // Más realista pero más pesado
-				marmolnegroMat.parallaxScaleBias = 0.02;          // Ajusta según el efecto deseado
-				marmolnegroMat.metallic = 0.0;  // Mármol no es metálico
-				marmolnegroMat.roughness = 1.0; // Si no se usa textura, define cuán áspero es
-				const marmolnegroRunasMat = marmolnegroMat.clone("marmolnegroRunasMat");
-				marmolnegroRunasMat.emissiveTexture = new BABYLON.Texture("textures/runas.png", scene);
-				marmolnegroRunasMat.emissiveColor = new BABYLON.Color3(1, 0.84, 0);
-
-				// Material Pala 1
-				const pala1Mat = new BABYLON.PBRMaterial("pala1Mat", scene);
-				pala1Mat.albedoColor = new BABYLON.Color3(0.2, 0.6, 1); // Azul celeste
-				pala1Mat.emissiveColor = new BABYLON.Color3(0.2, 0.6, 1); // Emisión tenue
-				pala1Mat.alpha = 0.75;
-				pala1Mat.transparencyMode = BABYLON.PBRMaterial.PBRMATERIAL_ALPHABLEND;
-				pala1Mat.indexOfRefraction = 1.4;
-				pala1Mat.metallic = 0.1;
-				pala1Mat.roughness = 0.2;
-				pala1Mat.subSurface.isRefractionEnabled = true;
-				pala1Mat.subSurface.refractionIntensity = 0.6;
-				pala1Mat.subSurface.indexOfRefraction = 1.4;
-
-				// Material Pala 2
-				const pala2Mat = new BABYLON.PBRMaterial("pala2Mat", scene);
-				pala2Mat.albedoColor = new BABYLON.Color3(1, 0.0, 0.1); // Verde jade
-				pala2Mat.emissiveColor = new BABYLON.Color3(1, 0.0, 0.05); // Emisión tenue
-				pala2Mat.alpha = 0.75;
-				pala2Mat.transparencyMode = BABYLON.PBRMaterial.PBRMATERIAL_ALPHABLEND;
-				pala2Mat.indexOfRefraction = 1.4;
-				pala2Mat.metallic = 0.1;
-				pala2Mat.roughness = 0.2;
-				pala2Mat.subSurface.isRefractionEnabled = true;
-				pala2Mat.subSurface.refractionIntensity = 0.6;
-				pala2Mat.subSurface.indexOfRefraction = 1.4;
-
-				// Brillo general
-				const glow = new BABYLON.GlowLayer("glow", scene);
-				glow.intensity = 0.3;
-
-				// Material metal PBR
-				var metalMat = new BABYLON.PBRMaterial("metalMat", scene);
-				metalMat.albedoTexture = new BABYLON.Texture(
-					"https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rusty_metal_04/rusty_metal_04_diff_1k.jpg",
-					scene
-				);
-				metalMat.roughness = 0.8; // algo de brillo metálico
-				metalMat.metallic = 1;				
-
-                // Material Concrete para las patas
-                var concreteMat = new BABYLON.PBRMaterial("concreteMat", scene);
-                concreteMat.albedoTexture = new BABYLON.Texture("textures/concrete_0014_color_2k.jpg", scene);
-                concreteMat.bumpTexture = new BABYLON.Texture("textures/concrete_0014_normal_opengl_2k.png", scene);
-                concreteMat.ambientTexture = new BABYLON.Texture("textures/concrete_0014_ao_2k.jpg", scene);
-                concreteMat.roughness = 0.9;
-                concreteMat.metallic = 0.1;
-                // Usar parallax para dar profundidad
-                concreteMat.parallaxTexture = new BABYLON.Texture("textures/concrete_0014_height_2k.png", scene);
-                concreteMat.useParallax = true;
-                concreteMat.useParallaxOcclusion = true;
-                concreteMat.parallaxScaleBias = 0.08;
-
-				// Ajuste de definicion de las texturas
-				const scale = 2; // o prueba con 6 u 8 para más detalle
-
-				concreteMat.albedoTexture.uScale = scale;
-				concreteMat.albedoTexture.vScale = scale;
-				concreteMat.bumpTexture.uScale = scale;
-				concreteMat.bumpTexture.vScale = scale;
-				concreteMat.ambientTexture.uScale = scale;
-				concreteMat.ambientTexture.vScale = scale;
-				concreteMat.parallaxTexture.uScale = scale;
-				concreteMat.parallaxTexture.vScale = scale;
-
-				concreteMat.albedoTexture.anisotropicFilteringLevel = 16;
-
-                // Material de bloques medievales para el borde de la mesa
-                var marbleMat = new BABYLON.PBRMaterial("marbleMat", scene);
-                marbleMat.albedoTexture = new BABYLON.Texture("textures/medieval_blocks_06_diff_2k.jpg", scene);
-                marbleMat.bumpTexture = new BABYLON.Texture("textures/medieval_blocks_06_nor_gl_2k.png", scene);
-                marbleMat.metallicTexture = new BABYLON.Texture("textures/medieval_blocks_06_rough_2k.jpg", scene);
-                marbleMat.useRoughnessFromMetallicTextureAlpha = true;
-                marbleMat.metallic = 0.1;
-                marbleMat.roughness = 0.6; // Ajustado para bloques de piedra
-                marbleMat.parallaxTexture = new BABYLON.Texture("textures/medieval_blocks_06_disp_2k.png", scene);
-                marbleMat.useParallax = true;
-                marbleMat.useParallaxOcclusion = true;
-                marbleMat.parallaxScaleBias = 0.08;
-
-                // Ajustes adicionales para mejor calidad visual
-                marbleMat.albedoTexture.anisotropicFilteringLevel = 16;
-                marbleMat.albedoTexture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
-                marbleMat.albedoTexture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
-
-                // Aplicar el mismo modo de wrap a las otras texturas
-                marbleMat.bumpTexture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
-                marbleMat.bumpTexture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
-                marbleMat.metallicTexture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
-                marbleMat.metallicTexture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
-                marbleMat.parallaxTexture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
-                marbleMat.parallaxTexture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
-
-				const personajesContenedores = {
-					izquierda: null,
-					derecha: null
-				};
-
-				const entornos = {
-					"galaxia": new BABYLON.HDRCubeTexture("textures/galaxia.hdr", scene, 1024, false, true, false, true),
-					"cielo": new BABYLON.HDRCubeTexture("textures/cielo.hdr", scene, 1024, false, true, false, true)
-				};
-
-				let skyboxActual = null;
-
-				function cambiarEntorno(nombre) {
-					const nuevoHDR = entornos[nombre];
-					scene.environmentTexture = nuevoHDR;
-
-					if (skyboxActual) {
-						skyboxActual.dispose();
-					}
-
-					skyboxActual = scene.createDefaultSkybox(nuevoHDR, true, 1000);
-				}
-
-				const personajes = [
-				{
-					nombre: "Vaca",
-					ruta: "textures/vaca/",
-					miniatura: "minivaca.png",
-					archivo: "scene.gltf",
-					posicion: new BABYLON.Vector3(2.3, 0, 0),
-					escala: new BABYLON.Vector3(0.6, 0.6, 0.6),
-					rotacion: new BABYLON.Vector3(0, -Math.PI / 2, Math.PI)
-				},
-				{
-					nombre: "Trucha",
-					ruta: "textures/pez/",
-					miniatura: "minitrucha.png",
-					archivo: "pez.gltf",
-					posicion: new BABYLON.Vector3(1.5, 0.85, 0),
-					escala: new BABYLON.Vector3(0.5, 0.5, 0.5),
-					rotacion: new BABYLON.Vector3(0, Math.PI / 2, Math.PI)
-				},
-				{
-					nombre: "Tiburon",
-					ruta: "textures/tiburon/",
-					miniatura: "minitibu.png",
-					archivo: "scene.gltf",
-					posicion: new BABYLON.Vector3(1.8, 0.75, 0),
-					escala: new BABYLON.Vector3(0.004, 0.004, 0.004),
-					rotacion: new BABYLON.Vector3(0, Math.PI / 2, Math.PI)
-				}
-				];
-
-				function cargarPersonajeEnLado({ 
-					personajeConfig, 
-					lado = "izquierda", 
-					escena, 
-					callback 
-					}) {
-					if (personajesContenedores[lado]) {
-						personajesContenedores[lado].dispose();
-						personajesContenedores[lado] = null;
-					}
-					const nombreContenedor = `${personajeConfig.nombre}_${lado}`;
-					BABYLON.SceneLoader.ImportMesh(
-						null,
-						personajeConfig.ruta,
-						personajeConfig.archivo,
-						escena,
-						function (meshes, particleSystems, skeletons, animationGroups) {
-						// Eliminar contenedor anterior si existe
-						const anterior = escena.getNodeByName(nombreContenedor);
-						if (anterior) anterior.dispose();
-
-						const contenedor = new BABYLON.TransformNode(nombreContenedor, escena);
-						personajesContenedores[lado] = contenedor;
-
-						meshes.forEach(mesh => {
-							mesh.setParent(contenedor);
-							if (mesh.rotationQuaternion) mesh.rotationQuaternion = null;
-							});
-							
-							contenedor.scaling = personajeConfig.escala.clone();
-							
-							// Crear posición correctamente según el lado
-							let posicion = personajeConfig.posicion.clone();
-							if (lado === "izquierda") {
-								posicion.x = posicion.x * -1; // Invertir X para el lado izquierdo
+				files.forEach(file => {
+					fetch(file + '?t=' + Date.now(), { method: 'HEAD' })
+						.then(response => {
+							const currentMod = response.headers.get('last-modified');
+							if (lastModified[file] && currentMod !== lastModified[file]) {
+								console.log('File changed: ' + file);
+								lastModified[file] = currentMod;
+								needsReload = true;
 							}
-							contenedor.position = posicion; // Asignar la posición modificada
-							
-							// Configurar rotación según el lado
-							let rotacion = personajeConfig.rotacion.clone();
-							if (lado === "derecha") {
-								rotacion.y = Math.PI * 2 - rotacion.y; // Invertir rotación Y para el lado derecho
-							}
-							contenedor.rotation = rotacion;
-
-						if (callback) {
-							callback({ contenedor, meshes, skeletons, animationGroups });
-						}
-						}
-					);
-					}
-
-				const advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
-				const panelIzquierda = new BABYLON.GUI.StackPanel();
-				panelIzquierda.isVertical = true;
-				panelIzquierda.height = "300px";
-				panelIzquierda.width = "120px";
-				panelIzquierda.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-				panelIzquierda.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
-				panelIzquierda.top = "70px";
-				panelIzquierda.left = "-15px";
-				advancedTexture.addControl(panelIzquierda);
-
-				const panelDerecha = new BABYLON.GUI.StackPanel();
-				panelDerecha.isVertical = true;
-				panelDerecha.height = "300px";
-				panelDerecha.width = "120px";
-				panelDerecha.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
-				panelDerecha.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
-				panelDerecha.top = "70px";
-				panelDerecha.left = "15px";  // para separarlo del borde derecho
-				advancedTexture.addControl(panelDerecha);
-
-				// Luego rellenas cada panel con sus botones correspondientes
-				personajes.forEach((p, index) => {
-					const btnIzq = BABYLON.GUI.Button.CreateImageOnlyButton("izq_" + p.nombre, (p.ruta + "izq" + p.miniatura));
-					btnIzq.width = "100px";
-					btnIzq.height = "100px";
-					btnIzq.cornerRadius = 20;
-					btnIzq.thickness = 0;
-					btnIzq.paddingRight = "0px";
-					btnIzq.background = "transparent";
-					btnIzq.onPointerUpObservable.add(() => {
-						cargarPersonajeEnLado({ personajeConfig: personajes[index], lado: "izquierda", escena: scene, callback: function({ animationGroups }) {
-						const idle = animationGroups[0];
-						if (idle) idle.start(true);
-						}});
-					});
-					panelIzquierda.addControl(btnIzq);
-
-					const btnDer = BABYLON.GUI.Button.CreateImageOnlyButton("der_" + p.nombre, (p.ruta + p.miniatura));
-					btnDer.width = "100px";
-					btnDer.height = "100px";
-					btnDer.cornerRadius = 20;
-					btnDer.thickness = 0;
-					btnDer.paddingLeft = "0px";
-					btnDer.background = "transparent";
-					btnDer.onPointerUpObservable.add(() => {
-						cargarPersonajeEnLado({ personajeConfig: personajes[index], lado: "derecha", escena: scene, callback: function({ animationGroups }) {
-						const idle = animationGroups[0];
-						if (idle) idle.start(true);
-						}});
-					});
-					panelDerecha.addControl(btnDer);
+						})
+						.catch(err => console.log('Error checking ' + file, err));
 				});
 
-				const panelCentro = new BABYLON.GUI.StackPanel();
-				panelCentro.isVertical = false;
-				panelCentro.height = "100px";
-				panelCentro.width = "200px";
-				panelCentro.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-				panelCentro.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
-				panelCentro.top = "20px";
-				panelCentro.left = "0px";
-				advancedTexture.addControl(panelCentro);
-
-				Object.keys(entornos).forEach(nombre => {
-					const boton = BABYLON.GUI.Button.CreateImageOnlyButton("btn_" + nombre, "textures/mini" + nombre + ".png");
-					boton.width = "100px";
-					boton.height = "60px";
-					boton.cornerRadius = 6;
-					boton.background = "transparent";
-					boton.thickness = 0;
-					boton.paddingLeft = "10px";
-					boton.onPointerUpObservable.add(() => {
-						if (nombre === "cielo") scene.environmentIntensity = 0.5;
-						else scene.environmentIntensity = 5;
-						cambiarEntorno(nombre);
-					});
-
-					panelCentro.addControl(boton);
-				});
-
-				cargarPersonajeEnLado({
-					personajeConfig: personajes[1],
-					lado: "derecha",
-					escena: scene,
-					callback: function ({ animationGroups }) {
-						const idle = animationGroups[0];
-						if (idle) idle.start(true);
-					}
-					});
-
-				cargarPersonajeEnLado({
-					personajeConfig: personajes[2],
-					lado: "izquierda",
-					escena: scene,
-					callback: function ({ animationGroups }) {
-						const idle = animationGroups[0];
-						if (idle) idle.start(true);
-					}
-					});
-				// Agregar esto cerca del inicio de CreateScene
-				scene.audioEnabled = true;
-
-                // Mesa: tablero y patas
-                // Definir la nueva altura base de la mesa (más baja)
-                const mesaAltura = 0.6; // Reducido de 1.0 a 0.6
-                const faceUV = [];
-				for (let i = 0; i < 6; i++) {
-					if (i === 4 || i === 5) {
-						// Cara superior
-						faceUV.push(new BABYLON.Vector4(0, 0, 1, 1)); // UVs para la cara superior
-					} else if (i === 2 || i === 3) {
-						// Cara izquierda
-						faceUV.push(new BABYLON.Vector4(0, 0, 0.066, 1)); // UVs para la cara izquierda
-					} else {
-						// Otras caras (frontal, trasera, inferior, derecha)
-						// Usar UVs por defecto o ajustar según sea necesario
-						faceUV.push(new BABYLON.Vector4(0, 0, 1, 0.066)); // Default UVs
-					}
+				if (needsReload) {
+					console.log('Reloading due to file changes...');
+					location.reload();
 				}
-				// Mesa
-				var tableTop = BABYLON.MeshBuilder.CreateBox(
-                    "tableTop", {width:2, depth:1, height:0.1, faceUV: faceUV}, scene
-                );
-				tableTop.subMeshes = [];
-				const verticesCount = tableTop.getTotalVertices();
-				for (let i = 0; i < 6; i++) {
-					tableTop.subMeshes.push(new BABYLON.SubMesh(i, 0, verticesCount, i * 6, 6, tableTop));
-				}
-				const multiMat = new BABYLON.MultiMaterial("multi", scene);
-				multiMat.subMaterials.push(marmolnegroMat);      // Cara 0: frontal
-				multiMat.subMaterials.push(marmolnegroMat);      // Cara 1: trasera
-				multiMat.subMaterials.push(marmolnegroMat);  // Cara 2: lateral
-				multiMat.subMaterials.push(marmolnegroMat);      // Cara 3: lateral
-				multiMat.subMaterials.push(marmolnegroRunasMat);      // Cara 4: superior
-				multiMat.subMaterials.push(marmolnegroMat);      // Cara 5: inferior
-                tableTop.position.y = mesaAltura;
-                tableTop.material = multiMat;
-                
-                var pala1 = BABYLON.MeshBuilder.CreateBox(
-                    "pala1", {width:0.1, depth:0.25, height:0.05}, scene
-                );
-                pala1.position = new BABYLON.Vector3(
-                    0.95,
-                    tableTop.position.y + 0.05 + tableTop.getBoundingInfo().boundingBox.extendSize.y,
-                    0 // Posición Z inicial centrada
-                );
-                pala1.material = pala1Mat;
-
-                var pala2 = BABYLON.MeshBuilder.CreateBox(
-                    "pala2", {width:0.1, depth:0.25, height:0.05}, scene
-                );
-                pala2.position = new BABYLON.Vector3(
-                    -0.95,
-                    tableTop.position.y + 0.05 + tableTop.getBoundingInfo().boundingBox.extendSize.y,
-                    0 // Posición Z inicial centrada
-                );
-                pala2.material = pala2Mat;
-
-                var bola = BABYLON.MeshBuilder.CreateSphere(
-                    "bola", {diameter: 0.1}, scene
-                );
-                bola.position.y = tableTop.position.y + 0.05 + tableTop.getBoundingInfo().boundingBox.extendSize.y;
-				bola.material = new BABYLON.StandardMaterial("bolaMat", scene);
-				bola.material.emissiveColor = new BABYLON.Color3(0.2, 0.2, 0.2); // Luz dorada cálida
-				bola.physicsImpostor = new BABYLON.PhysicsImpostor(
-				bola,
-				BABYLON.PhysicsImpostor.SphereImpostor,
-				{ mass: 0, restitution: 0.6 },
-				scene
-				);
-
-                // Ajustar las patas para que sean proporcionalmente más cortas
-                var legParams = { diameter: 0.1, height: mesaAltura }; // Altura ajustada
-                
-                // Calcular correctamente la posición Y de las patas
-                // La posición Y debe ser la mitad de la altura de la pata, para que su parte superior
-                // coincida exactamente con la parte inferior del tablero
-                const legY = legParams.height / 2;
-                
-                [ [0.9, legY, 0.4], [-0.9, legY, 0.4], [0.9, legY, -0.4], [-0.9, legY, -0.4] ]
-                .forEach(function(pos,i) {
-                    var leg = BABYLON.MeshBuilder.CreateCylinder(
-                        "leg"+i, legParams, scene
-                    );
-                    leg.position = new BABYLON.Vector3(pos[0], pos[1], pos[2]);
-                    leg.material = concreteMat;
-                });
-
-
-				 // 1. Primero desactivar las teclas de flecha para la cámara
-				camera.keysUp = [];    // Tecla arriba (normalmente es 38)
-				camera.keysDown = [];  // Tecla abajo (normalmente es 40)
-				camera.keysLeft = [];  // Tecla izquierda (normalmente es 37)
-				camera.keysRight = []; // Tecla derecha (normalmente es 39)
-
-				const paddleSpeed = 0.024; // Aumentado de 0.0001 a 0.01 (100 veces más rápido)
-				const tableHalfDepth = 0.5;
-                // Reemplace el manejo de teclado existente con este enfoque
-				var keysPressed = {};
-				 // Modificar el listener de teclado para ignorar teclas modificadoras
-				window.addEventListener("keydown", function(e) {
-					// Solo registrar teclas que nos interesan para el juego
-					if (e.key === 'a' || e.key === 'd' || 
-						e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-						keysPressed[e.key] = true;
-						e.preventDefault(); // Prevenir comportamiento predeterminado
-					}
-				});
-
-				window.addEventListener("keyup", function(e) {
-					// Solo registrar teclas que nos interesan para el juego
-					if (e.key === 'a' || e.key === 'd' || 
-						e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-						keysPressed[e.key] = false;
-					}
-				});
-
-				// Movimiento de la bola
-				let ballDirection = new BABYLON.Vector3(0.02, 0 , 0); // velocidad inicial
-				let ballSpeed = 0.02;
-				let gameActive = true;
-				let glowTarget = 0.3; // Valor deseado al final
-				let glowDecaySpeed = 0.01; // Cuánto baja por frame
-
-
-
-				// IMPORTANTE CAMBIAR FISICAS POR LAS DE CANNON, MOTOR FISICO
-
-
-
-				// Función de caida de la bola
-
-				function puntoPerdido(bola) {
-					bola.physicsImpostor.setMass(1); // Vuelve a tener masa
-					if (bola.position.x > 0)
-						bola.physicsImpostor.setLinearVelocity(new BABYLON.Vector3(3, -2, 0)); // Cae
-					else
-						bola.physicsImpostor.setLinearVelocity(new BABYLON.Vector3(-3, -2, 0)); // Cae
-					bola.physicsImpostor.setAngularVelocity(new BABYLON.Vector3(1, 1, 0.5)); // Gira un poco
-				}
-
-				scene.onBeforeRenderObservable.clear(); // Elimina observadores existentes
-
-				scene.registerBeforeRender(() => {
-				if (glow.intensity > glowTarget) {
-					glow.intensity -= glowDecaySpeed;
-					if (glow.intensity < glowTarget) {
-					glow.intensity = glowTarget;
-					}
-				}
-				});
-				// 3. Crea un único observador para todo el juego
-				scene.onBeforeRenderObservable.add(() => {
-					if (!gameActive) return;
-					// Movimiento de la bola
-					bola.position.addInPlace(ballDirection);
-					
-					// Movimiento de las palas
-					if (keysPressed['a']) pala2.position.z -= paddleSpeed;
-					if (keysPressed['d']) pala2.position.z += paddleSpeed;
-					if (keysPressed['ArrowLeft']) pala1.position.z -= paddleSpeed;
-					if (keysPressed['ArrowRight']) pala1.position.z += paddleSpeed;
-					
-					// Límites de las palas con el tablero
-					const paddlePadding = 0.01;
-					if (pala1.position.z > tableHalfDepth)
-						pala1.position.z = tableHalfDepth - paddlePadding;
-					if (pala1.position.z < -tableHalfDepth)
-						pala1.position.z = -tableHalfDepth + paddlePadding;
-					
-					if (pala2.position.z > tableHalfDepth)
-						pala2.position.z = tableHalfDepth - paddlePadding;
-					if (pala2.position.z < -tableHalfDepth)
-						pala2.position.z = -tableHalfDepth + paddlePadding;
-					
-					// Rebote con bordes laterales de la mesa (más preciso)
-					if (bola.position.z + 0.05 > tableHalfDepth || 
-						bola.position.z - 0.05 < -tableHalfDepth) {
-						ballDirection.z *= -1;
-						// Pequeño sonido de rebote
-						if (scene.audioEnabled) {
-							const wallHitSound = new BABYLON.Sound("wallHit", "textures/metal.mp3", scene);
-							wallHitSound.play();
-						}
-					}
-
-					// Rebote con pala1 (todo el código de rebote existente)
-					if (bola.intersectsMesh(pala1, false)) {
-						// Solo invertir dirección si viene de la izquierda
-						if (ballDirection.x > 0) {
-							ballDirection.x *= -1;
-							
-							 // Ajuste de dirección según punto de impacto con más intensidad
-							const deltaZ = (bola.position.z - pala1.position.z) / (pala1.scaling.z/2);
-							ballDirection.z = deltaZ * 0.1;
-							
-							// Incrementar ligeramente la velocidad
-							const currentMagnitude = Math.sqrt(
-								ballDirection.x * ballDirection.x + 
-								ballDirection.z * ballDirection.z
-							);
-							ballSpeed = Math.min(ballSpeed * 1.05, 0.135);
-							const factor = ballSpeed / currentMagnitude;
-							ballDirection.x *= factor;
-							ballDirection.z *= factor;
-							
-							glow.intensity = 0.7;
-							if (scene.audioEnabled) {
-								const paddleHitSound = new BABYLON.Sound("paddleHit", "textures/metal.mp3", scene);
-								paddleHitSound.play();
-							}
-						}
-					}
-
-					// Rebote con pala2 (todo el código de rebote existente)
-					if (bola.intersectsMesh(pala2, false)) {
-						// Solo invertir dirección si viene de la derecha
-						if (ballDirection.x < 0) {
-							ballDirection.x *= -1;
-
-							// Ajuste de dirección según punto de impacto
-							const deltaZ = (bola.position.z - pala2.position.z) / (pala2.scaling.z/2);
-							ballDirection.z = deltaZ * 0.1;
-							
-							// Incrementar ligeramente la velocidad
-							const currentMagnitude = Math.sqrt(
-								ballDirection.x * ballDirection.x + 
-								ballDirection.z * ballDirection.z
-							);
-							ballSpeed = Math.min(ballSpeed * 1.05, 0.135);
-							const factor = ballSpeed / currentMagnitude;
-							ballDirection.x *= factor;
-							ballDirection.z *= factor;
-
-							glow.intensity = 0.7; // Aumentar brillo al golpear
-
-							if (scene.audioEnabled) {
-								const paddleHitSound = new BABYLON.Sound("paddleHit", "textures/metal.mp3", scene);
-								paddleHitSound.play();
-							}
-						}
-					}
-
-					// Game over si se va demasiado lejos
-					if (bola.position.x > pala1.position.x + 0.05) {
-						gameOver("¡Punto para el jugador 2!");
-					} else if (bola.position.x < -pala1.position.x - 0.05) {
-						gameOver("¡Punto para el jugador 1!");
-					}
-				});
-
-
-				// Función para manejar el game over
-				function gameOver(message) {
-					puntoPerdido(bola);
-					// Detener el juego temporalmente
-					gameActive = false;
-
-					// Actualizar puntuaciones según el mensaje
-					if (message.includes("jugador 1")) {
-						scoreP1++;
-					} else if (message.includes("jugador 2")) {
-						scoreP2++;
-					}
-
-					// Actualizar el marcador en pantalla
-					document.getElementById('score').textContent = `${scoreP1} - ${scoreP2}`;
-
-					if (scoreP1 >= maxScore || scoreP2 >= maxScore) {
-						// Mostrar pantalla de Game Over
-						document.getElementById('gameOver').style.display = 'block';
-						document.getElementById('finalScore').textContent = `${scoreP1} - ${scoreP2}`;
-						gameActive = false;
-						return;
-					}
-					// Esperar 1 segundo y luego reiniciar la posición de la bola
-					setTimeout(() => {
-						// Reiniciar posición de la bola al centro
-						bola.position = new BABYLON.Vector3(
-							0,
-							tableTop.position.y + 0.05 + tableTop.getBoundingInfo().boundingBox.extendSize.y,
-							0
-						);
-						
-						// Reiniciar física
-						bola.physicsImpostor.setMass(0);
-						bola.physicsImpostor.setLinearVelocity(BABYLON.Vector3.Zero());
-						bola.physicsImpostor.setAngularVelocity(BABYLON.Vector3.Zero());
-						
-						// Reiniciar dirección de la bola (alternar dirección inicial según quién anotó)
-						ballSpeed = 0.02; // Reiniciar velocidad
-						ballDirection = new BABYLON.Vector3(
-							message.includes("jugador 1") ? -0.02 : 0.02, 
-							0, 
-							0
-						);
-						
-						// Reactivar el juego
-						gameActive = true;
-					}, 2000);
-				}
-
-				// Add loading screen functionality
-				function showLoadingUI() {
-					const loadingScreen = document.getElementById('loadingScreen');
-					const loadingText = document.getElementById('loadingText');
-					const loadingProgressBar = document.getElementById('loadingProgressBar');
-					
-					// Show loading screen
-					loadingScreen.style.opacity = "1";
-					loadingScreen.style.display = "flex";
-					
-					// Track loading progress
-					let totalAssets = 0;
-					let loadedAssets = 0;
-					
-					// Create asset manager to track all asset loading
-					const assetsManager = new BABYLON.AssetsManager(scene);
-					
-					// Add handler for tracking progress
-					assetsManager.onProgress = (remainingCount, totalCount) => {
-						loadedAssets = totalCount - remainingCount;
-						totalAssets = totalCount;
-						
-						const progress = Math.floor((loadedAssets / totalAssets) * 100);
-						loadingProgressBar.style.width = progress + "%";
-						loadingText.textContent = `Cargando recursos (${progress}%)...`;
-					};
-					
-					// Add handler for when all assets are loaded
-					assetsManager.onFinish = () => {
-						// Delay the hiding a bit for smoother transition
-						setTimeout(() => {
-							loadingScreen.style.opacity = "0";
-							setTimeout(() => {
-								loadingScreen.style.display = "none";
-							}, 500);
-						}, 500);
-					};
-					
-					// Register all textures to be tracked
-					Object.values(entornos).forEach(texture => {
-						const task = assetsManager.addTextureTask("envTexture", texture.url);
-						task.onSuccess = function(task) {
-							// Texture loaded
-						};
-					});
-					
-					// Register all material textures
-					[concreteMat, marbleMat, metalMat, marmolnegroMat].forEach(material => {
-						if (material.albedoTexture) assetsManager.addTextureTask("texture", material.albedoTexture.url);
-						if (material.bumpTexture) assetsManager.addTextureTask("texture", material.bumpTexture.url);
-						if (material.ambientTexture) assetsManager.addTextureTask("texture", material.ambientTexture.url);
-						if (material.parallaxTexture) assetsManager.addTextureTask("texture", material.parallaxTexture.url);
-						if (material.metallicTexture) assetsManager.addTextureTask("texture", material.metallicTexture.url);
-					});
-					
-					// Add sounds to track
-					assetsManager.addBinaryFileTask("soundFile", "textures/metal.mp3");
-					
-					// Start loading all assets
-					assetsManager.load();
-				}
-
-				// Call the function to start tracking and showing load progress
-				showLoadingUI();
-
-                return scene;
-            }
-        }
-
-        // Inicialización
-        window.addEventListener('DOMContentLoaded', function() {
-            // Crear escena y bucle
-            scene = Playground.CreateScene(engine, canvas);
-            
-            // Start render loop only after assets load
-            // The assets manager will take care of tracking load progress
-            scene.executeWhenReady(() => {
-                startRenderLoop(scene);
-                
-                // The loading screen will be hidden by the assets manager
-                // but we can add a backup timeout just in case
-                setTimeout(() => {
-                    const loadingScreen = document.getElementById('loadingScreen');
-                    if (loadingScreen && loadingScreen.style.opacity !== "0") {
-                        loadingScreen.style.opacity = "0";
-                        setTimeout(() => {
-                            loadingScreen.style.display = "none";
-                        }, 500);
-                    }
-                }, 5000);
-            });
-            
-            // Botones UI
-            document.getElementById('backButton').addEventListener('click', function(e) {
-                e.preventDefault(); window.location.href = '/dashboard';
-            });
-            document.getElementById('returnToDashboardButton').addEventListener('click', function(e) {
-                e.preventDefault(); window.location.href = '/dashboard';
-            });
-            document.getElementById('playAgainButton').addEventListener('click', function() {
-                scoreP1 = 0;
-                scoreP2 = 0;
-                document.getElementById('score').textContent = `${scoreP1} - ${scoreP2}`;
-                document.getElementById('gameOver').style.display = 'none';
-				gameActive = true;
-                scene = Playground.CreateScene(engine, canvas);
-				startRenderLoop(scene);
-            });
-			document.getElementById('saveToDashboardButton').addEventListener('click', function() {
-				const playerWon = scoreP1 > scoreP2;
-				
-				const scoreData = {
-
-					p1score: scoreP1,
-					p2score: scoreP2,
-					opponent: "Human Player",
-					winner: playerWon ? 1 : 0,
-					game_duration: Math.floor(performance.now() / 1000) // Tiempo aproximado en segundos
-				};
-				
-				this.disabled = true;
-				this.textContent = "Guardando...";
-				
-				fetch('http://localhost:3000/pong/scores', {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json',
-					},
-					credentials: 'include', // Importante para enviar cookies de sesión
-					body: JSON.stringify(scoreData)
-				})
-				.then(response => {
-					if (!response.ok) {
-						throw new Error('Error al guardar la puntuación');
-					}
-					return response.json();
-				})
-				.then(data => {
-					console.log('Puntuación guardada exitosamente', data);
-					alert('¡Puntuación guardada exitosamente!');
-					this.textContent = "¡Guardado!";
-					// Opcional: redirigir al dashboard después de un breve retraso
-					setTimeout(() => {
-						window.location.href = '/dashboard';
-					}, 1500);
-				})
-				.catch(error => {
-					console.error('Error:', error);
-					alert('Error al guardar la puntuación: ' + error.message);
-					this.textContent = "Error al guardar";
-				})
-				.finally(() => {
-					// Re-habilitar el botón después de un tiempo
-					setTimeout(() => {
-						this.disabled = false;
-						this.textContent = "Guardar puntuación";
-					}, 2000);
-				});
-            });
-            document.getElementById('resetCameraButton').addEventListener('click', function() {
-                if (window.resetCamera) {
-                    window.resetCamera();
-                }
-            });
-        });
-        // Redimensionar
-        window.addEventListener('resize', function() {
-            engine.resize();
-        });
-    </script>
+			}, CHECK_INTERVAL);
+		})();
+	</script>
 </body>
+
 </html>

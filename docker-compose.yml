@@ -27,7 +27,6 @@ services:
       - ./frontend/main.ts:/app/main.ts
       - ./frontend/dashboard.ts:/app/dashboard.ts
       - ./frontend/dashboard.html:/app/dashboard.html
-      - ./frontend/pong.html:/app/pong.html
       - ./frontend/styles.css:/app/styles.css
       - ./frontend/tailwind.config.js:/app/tailwind.config.js
       - ./frontend/postcss.config.js:/app/postcss.config.js
@@ -36,12 +35,16 @@ services:
       - ./frontend/env-config.js:/app/env-config.js
       - ./frontend/env-types.js:/app/env-types.js
       - ./.env:/app/.env
-      - ./frontend/pong.ts:/app/pong.ts
       - ./frontend/pong.html:/app/pong.html
+      - ./frontend/pong:/app/pong
     restart: always
     env_file:
       - .env
     environment:
       - NODE_ENV=${NODE_ENV:-development}
+      - CHOKIDAR_USEPOLLING=true
+    command: >
+      sh -c "npm install -g http-server nodemon &&
+             nodemon --watch /app/pong --watch /app/pong.html --ext js,html,css,json,png,jpg,hdr,gltf --exec 'http-server . -p 8080 --cors -c-1'"
     depends_on:
       - backend

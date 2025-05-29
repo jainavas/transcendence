@@ -271,7 +271,7 @@ function setupPongButton(): void {
     pongButton.addEventListener('click', (e) => {
       e.preventDefault();
       console.log("🏓 Iniciando juego de Pong...");
-      window.location.href = "/pong";
+      window.location.href = "/pong.html";
     });
   }
 }

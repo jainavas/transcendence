@@ -5,7 +5,7 @@ PROJECT_NAME=transcender
 
 all up start:
 	@echo "Iniciando contenedores..."
-	sudo docker compose build --no-cache
+	COMPOSE_BAKE=true sudo docker compose build --no-cache
 	sudo docker compose up --force-recreate
 
 # Comando predeterminado al ejecutar 'make' sin argumentos
@@ -54,7 +54,7 @@ re:
 	@echo "Deteniendo contenedores..."
 	make clean
 	@echo "Reconstruyendo imágenes..."
-	sudo docker compose build --no-cache
+	COMPOSE_BAKE=true sudo docker compose build --no-cache
 	@echo "Reiniciando contenedores..."
 	sudo docker compose up -d
 	@echo "Reconstrucción completada."
