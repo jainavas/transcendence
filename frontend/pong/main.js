@@ -6,6 +6,8 @@ export var engine = new BABYLON.Engine(canvas, true);
 export var scene;
 export var scoreP1 = 0;
 export var scoreP2 = 0;
+export var scoreP3 = 0;
+export var scoreP4 = 0;
 export var maxScore = 5;
 
 export function changeScore1() {
@@ -13,6 +15,12 @@ export function changeScore1() {
 }
 export function changeScore2() {
 	scoreP2++;
+}
+export function changeScore3() {
+	scoreP3++;
+}
+export function changeScore4() {
+	scoreP4++;
 }
 
 var startRenderLoop = function (sceneToRender) {
@@ -50,6 +58,8 @@ window.addEventListener("DOMContentLoaded", () => {
 	document.getElementById('playAgainButton').addEventListener('click', function () {
 		scoreP1 = 0;
 		scoreP2 = 0;
+		scoreP3 = 0;
+		scoreP4 = 0;
 		document.getElementById('score').textContent = `${scoreP1} - ${scoreP2}`;
 		document.getElementById('gameOver').style.display = 'none';
 		setGameActive(false);

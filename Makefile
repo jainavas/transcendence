@@ -46,7 +46,7 @@ logs:
 clean:
 	@echo "Deteniendo contenedores y limpiando recursos..."
 	sudo docker compose down --rmi all --volumes --remove-orphans
-	sudo docker image prune -f
+	sudo docker system prune -a --volumes
 	@echo "Limpieza completada."
 
 # Reconstruir imágenes y reiniciar contenedores
