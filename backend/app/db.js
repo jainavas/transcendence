@@ -13,7 +13,8 @@ db.serialize(() => {
 	db.run(`-- Tabla de usuarios
 CREATE TABLE IF NOT EXISTS users (
   user_id INTEGER PRIMARY KEY,
-  username TEXT NOT NULL,
+  google_id TEXT UNIQUE,
+  user_name TEXT NOT NULL,
   user_email TEXT NOT NULL UNIQUE,
   user_picture TEXT
 );`, (err) => {
@@ -44,21 +45,19 @@ db.run(`
 -- Tabla de puntuaciones de Pong
 CREATE TABLE IF NOT EXISTS pong_scores (
   id INTEGER PRIMARY KEY,
-  p1_id INTEGER NOT NULL,
+  p1_id TEXT NOT NULL,
   p1score INTEGER NOT NULL,
   p2score INTEGER NOT NULL,
-  p2_id INTEGER DEFAULT 0,
+  p2_id TEXT DEFAULT 0,
   winner BOOLEAN,
   game_duration INTEGER,
   fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
   -- Clave foránea
-  FOREIGN KEY (p1_id) REFERENCES users(id) ON DELETE SET NULL,
-  FOREIGN KEY (p2_id) REFERENCES users(id) ON DELETE SET NULL
+  FOREIGN KEY (p1_id) REFERENCES users(google_id) ON DELETE SET NULL,
+  FOREIGN KEY (p2_id) REFERENCES users(google_id) ON DELETE SET NULL
 );
-
--- Índice para mejorar el rendimiento de búsquedas por usuario
-CREATE INDEX IF NOT EXISTS idx_pong_scores_user_id ON pong_scores(user_id);`, (err) => {
+`, (err) => {
 	if (err) {
 		console.error("Error al crear tabla pong_scores:", err);
 		return;
@@ -66,6 +65,15 @@ CREATE INDEX IF NOT EXISTS idx_pong_scores_user_id ON pong_scores(user_id);`, (e
 	console.log("✅ Tabla pong_scores disponible");
 }
 );
-
+db.run(`
+CREATE INDEX IF NOT EXISTS idx_pong_scores_user_id ON pong_scores(p1_id);
+`, (err) => {
+	if (err) {
+		console.error("Error al crear indice pong_scores:", err);
+		return;
+	}
+	console.log("✅ Indice pong_scores disponible");
+}
+);
 // Exportar la conexión a la base de datos
 module.exports = db;

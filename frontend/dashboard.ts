@@ -33,7 +33,7 @@ interface PongScore {
 	winner: boolean;
 	game_duration: number;
 	fecha?: string | number;
-	username?: string;
+	user_name?: string;
 	user_picture?: string;
 	opponent_name?: string;
 	opponent_picture?: string;
@@ -69,7 +69,7 @@ async function init(): Promise<void> {
       console.log("⏳ Esperando 1 segundo antes de cargar mensajes...");
       setTimeout(async () => {
         await loadPongScores();
-        await loadGlobalHighScores();
+        await loadGlobalHighScores(user);
       }, 1000);
       
       setupLogoutButton();
@@ -181,7 +181,7 @@ function updateUserProfile(user: User): void {
   }
   
   // Actualizar nombre y email
-  const nameElement = document.getElementById('userName');
+  const nameElement = document.getElementById('user_name');
   if (nameElement) nameElement.textContent = user.name || 'Usuario';
   
   const emailElement = document.getElementById('userEmail');
@@ -227,7 +227,7 @@ function updateWelcomeMessage(user: User): void {
 // Configurar botón de logout
 function setupLogoutButton(): void {
   console.log("🔄 Configurando botón de logout");
-  
+
   const logoutButton = document.getElementById('logoutButton');
   if (logoutButton) {
     logoutButton.addEventListener('click', async () => {
@@ -412,7 +412,7 @@ async function loadPongScores(): Promise<void> {
 }
 
 // Cargar mejores puntuaciones globales
-async function loadGlobalHighScores(): Promise<void> {
+async function loadGlobalHighScores(user: User): Promise<void> {
   const highScoresContainer = document.getElementById('highScoresList');
   if (!highScoresContainer) return;
   
@@ -432,38 +432,74 @@ async function loadGlobalHighScores(): Promise<void> {
     
     const highScores = await response.json();
     console.log("🏆 Mejores puntuaciones recibidas:", highScores);
+    console.log("👤 Usuario actual:", user); // Debug
     
     if (highScores && highScores.length > 0) {
       highScoresContainer.innerHTML = '';
       highScores.forEach((score: PongScore, index: number) => {
+        console.log(`🔍 Procesando score ${index}:`, {
+          p1_id: score.p1_id,
+          user_name: score.user_name,
+          opponent_name: score.opponent_name,
+          user_id: user.id
+        }); // Debug
+        
         const date = new Date(score.fecha || '');
         const formattedDate = isNaN(date.getTime()) 
           ? 'Fecha desconocida' 
           : date.toLocaleDateString();
           
         const row = document.createElement('tr');
-        row.className = index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
         
-        let userName = score.username || 'Jugador anónimo';
-        if (score.p1_id === (window.userSessionId || '')) {
-          userName += ' (Tú)';
-          row.className += ' bg-blue-50';
+        // Mejorar la lógica de identificación del usuario
+        let user_name = score.user_name || 'Jugador anónimo';
+        let user_picture = score.user_picture;
+        let isCurrentUser = false;
+        
+        // Convertir ambos a string para comparación segura
+        const currentUserId = String(user.id || '');
+        const scorePlayerId = String(score.p1_id || '');
+        
+        if (currentUserId && scorePlayerId && currentUserId === scorePlayerId) {
+          user_name = user.name + ' (Tú)';
+          user_picture = user.picture || score.user_picture;
+          isCurrentUser = true;
+          console.log(`✅ Usuario actual encontrado en posición ${index + 1}`); // Debug
         }
+        
+        // Aplicar clases CSS correctamente sin conflictos
+        if (isCurrentUser) {
+          row.className = 'bg-blue-100 border-l-4 border-blue-500';
+          row.style.backgroundColor = '#dbeafe'; // Fallback con CSS inline
+        } else {
+          row.className = index % 2 === 0 ? 'bg-white' : 'bg-gray-100';
+          if (index % 2 !== 0) {
+            row.style.backgroundColor = '#f3f4f6'; // Fallback con CSS inline para filas impares
+          }
+        }
+        
+        // Validar que tenemos los datos necesarios y crear URLs seguras
+        const finalUserPicture = user_picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(user_name)}&size=32&background=random`;
+        const finalOpponentPicture = score.opponent_picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(score.opponent_name || 'Opponent')}&size=32&background=random`;
         
         row.innerHTML = `
           <td class="py-3 px-4">${index + 1}</td>
           <td class="py-3 px-4">
             <div class="flex items-center">
-              <img src="${score.user_picture || 'https://ui-avatars.com/api/?name=User&size=32&background=random'}" 
-                   class="h-8 w-8 rounded-full mr-2" alt="${userName}">
-              <span>${userName}</span>
+              <img src="${finalUserPicture}" 
+                   class="h-8 w-8 rounded-full mr-2" 
+                   alt="${user_name}"
+                   onerror="this.src='https://ui-avatars.com/api/?name=User&size=32&background=random'">
+              <span>${user_name}</span>
             </div>
           </td>
-		  <td class="py-3 px-4">
+          <td class="py-3 px-4">
             <div class="flex items-center">
-              <img src="${score.opponent_picture || 'https://ui-avatars.com/api/?name=User&size=32&background=random'}" 
-                   class="h-8 w-8 rounded-full mr-2" alt="${score.opponent_name}">
-              <span>${score.opponent_name}</span>
+              <img src="${finalOpponentPicture}" 
+                   class="h-8 w-8 rounded-full mr-2" 
+                   alt="${score.opponent_name || 'Oponente'}"
+                   onerror="this.src='https://ui-avatars.com/api/?name=Opponent&size=32&background=random'">
+              <span>${score.opponent_name || 'Oponente desconocido'}</span>
             </div>
           </td>
           <td class="py-3 px-4 font-bold">${score.p1score} - ${score.p2score}</td>
@@ -494,7 +530,7 @@ async function loadGlobalHighScores(): Promise<void> {
     
     const retryButton = document.getElementById('retryHighScores');
     if (retryButton) {
-      retryButton.addEventListener('click', loadGlobalHighScores);
+      retryButton.addEventListener('click', () => loadGlobalHighScores(user));
     }
   }
 }
