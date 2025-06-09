@@ -72,9 +72,32 @@ async function handleLogout() {
   }
 }
 
-// Inicializar Google Sign-In con reintento
+// Mejora la función para inicializar Google Sign-In
 function initializeGoogleSignIn() {
   console.log("🔄 Intentando inicializar el botón de Google...", googleInitAttempts);
+  
+  // Verificar si hay un error en la URL y mostrarlo
+  const urlParams = new URLSearchParams(window.location.search);
+  const error = urlParams.get('error');
+  const errorMessage = urlParams.get('message') || urlParams.get('details');
+  
+  if (error) {
+    console.error(`❌ Error detectado: ${error}${errorMessage ? ` - ${errorMessage}` : ''}`);
+    const userInfo = document.getElementById("userInfo");
+    if (userInfo) {
+      userInfo.innerHTML = `
+        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4" role="alert">
+          <p class="font-bold">Error de autenticación</p>
+          <p>${error}${errorMessage ? `: ${errorMessage}` : ''}</p>
+          <p class="mt-2 text-sm">
+            <a href="${BACKEND_URL}/auth/diagnose" target="_blank" class="underline">
+              Ver diagnóstico
+            </a>
+          </p>
+        </div>
+      `;
+    }
+  }
   
   if (window.google && window.google.accounts) {
     try {
@@ -82,6 +105,16 @@ function initializeGoogleSignIn() {
         client_id: window.env?.GOOGLE_CLIENT_ID || "404879168796-oifuq2pnikf152tq8o1i9vcc48ssivse.apps.googleusercontent.com",
         callback: window.handleCredentialResponse
       });
+      
+      // Agregar diagnóstico al botón
+      const diagLink = document.createElement('a');
+      diagLink.href = '#';
+      diagLink.className = 'text-xs text-gray-500 mt-2 block';
+      diagLink.textContent = '¿Problemas? Ver diagnóstico';
+      diagLink.onclick = (e) => {
+        e.preventDefault();
+        window.open(`${BACKEND_URL}/auth/diagnose`, '_blank');
+      };
       
       const buttonElement = document.getElementById("googleSignInButton");
       if (buttonElement) {
@@ -95,6 +128,8 @@ function initializeGoogleSignIn() {
           text: "signin_with",
           logo_alignment: "left"
         });
+        
+        buttonElement.appendChild(diagLink);
         
         console.log("✅ Botón de Google inicializado correctamente");
       } else {

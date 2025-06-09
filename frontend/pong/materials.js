@@ -19,22 +19,9 @@ export function createMaterials(scene, materiales) {
 	materiales.marmolnegroRunasMat.emissiveColor = new BABYLON.Color3(1, 0.84, 0);
 
 	// Material Pala 1
-	materiales.pala1Mat = new BABYLON.PBRMaterial("pala1Mat", scene);
-	materiales.pala1Mat.albedoColor = new BABYLON.Color3(0.2, 0.6, 1); // Azul celeste
-	materiales.pala1Mat.emissiveColor = new BABYLON.Color3(0.2, 0.6, 1); // Emisión tenue
-	materiales.pala1Mat.alpha = 0.75;
-	materiales.pala1Mat.transparencyMode = BABYLON.PBRMaterial.PBRMATERIAL_ALPHABLEND;
-	materiales.pala1Mat.indexOfRefraction = 1.4;
-	materiales.pala1Mat.metallic = 0.1;
-	materiales.pala1Mat.roughness = 0.2;
-	materiales.pala1Mat.subSurface.isRefractionEnabled = true;
-	materiales.pala1Mat.subSurface.refractionIntensity = 0.6;
-	materiales.pala1Mat.subSurface.indexOfRefraction = 1.4;
-
-	// Material Pala 2
 	materiales.pala2Mat = new BABYLON.PBRMaterial("pala2Mat", scene);
-	materiales.pala2Mat.albedoColor = new BABYLON.Color3(1, 0.0, 0.1); // Rojo jade
-	materiales.pala2Mat.emissiveColor = new BABYLON.Color3(1, 0.0, 0.05); // Emisión tenue
+	materiales.pala2Mat.albedoColor = new BABYLON.Color3(0.2, 0.6, 1); // Azul celeste
+	materiales.pala2Mat.emissiveColor = new BABYLON.Color3(0.2, 0.6, 1); // Emisión tenue
 	materiales.pala2Mat.alpha = 0.75;
 	materiales.pala2Mat.transparencyMode = BABYLON.PBRMaterial.PBRMATERIAL_ALPHABLEND;
 	materiales.pala2Mat.indexOfRefraction = 1.4;
@@ -43,6 +30,19 @@ export function createMaterials(scene, materiales) {
 	materiales.pala2Mat.subSurface.isRefractionEnabled = true;
 	materiales.pala2Mat.subSurface.refractionIntensity = 0.6;
 	materiales.pala2Mat.subSurface.indexOfRefraction = 1.4;
+
+	// Material Pala 2
+	materiales.pala1Mat = new BABYLON.PBRMaterial("pala1Mat", scene);
+	materiales.pala1Mat.albedoColor = new BABYLON.Color3(1, 0.0, 0.1); // Rojo jade
+	materiales.pala1Mat.emissiveColor = new BABYLON.Color3(1, 0.0, 0.05); // Emisión tenue
+	materiales.pala1Mat.alpha = 0.75;
+	materiales.pala1Mat.transparencyMode = BABYLON.PBRMaterial.PBRMATERIAL_ALPHABLEND;
+	materiales.pala1Mat.indexOfRefraction = 1.4;
+	materiales.pala1Mat.metallic = 0.1;
+	materiales.pala1Mat.roughness = 0.2;
+	materiales.pala1Mat.subSurface.isRefractionEnabled = true;
+	materiales.pala1Mat.subSurface.refractionIntensity = 0.6;
+	materiales.pala1Mat.subSurface.indexOfRefraction = 1.4;
 
 	// Material Pala 3 - Verde Esmeralda
 	materiales.pala3Mat = new BABYLON.PBRMaterial("pala3Mat", scene);

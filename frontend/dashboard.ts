@@ -25,15 +25,20 @@ interface User {
 }
 
 interface PongScore {
-  id: number;
-  p1score: number;
-  p2score: number;
-  opponent: string;
-  winner: boolean;
-  game_duration: number;
-  user_id?: string;
-  fecha?: string;
+	id: number;
+	p1score: number;
+	p2score: number;
+	p1_id: string;
+	p2_id?: string;
+	winner: boolean;
+	game_duration: number;
+	fecha?: string | number;
+	username?: string;
+	user_picture?: string;
+	opponent_name?: string;
+	opponent_picture?: string;
 }
+
 
 
 // Añadir esta variable global
@@ -335,7 +340,7 @@ async function loadPongScores(): Promise<void> {
                     score.p1score : (parseInt(score.p1score) || 0);
         const p2score = typeof score.p2score === 'number' ? 
                     score.p2score : (parseInt(score.p2score) || 0);
-
+		const opponent = score.p2_id ? 'CPU' : score.opponent_name || 'Desconocido';
         const scoreCard = document.createElement('div');
         scoreCard.className = `p-3 border ${score.winner ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'} rounded-lg mb-2`;
         
@@ -343,7 +348,7 @@ async function loadPongScores(): Promise<void> {
           <div class="flex justify-between items-center">
             <div>
               <span class="font-bold text-lg">${p1score} - ${p2score}</span> puntos
-              <p class="text-sm text-gray-600">vs ${score.opponent}</p>
+              <p class="text-sm text-gray-600">vs ${opponent}</p>
             </div>
             <div class="text-right">
               <span class="text-sm text-gray-500">${formattedDate}</span>
@@ -430,8 +435,7 @@ async function loadGlobalHighScores(): Promise<void> {
     
     if (highScores && highScores.length > 0) {
       highScoresContainer.innerHTML = '';
-      // ARREGLAR JUGADOR ANÓNIMO
-      highScores.forEach((score: any, index: number) => {
+      highScores.forEach((score: PongScore, index: number) => {
         const date = new Date(score.fecha || '');
         const formattedDate = isNaN(date.getTime()) 
           ? 'Fecha desconocida' 
@@ -440,8 +444,8 @@ async function loadGlobalHighScores(): Promise<void> {
         const row = document.createElement('tr');
         row.className = index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
         
-        let userName = score.user_name || 'Jugador anónimo';
-        if (score.user_id === (window.userSessionId || '')) {
+        let userName = score.username || 'Jugador anónimo';
+        if (score.p1_id === (window.userSessionId || '')) {
           userName += ' (Tú)';
           row.className += ' bg-blue-50';
         }
@@ -457,9 +461,9 @@ async function loadGlobalHighScores(): Promise<void> {
           </td>
 		  <td class="py-3 px-4">
             <div class="flex items-center">
-              <img src="${score.user_picture || 'https://ui-avatars.com/api/?name=User&size=32&background=random'}" 
-                   class="h-8 w-8 rounded-full mr-2" alt="${score.opponent}">
-              <span>${score.opponent}</span>
+              <img src="${score.opponent_picture || 'https://ui-avatars.com/api/?name=User&size=32&background=random'}" 
+                   class="h-8 w-8 rounded-full mr-2" alt="${score.opponent_name}">
+              <span>${score.opponent_name}</span>
             </div>
           </td>
           <td class="py-3 px-4 font-bold">${score.p1score} - ${score.p2score}</td>
@@ -471,7 +475,7 @@ async function loadGlobalHighScores(): Promise<void> {
     } else {
       highScoresContainer.innerHTML = `
         <tr>
-          <td colspan="4" class="py-4 text-center text-gray-500">
+          <td colspan="5" class="py-4 text-center text-gray-500">
             No hay puntuaciones registradas todavía.
           </td>
         </tr>
@@ -481,7 +485,7 @@ async function loadGlobalHighScores(): Promise<void> {
     console.error("❌ Error al cargar mejores puntuaciones:", error);
     highScoresContainer.innerHTML = `
       <tr>
-        <td colspan="4" class="py-3 text-center text-red-500">
+        <td colspan="5" class="py-3 text-center text-red-500">
           Error al cargar mejores puntuaciones.
           <button id="retryHighScores" class="text-blue-500 underline ml-2">Reintentar</button>
         </td>

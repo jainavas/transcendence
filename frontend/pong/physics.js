@@ -2,7 +2,7 @@ import { maxScore, scoreP1, scoreP2, scoreP3, scoreP4, changeScore1, changeScore
 import { setGameActive, gameActive } from "./scene.js";
 import { puntoTexto, anunciarPunto, mensajeInicio } from "./menus.js";
 
-function gameOver(message, bola, pala1, pala2, tableTop, scene) {
+function gameOver(message, bola, pala2, pala1, tableTop, scene) {
 	// Actualizar puntuaciones
 	if (message.includes("jugador 1") && gameActive) {
 		changeScore1();
@@ -14,7 +14,7 @@ function gameOver(message, bola, pala1, pala2, tableTop, scene) {
 	setGameActive(false);
 	// Lanzar la bola hacia abajo con rotación
 	const haciaLaDerecha = bola.position.x > 0;
-	const impulse = new BABYLON.Vector3(haciaLaDerecha ? 1 : -1, -1, 0).scale(0.5); // ajusta fuerza
+	const impulse = new BABYLON.Vector3(haciaLaDerecha ? 1 : -1, -1, 0).scale(1.2); // ajusta fuerza
 	const contactPoint = bola.getAbsolutePosition(); // centro del mesh
 
 	bola.physicsImpostor.applyImpulse(impulse, contactPoint);
@@ -41,14 +41,14 @@ function gameOver(message, bola, pala1, pala2, tableTop, scene) {
 		bola.position = new BABYLON.Vector3(0, y, 0);
 		bola.physicsImpostor.setDeltaPosition(bola.position); // importante
 
-		pala1.position = new BABYLON.Vector3(0.95, y, 0);
-		pala2.position = new BABYLON.Vector3(-0.95, y, 0);
-		pala1.physicsImpostor.setDeltaPosition(pala1.position);
+		pala2.position = new BABYLON.Vector3(0.95, y, 0);
+		pala1.position = new BABYLON.Vector3(-0.95, y, 0);
 		pala2.physicsImpostor.setDeltaPosition(pala2.position);
+		pala1.physicsImpostor.setDeltaPosition(pala1.position);
 
 		// Dirección inicial alterna
 		const direccion = message.includes("jugador 1") ? -1 : 1;
-		const velocidadInicial = new BABYLON.Vector3(0.5 * direccion, 0, (Math.random() - 0.5) * 0.1);
+		const velocidadInicial = new BABYLON.Vector3(1.1 * direccion, 0, (Math.random() - 0.5) * 0.1);
 		bola.physicsImpostor.setLinearVelocity(velocidadInicial);
 
 
@@ -57,7 +57,7 @@ function gameOver(message, bola, pala1, pala2, tableTop, scene) {
 	return true;
 }
 
-function gameOver4P(message, bola, pala1, pala2, pala3, pala4, tableTop, scene) {
+function gameOver4P(message, bola, pala2, pala1, pala3, pala4, tableTop, scene) {
 	// Actualizar puntuaciones
 	if (!gameActive) return true;
 	if (message.includes("Jugador 1")) {
@@ -120,20 +120,20 @@ function gameOver4P(message, bola, pala1, pala2, pala3, pala4, tableTop, scene) 
 		bola.position = new BABYLON.Vector3(0, y, 0);
 		bola.physicsImpostor.setDeltaPosition(bola.position); // importante
 
-		pala1.position = new BABYLON.Vector3(0, y, 1.15);
-		pala2.position = new BABYLON.Vector3(1.15, y, 0);
+		pala2.position = new BABYLON.Vector3(0, y, 1.15);
+		pala1.position = new BABYLON.Vector3(1.15, y, 0);
 		pala3.position = new BABYLON.Vector3(0, y, -1.15);
 		pala4.position = new BABYLON.Vector3(-1.15, y, 0);
-		pala1.physicsImpostor.setDeltaPosition(pala1.position);
 		pala2.physicsImpostor.setDeltaPosition(pala2.position);
+		pala1.physicsImpostor.setDeltaPosition(pala1.position);
 		pala3.physicsImpostor.setDeltaPosition(pala3.position);
 		pala4.physicsImpostor.setDeltaPosition(pala4.position);
 
 		// Dirección inicial alterna
 		const directions = [
-			new BABYLON.Vector3(1.5, 0, 0),   // Hacia pala2
+			new BABYLON.Vector3(1.5, 0, 0),   // Hacia pala1
 			new BABYLON.Vector3(-1.5, 0, 0),  // Hacia pala4
-			new BABYLON.Vector3(0, 0, 1.5),   // Hacia pala1
+			new BABYLON.Vector3(0, 0, 1.5),   // Hacia pala2
 			new BABYLON.Vector3(0, 0, -1.5)   // Hacia pala3
 		];
 		const randomDir = directions[Math.floor(Math.random() * directions.length)];
@@ -157,28 +157,28 @@ export function createPhysics(scene, engine, camera, tableTop, materiales, glow)
 	const keysPressed = {};
 
 	// Crear palas
-	const pala1 = BABYLON.MeshBuilder.CreateBox("pala1", { width: 0.1, depth: 0.25, height: 0.05 }, scene);
-	pala1.position.set(0.95, tableTop.position.y + 0.05 + tableTop.getBoundingInfo().boundingBox.extendSize.y, 0);
-	pala1.material = materiales.pala1Mat;
-
 	const pala2 = BABYLON.MeshBuilder.CreateBox("pala2", { width: 0.1, depth: 0.25, height: 0.05 }, scene);
-	pala2.position.set(-0.95, pala1.position.y, 0);
+	pala2.position.set(0.95, tableTop.position.y + 0.05 + tableTop.getBoundingInfo().boundingBox.extendSize.y, 0);
 	pala2.material = materiales.pala2Mat;
+
+	const pala1 = BABYLON.MeshBuilder.CreateBox("pala1", { width: 0.1, depth: 0.25, height: 0.05 }, scene);
+	pala1.position.set(-0.95, pala2.position.y, 0);
+	pala1.material = materiales.pala1Mat;
 
 	// Crear bola
 	const bola = BABYLON.MeshBuilder.CreateSphere("bola", { diameter: bolaRadio * 2 }, scene);
-	bola.position.y = pala1.position.y;
+	bola.position.y = pala2.position.y;
 	bola.material = new BABYLON.StandardMaterial("bolaMat", scene);
 	bola.material.emissiveColor = new BABYLON.Color3(0.2, 0.2, 0.2);
 
 	// IMPORTANTE: Crear los physics impostors DESPUÉS de posicionar los meshes
-	pala1.physicsImpostor = new BABYLON.PhysicsImpostor(pala1, BABYLON.PhysicsImpostor.BoxImpostor, {
+	pala2.physicsImpostor = new BABYLON.PhysicsImpostor(pala2, BABYLON.PhysicsImpostor.BoxImpostor, {
 		mass: 0,
 		restitution: 1.2,
 		friction: 0
 	}, scene);
 
-	pala2.physicsImpostor = new BABYLON.PhysicsImpostor(pala2, BABYLON.PhysicsImpostor.BoxImpostor, {
+	pala1.physicsImpostor = new BABYLON.PhysicsImpostor(pala1, BABYLON.PhysicsImpostor.BoxImpostor, {
 		mass: 0,
 		restitution: 1.2,
 		friction: 0
@@ -199,7 +199,7 @@ export function createPhysics(scene, engine, camera, tableTop, materiales, glow)
 				if (mensajeInicio) mensajeInicio.alpha = 0;
 
 				// Lanzar bola
-				bola.physicsImpostor.setLinearVelocity(new BABYLON.Vector3(0.5, 0, 0));
+				bola.physicsImpostor.setLinearVelocity(new BABYLON.Vector3(1.2, 0, 0));
 			}
 		});
 	}
@@ -218,25 +218,10 @@ export function createPhysics(scene, engine, camera, tableTop, materiales, glow)
 
 		// Detectar colisiones manualmente como backup
 		const bolaPos = bola.position;
-		const pala1Pos = pala1.position;
 		const pala2Pos = pala2.position;
+		const pala1Pos = pala1.position;
 
-		// Colisión con pala1 (derecha)
-		if (Math.abs(bolaPos.x - pala1Pos.x) < 0.1 &&
-			Math.abs(bolaPos.z - pala1Pos.z) < 0.15 &&
-			Math.abs(bolaPos.y - pala1Pos.y) < 0.1 &&
-			currentTime - lastCollisionTime > collisionCooldown) {
-
-			console.log("Colisión manual con pala1!");
-			const vel = bola.physicsImpostor.getLinearVelocity();
-			const newVelX = -Math.abs(vel.x) * 1.1; // Acelerar ligeramente
-			const newVelZ = vel.z + (bolaPos.z - pala1Pos.z) * 2; // Agregar spin basado en donde golpea
-			bola.physicsImpostor.setLinearVelocity(new BABYLON.Vector3(newVelX, 0, newVelZ));
-			glow.intensity = 0.8;
-			lastCollisionTime = currentTime;
-		}
-
-		// Colisión con pala2 (izquierda)
+		// Colisión con pala2 (derecha)
 		if (Math.abs(bolaPos.x - pala2Pos.x) < 0.1 &&
 			Math.abs(bolaPos.z - pala2Pos.z) < 0.15 &&
 			Math.abs(bolaPos.y - pala2Pos.y) < 0.1 &&
@@ -244,8 +229,23 @@ export function createPhysics(scene, engine, camera, tableTop, materiales, glow)
 
 			console.log("Colisión manual con pala2!");
 			const vel = bola.physicsImpostor.getLinearVelocity();
+			const newVelX = -Math.abs(vel.x) * 1.1; // Acelerar ligeramente
+			const newVelZ = vel.z + (bolaPos.z - pala2Pos.z) * 2; // Agregar spin basado en donde golpea
+			bola.physicsImpostor.setLinearVelocity(new BABYLON.Vector3(newVelX, 0, newVelZ));
+			glow.intensity = 0.8;
+			lastCollisionTime = currentTime;
+		}
+
+		// Colisión con pala1 (izquierda)
+		if (Math.abs(bolaPos.x - pala1Pos.x) < 0.1 &&
+			Math.abs(bolaPos.z - pala1Pos.z) < 0.15 &&
+			Math.abs(bolaPos.y - pala1Pos.y) < 0.1 &&
+			currentTime - lastCollisionTime > collisionCooldown) {
+
+			console.log("Colisión manual con pala1!");
+			const vel = bola.physicsImpostor.getLinearVelocity();
 			const newVelX = Math.abs(vel.x) * 1.1; // Acelerar ligeramente
-			const newVelZ = vel.z + (bolaPos.z - pala2Pos.z) * 2; // Agregar spin
+			const newVelZ = vel.z + (bolaPos.z - pala1Pos.z) * 2; // Agregar spin
 			bola.physicsImpostor.setLinearVelocity(new BABYLON.Vector3(newVelX, 0, newVelZ));
 			glow.intensity = 0.8;
 			lastCollisionTime = currentTime;
@@ -253,32 +253,32 @@ export function createPhysics(scene, engine, camera, tableTop, materiales, glow)
 
 		// Movimiento de palas - método directo sin physics
 		if (keysPressed["a"]) {
-			const newZ = Math.max(pala2.position.z - paddleSpeed, -paddleZLimit);
-			pala2.position.z = newZ;
-			// Sincronizar impostor manualmente
-			if (pala2.physicsImpostor) {
-				pala2.physicsImpostor.setDeltaPosition(pala2.position);
-			}
-		}
-		if (keysPressed["d"]) {
-			const newZ = Math.min(pala2.position.z + paddleSpeed, paddleZLimit);
-			pala2.position.z = newZ;
-			if (pala2.physicsImpostor) {
-				pala2.physicsImpostor.setDeltaPosition(pala2.position);
-			}
-		}
-		if (keysPressed["ArrowLeft"]) {
 			const newZ = Math.max(pala1.position.z - paddleSpeed, -paddleZLimit);
 			pala1.position.z = newZ;
+			// Sincronizar impostor manualmente
 			if (pala1.physicsImpostor) {
 				pala1.physicsImpostor.setDeltaPosition(pala1.position);
 			}
 		}
-		if (keysPressed["ArrowRight"]) {
+		if (keysPressed["d"]) {
 			const newZ = Math.min(pala1.position.z + paddleSpeed, paddleZLimit);
 			pala1.position.z = newZ;
 			if (pala1.physicsImpostor) {
 				pala1.physicsImpostor.setDeltaPosition(pala1.position);
+			}
+		}
+		if (keysPressed["ArrowLeft"]) {
+			const newZ = Math.max(pala2.position.z - paddleSpeed, -paddleZLimit);
+			pala2.position.z = newZ;
+			if (pala2.physicsImpostor) {
+				pala2.physicsImpostor.setDeltaPosition(pala2.position);
+			}
+		}
+		if (keysPressed["ArrowRight"]) {
+			const newZ = Math.min(pala2.position.z + paddleSpeed, paddleZLimit);
+			pala2.position.z = newZ;
+			if (pala2.physicsImpostor) {
+				pala2.physicsImpostor.setDeltaPosition(pala2.position);
 			}
 		}
 
@@ -304,7 +304,7 @@ export function createPhysics(scene, engine, camera, tableTop, materiales, glow)
 		}
 
 		// Corregir posición Y si se desvía
-		const targetY = pala1.position.y;
+		const targetY = pala2.position.y;
 		if (Math.abs(bolaPos.y - targetY) > 0.05 && bolaPos.x >= -1 && bolaPos.x <= 1) {
 			bola.position.y = targetY;
 		}
@@ -316,10 +316,10 @@ export function createPhysics(scene, engine, camera, tableTop, materiales, glow)
 
 		// Game over
 		if (bolaPos.x > 1.05) {
-			if (!gameOver("¡Punto para el jugador 2!", bola, pala1, pala2, tableTop, scene))
+			if (!gameOver("¡Punto para el jugador 2!", bola, pala2, pala1, tableTop, scene))
 				return;
 		} else if (bolaPos.x < -1.05) {
-			if (!gameOver("¡Punto para el jugador 1!", bola, pala1, pala2, tableTop, scene))
+			if (!gameOver("¡Punto para el jugador 1!", bola, pala2, pala1, tableTop, scene))
 				return;
 		}
 
@@ -343,21 +343,7 @@ export function createPhysics(scene, engine, camera, tableTop, materiales, glow)
 		}
 	});
 
-	// Registrar colisiones como respaldo (puede que funcionen ahora)
-	setTimeout(() => {
-		if (bola.physicsImpostor && pala1.physicsImpostor && pala2.physicsImpostor) {
-			bola.physicsImpostor.registerOnPhysicsCollide([pala1.physicsImpostor, pala2.physicsImpostor], (collider, collidedAgainst) => {
-				console.log("Colisión detectada por registerOnPhysicsCollide! con collider:", collider.object.name, "y collidedAgainst:", collidedAgainst.object.name);
-				const currentTime = Date.now();
-				if (currentTime - lastCollisionTime > collisionCooldown) {
-					glow.intensity = 0.8;
-					lastCollisionTime = currentTime;
-				}
-			});
-		}
-	}, 100);
-
-	return { pala1, pala2, bola };
+	return { pala2, pala1, bola };
 }
 
 export function createPhysics4P(scene, engine, camera, tableTop, materiales, glow) {
@@ -372,36 +358,36 @@ export function createPhysics4P(scene, engine, camera, tableTop, materiales, glo
 
 	// CREAR PALAS EN POSICIONES CORRECTAS (sentido horario desde arriba)
 	// Pala 1 - ARRIBA (se mueve horizontalmente)
-	const pala1 = BABYLON.MeshBuilder.CreateBox("pala1", { width: 0.25, depth: 0.1, height: 0.05 }, scene);
-	pala1.position.set(0, tableTop.position.y + 0.05 + tableTop.getBoundingInfo().boundingBox.extendSize.y, areaSize + paddleOffset);
-	pala1.material = materiales.pala1Mat;
+	const pala2 = BABYLON.MeshBuilder.CreateBox("pala2", { width: 0.25, depth: 0.1, height: 0.05 }, scene);
+	pala2.position.set(0, tableTop.position.y + 0.05 + tableTop.getBoundingInfo().boundingBox.extendSize.y, areaSize + paddleOffset);
+	pala2.material = materiales.pala2Mat;
 
 	// Pala 2 - DERECHA (se mueve verticalmente) 
-	const pala2 = BABYLON.MeshBuilder.CreateBox("pala2", { width: 0.1, depth: 0.25, height: 0.05 }, scene);
-	pala2.position.set(areaSize + paddleOffset, pala1.position.y, 0);
-	pala2.material = materiales.pala2Mat;
+	const pala1 = BABYLON.MeshBuilder.CreateBox("pala1", { width: 0.1, depth: 0.25, height: 0.05 }, scene);
+	pala1.position.set(areaSize + paddleOffset, pala2.position.y, 0);
+	pala1.material = materiales.pala1Mat;
 
 	// Pala 3 - ABAJO (se mueve horizontalmente)
 	const pala3 = BABYLON.MeshBuilder.CreateBox("pala3", { width: 0.25, depth: 0.1, height: 0.05 }, scene);
-	pala3.position.set(0, pala1.position.y, -areaSize - paddleOffset);
+	pala3.position.set(0, pala2.position.y, -areaSize - paddleOffset);
 	pala3.material = materiales.pala3Mat;
 
 	// Pala 4 - IZQUIERDA (se mueve verticalmente)
 	const pala4 = BABYLON.MeshBuilder.CreateBox("pala4", { width: 0.1, depth: 0.25, height: 0.05 }, scene);
-	pala4.position.set(-areaSize - paddleOffset, pala1.position.y, 0);
+	pala4.position.set(-areaSize - paddleOffset, pala2.position.y, 0);
 	pala4.material = materiales.pala4Mat;
 
 	// Crear bola en el centro
 	const bola = BABYLON.MeshBuilder.CreateSphere("bola", { diameter: bolaRadio * 2 }, scene);
-	bola.position.set(0, pala1.position.y, 0); // Centro del campo
+	bola.position.set(0, pala2.position.y, 0); // Centro del campo
 	bola.material = new BABYLON.StandardMaterial("bolaMat", scene);
 	bola.material.emissiveColor = new BABYLON.Color3(0.2, 0.2, 0.2);
 
 	// Crear physics impostors
-	pala1.physicsImpostor = new BABYLON.PhysicsImpostor(pala1, BABYLON.PhysicsImpostor.BoxImpostor, {
+	pala2.physicsImpostor = new BABYLON.PhysicsImpostor(pala2, BABYLON.PhysicsImpostor.BoxImpostor, {
 		mass: 0, restitution: 1.2, friction: 0
 	}, scene);
-	pala2.physicsImpostor = new BABYLON.PhysicsImpostor(pala2, BABYLON.PhysicsImpostor.BoxImpostor, {
+	pala1.physicsImpostor = new BABYLON.PhysicsImpostor(pala1, BABYLON.PhysicsImpostor.BoxImpostor, {
 		mass: 0, restitution: 1.2, friction: 0
 	}, scene);
 	pala3.physicsImpostor = new BABYLON.PhysicsImpostor(pala3, BABYLON.PhysicsImpostor.BoxImpostor, {
@@ -420,7 +406,7 @@ export function createPhysics4P(scene, engine, camera, tableTop, materiales, glo
 
 		// Detener la bola
 		bola.physicsImpostor.setLinearVelocity(BABYLON.Vector3.Zero());
-		bola.position.set(0, pala1.position.y, 0);
+		bola.position.set(0, pala2.position.y, 0);
 
 		const spaceHandler = (e) => {
 			if (e.code === "Space" && !gameActive) {
@@ -430,9 +416,9 @@ export function createPhysics4P(scene, engine, camera, tableTop, materiales, glo
 
 				// Lanzar bola en dirección aleatoria
 				const directions = [
-					new BABYLON.Vector3(1.5, 0, 0),   // Hacia pala2
+					new BABYLON.Vector3(1.5, 0, 0),   // Hacia pala1
 					new BABYLON.Vector3(-1.5, 0, 0),  // Hacia pala4
-					new BABYLON.Vector3(0, 0, 1.5),   // Hacia pala1
+					new BABYLON.Vector3(0, 0, 1.5),   // Hacia pala2
 					new BABYLON.Vector3(0, 0, -1.5)   // Hacia pala3
 				];
 				const randomDir = directions[Math.floor(Math.random() * directions.length)];
@@ -480,33 +466,33 @@ export function createPhysics4P(scene, engine, camera, tableTop, materiales, glo
 		// MOVIMIENTO DE PALAS
 		// Pala 1 (Arriba) - A/D (movimiento horizontal)
 		if (keysPressed["a"]) {
-			const newX = Math.max(pala1.position.x - paddleSpeed, -areaSize + 0.1);
-			pala1.position.x = newX;
-			if (pala1.physicsImpostor) {
-				pala1.physicsImpostor.setDeltaPosition(pala1.position);
+			const newX = Math.max(pala2.position.x - paddleSpeed, -areaSize + 0.1);
+			pala2.position.x = newX;
+			if (pala2.physicsImpostor) {
+				pala2.physicsImpostor.setDeltaPosition(pala2.position);
 			}
 		}
 		if (keysPressed["d"]) {
-			const newX = Math.min(pala1.position.x + paddleSpeed, areaSize - 0.1);
-			pala1.position.x = newX;
-			if (pala1.physicsImpostor) {
-				pala1.physicsImpostor.setDeltaPosition(pala1.position);
+			const newX = Math.min(pala2.position.x + paddleSpeed, areaSize - 0.1);
+			pala2.position.x = newX;
+			if (pala2.physicsImpostor) {
+				pala2.physicsImpostor.setDeltaPosition(pala2.position);
 			}
 		}
 
 		// Pala 2 (Derecha) - ↑/↓ (movimiento vertical)
 		if (keysPressed["ArrowRight"]) {
-			const newZ = Math.min(pala2.position.z + paddleSpeed, areaSize - 0.1);
-			pala2.position.z = newZ;
-			if (pala2.physicsImpostor) {
-				pala2.physicsImpostor.setDeltaPosition(pala2.position);
+			const newZ = Math.min(pala1.position.z + paddleSpeed, areaSize - 0.1);
+			pala1.position.z = newZ;
+			if (pala1.physicsImpostor) {
+				pala1.physicsImpostor.setDeltaPosition(pala1.position);
 			}
 		}
 		if (keysPressed["ArrowLeft"]) {
-			const newZ = Math.max(pala2.position.z - paddleSpeed, -areaSize + 0.1);
-			pala2.position.z = newZ;
-			if (pala2.physicsImpostor) {
-				pala2.physicsImpostor.setDeltaPosition(pala2.position);
+			const newZ = Math.max(pala1.position.z - paddleSpeed, -areaSize + 0.1);
+			pala1.position.z = newZ;
+			if (pala1.physicsImpostor) {
+				pala1.physicsImpostor.setDeltaPosition(pala1.position);
 			}
 		}
 
@@ -544,33 +530,33 @@ export function createPhysics4P(scene, engine, camera, tableTop, materiales, glo
 
 		// DETECCIÓN DE COLISIONES CORREGIDA
 		// Pala 1 (Arriba) - colisión desde abajo
-		if (Math.abs(bolaPos.x - pala1.position.x) < 0.15 &&
-			Math.abs(bolaPos.z - pala1.position.z) < 0.08 &&
-			Math.abs(bolaPos.y - pala1.position.y) < 0.1 &&
+		if (Math.abs(bolaPos.x - pala2.position.x) < 0.15 &&
+			Math.abs(bolaPos.z - pala2.position.z) < 0.08 &&
+			Math.abs(bolaPos.y - pala2.position.y) < 0.1 &&
 			currentTime - lastCollisionTime > collisionCooldown) {
 
-			console.log("Colisión con pala1 (Arriba)!");
+			console.log("Colisión con pala2 (Arriba)!");
 			const vel = bola.physicsImpostor.getLinearVelocity();
 			const newVelZ = -Math.abs(vel.z) * 1.05; // Rebotar hacia abajo
-			const newVelX = vel.x + (bolaPos.x - pala1.position.x) * 3; // Spin lateral
+			const newVelX = vel.x + (bolaPos.x - pala2.position.x) * 3; // Spin lateral
 			bola.physicsImpostor.setLinearVelocity(new BABYLON.Vector3(newVelX, 0, newVelZ));
-			bola.position.y = pala1.position.y;
+			bola.position.y = pala2.position.y;
 			glow.intensity = 0.8;
 			lastCollisionTime = currentTime;
 		}
 
 		// Pala 2 (Derecha) - colisión desde la izquierda
-		if (Math.abs(bolaPos.x - pala2.position.x) < 0.08 &&
-			Math.abs(bolaPos.z - pala2.position.z) < 0.15 &&
-			Math.abs(bolaPos.y - pala2.position.y) < 0.1 &&
+		if (Math.abs(bolaPos.x - pala1.position.x) < 0.08 &&
+			Math.abs(bolaPos.z - pala1.position.z) < 0.15 &&
+			Math.abs(bolaPos.y - pala1.position.y) < 0.1 &&
 			currentTime - lastCollisionTime > collisionCooldown) {
 
-			console.log("Colisión con pala2 (Derecha)!");
+			console.log("Colisión con pala1 (Derecha)!");
 			const vel = bola.physicsImpostor.getLinearVelocity();
 			const newVelX = -Math.abs(vel.x) * 1.05; // Rebotar hacia la izquierda
-			const newVelZ = vel.z + (bolaPos.z - pala2.position.z) * 3; // Spin
+			const newVelZ = vel.z + (bolaPos.z - pala1.position.z) * 3; // Spin
 			bola.physicsImpostor.setLinearVelocity(new BABYLON.Vector3(newVelX, 0, newVelZ));
-			bola.position.y = pala2.position.y;
+			bola.position.y = pala1.position.y;
 			glow.intensity = 0.8;
 			lastCollisionTime = currentTime;
 		}
@@ -624,7 +610,7 @@ export function createPhysics4P(scene, engine, camera, tableTop, materiales, glo
 			else if (bolaPos.z < -margin) ganador = "¡Jugador 3 (Abajo) eliminado!";
 			else if (bolaPos.x < -margin) ganador = "¡Jugador 4 (Izquierda) eliminado!";
 
-			if (!gameOver4P(ganador, bola, pala1, pala2, pala3, pala4, tableTop, scene))
+			if (!gameOver4P(ganador, bola, pala2, pala1, pala3, pala4, tableTop, scene))
 				return;
 		}
 
@@ -634,5 +620,5 @@ export function createPhysics4P(scene, engine, camera, tableTop, materiales, glo
 		}
 	});
 
-	return { pala1, pala2, pala3, pala4, bola, setGameActive };
+	return { pala2, pala1, pala3, pala4, bola, setGameActive };
 }

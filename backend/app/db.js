@@ -9,51 +9,63 @@ const db = new sqlite3.Database(path.join(__dirname, dbPath));
 
 // Crear tablas si no existen
 db.serialize(() => {
-  // Crear tabla para puntuaciones de pong
-  db.run(`CREATE TABLE IF NOT EXISTS pong_scores (
-    id INTEGER PRIMARY KEY,
-    user_id TEXT NOT NULL,
-    p1score INTEGER NOT NULL,
-    p2score INTEGER NOT NULL,
-    opponent TEXT DEFAULT LOCALHUMAN,
-    winner BOOLEAN,
-    game_duration INTEGER,
-    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  )`, (err) => {
-    if (err) {
-      console.error("Error al crear tabla pong_scores:", err);
-      return;
-    }
-    console.log("✅ Tabla pong_scores disponible");
-  });
-
-  db.run(`CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY,
-    username TEXT NOT NULL,
-    email TEXT NOT NULL
-  )`, (err) => {
-    if (err) {
-      console.error("Error al crear la tabla 'users':", err.message);
-    } else {
-      console.log("Tabla 'users' creada o ya existe.");
-    }
-  });
-
-  db.run(`CREATE TABLE IF NOT EXISTS session_data (
-    id TEXT PRIMARY KEY,
-    sub TEXT,
-    email TEXT NOT NULL,
-    name TEXT,
-    picture TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  )`, (err) => {
-    if (err) {
-      console.error("Error al crear tabla session_data:", err);
-      return;
-    }
-    console.log("✅ Tabla session_data disponible");
-  });
+	// Crear tabla para puntuaciones de pong
+	db.run(`-- Tabla de usuarios
+CREATE TABLE IF NOT EXISTS users (
+  user_id INTEGER PRIMARY KEY,
+  username TEXT NOT NULL,
+  user_email TEXT NOT NULL UNIQUE,
+  user_picture TEXT
+);`, (err) => {
+		if (err) {
+			console.error("Error al crear tabla users:", err);
+			return;
+		}
+		console.log("✅ Tabla users disponible");
+	});
+	db.run(`-- Tabla de sesiones (puede estar ligada a users.email si lo deseas)
+CREATE TABLE IF NOT EXISTS session_data (
+  id TEXT PRIMARY KEY, -- UUID
+  sub TEXT,
+  email TEXT NOT NULL,
+  name TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (email) REFERENCES users(user_email) ON DELETE SET NULL
+);
+`, (err) => {
+		if (err) {
+			console.error("Error al crear tabla session_data:", err);
+			return;
+		}
+		console.log("✅ Tabla session_data disponible");
+	});
 });
+db.run(`
+-- Tabla de puntuaciones de Pong
+CREATE TABLE IF NOT EXISTS pong_scores (
+  id INTEGER PRIMARY KEY,
+  p1_id INTEGER NOT NULL,
+  p1score INTEGER NOT NULL,
+  p2score INTEGER NOT NULL,
+  p2_id INTEGER DEFAULT 0,
+  winner BOOLEAN,
+  game_duration INTEGER,
+  fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+  -- Clave foránea
+  FOREIGN KEY (p1_id) REFERENCES users(id) ON DELETE SET NULL,
+  FOREIGN KEY (p2_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+-- Índice para mejorar el rendimiento de búsquedas por usuario
+CREATE INDEX IF NOT EXISTS idx_pong_scores_user_id ON pong_scores(user_id);`, (err) => {
+	if (err) {
+		console.error("Error al crear tabla pong_scores:", err);
+		return;
+	}
+	console.log("✅ Tabla pong_scores disponible");
+}
+);
 
 // Exportar la conexión a la base de datos
 module.exports = db;

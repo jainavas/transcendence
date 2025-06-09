@@ -71,14 +71,15 @@ window.addEventListener("DOMContentLoaded", () => {
 		const playerWon = scoreP1 > scoreP2;
 
 		const scoreData = {
-
 			p1score: scoreP1,
 			p2score: scoreP2,
-			opponent: "Human Player",
+			p2_id: 0, // CPU opponent
 			winner: playerWon ? 1 : 0,
-			game_duration: Math.floor(performance.now() / 1000) // Tiempo aproximado en segundos
+			game_duration: Math.floor(performance.now() / 1000)
 		};
 
+		console.log('Intentando guardar puntuación:', scoreData);
+		
 		this.disabled = true;
 		this.textContent = "Guardando...";
 
@@ -90,33 +91,39 @@ window.addEventListener("DOMContentLoaded", () => {
 			credentials: 'include', // Importante para enviar cookies de sesión
 			body: JSON.stringify(scoreData)
 		})
-			.then(response => {
-				if (!response.ok) {
+		.then(response => {
+			if (!response.ok) {
+				return response.json().then(errorData => {
+					// Extraer detalles del error del servidor si es posible
+					throw new Error(errorData.error || 'Error al guardar la puntuación');
+				}).catch(jsonError => {
+					// Si no podemos parsear el JSON, usar el error genérico
 					throw new Error('Error al guardar la puntuación');
-				}
-				return response.json();
-			})
-			.then(data => {
-				console.log('Puntuación guardada exitosamente', data);
-				alert('¡Puntuación guardada exitosamente!');
-				this.textContent = "¡Guardado!";
-				// Opcional: redirigir al dashboard después de un breve retraso
-				setTimeout(() => {
-					window.location.href = '/dashboard';
-				}, 1500);
-			})
-			.catch(error => {
-				console.error('Error:', error);
-				alert('Error al guardar la puntuación: ' + error.message);
-				this.textContent = "Error al guardar";
-			})
-			.finally(() => {
-				// Re-habilitar el botón después de un tiempo
-				setTimeout(() => {
-					this.disabled = false;
-					this.textContent = "Guardar puntuación";
-				}, 2000);
-			});
+				});
+			}
+			return response.json();
+		})
+		.then(data => {
+			console.log('Puntuación guardada exitosamente', data);
+			alert('¡Puntuación guardada exitosamente!');
+			this.textContent = "¡Guardado!";
+			// Opcional: redirigir al dashboard después de un breve retraso
+			setTimeout(() => {
+				window.location.href = '/dashboard';
+			}, 1500);
+		})
+		.catch(error => {
+			console.error('Error al guardar:', error);
+			alert('Error al guardar la puntuación: ' + error.message);
+			this.textContent = "Error al guardar";
+		})
+		.finally(() => {
+			// Re-habilitar el botón después de un tiempo
+			setTimeout(() => {
+				this.disabled = false;
+				this.textContent = "Guardar puntuación";
+			}, 2000);
+		});
 	});
 	document.getElementById('resetCameraButton').addEventListener('click', function () {
 		if (window.resetCamera) {

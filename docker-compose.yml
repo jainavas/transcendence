@@ -45,6 +45,6 @@ services:
       - CHOKIDAR_USEPOLLING=true
     command: >
       sh -c "npm install -g http-server nodemon &&
-             nodemon --watch /app/pong --watch /app/pong.html --ext js,html,css,json,png,jpg,hdr,gltf --exec 'http-server . -p 8080 --cors -c-1'"
+             nodemon --watch /app/dashboard --watch /app/pong --watch /app/pong.html --ext js,ts,html,css,json,png,jpg,hdr,gltf --exec 'http-server . -p 8080 --cors -c-1'"
     depends_on:
       - backend

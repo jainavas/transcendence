@@ -101,7 +101,8 @@ fastify.get('/pong/scores', async (req, reply) => {
   console.log(`🏓 Obteniendo puntuaciones de Pong para usuario: ${userId}`);
   
   return new Promise((resolve, reject) => {
-    db.all('SELECT * FROM pong_scores WHERE user_id = ? ORDER BY fecha DESC LIMIT 10', [userId], (err, rows) => {
+    // Updated query to use p1_id instead of user_id
+    db.all('SELECT * FROM pong_scores WHERE p1_id = ? ORDER BY fecha DESC LIMIT 10', [userId], (err, rows) => {
       if (err) {
         console.error("❌ Error al obtener puntuaciones:", err);
         reject(err);
@@ -115,83 +116,119 @@ fastify.get('/pong/scores', async (req, reply) => {
 
 // Guardar puntuación de juego 
 fastify.post('/pong/scores', async (req, reply) => {
-  // Verificar si hay usuario autenticado
-  if (!req.session || !req.session.user) {
-    return reply.code(401).send({ error: 'No autenticado' });
-  }
-  
-  const { p1score, p2score, opponent, winner, game_duration } = req.body;
-  
-  // Validar que haya puntuación
-  if (typeof p1score !== 'number' || typeof p2score !== 'number') {
-    return reply.code(400).send({ error: 'La puntuación debe ser un número' });
-  }
-  
-  // Obtener ID del usuario de la sesión
-  const userId = req.session.user.id || req.session.user.sub || req.session.user.email;
-  
-  console.log(`🏓 Guardando puntuación para usuario ${userId}: ${p1score} puntos`);
-  
-  return new Promise((resolve, reject) => {
-    db.run(
-      'INSERT INTO pong_scores (user_id, p1score, p2score, opponent, winner, game_duration) VALUES (?, ?, ?, ?, ?, ?)', 
-      [userId, p1score, p2score, opponent || "CPU", winner || false, game_duration || 0],
-      function (err) {
+    try {
+        // Verificar si hay usuario autenticado
+        if (!req.session || !req.session.user) {
+            return reply.code(401).send({ error: 'No autenticado' });
+        }
+        
+        const { p1score, p2score, p2_id = 0, winner, game_duration } = req.body;
+        
+        // Validar que haya puntuación
+        if (typeof p1score !== 'number' || typeof p2score !== 'number') {
+            return reply.code(400).send({ error: 'La puntuación debe ser un número' });
+        }
+        
+        // Obtener ID del usuario de la sesión
+        const userId = req.session.user.id || req.session.user.sub || req.session.user.email;
+        
+        if (!userId) {
+            console.error("❌ No se pudo determinar el ID del usuario");
+            return reply.code(400).send({ error: 'No se pudo determinar el ID de usuario' });
+        }
+        
+        console.log(`🏓 Guardando puntuación para usuario ${userId}:`, {
+            p1score, 
+            p2score,
+            p2_id,
+            winner,
+            game_duration
+        });
+        
+        // Use promise-based structure
+        const nuevaPuntuacion = await new Promise((resolve, reject) => {
+            db.run(
+                'INSERT INTO pong_scores (p1_id, p1score, p2score, p2_id, winner, game_duration, fecha) VALUES (?, ?, ?, ?, ?, ?, ?)', 
+                [
+                    userId, 
+                    p1score, 
+                    p2score, 
+                    p2_id || 0, // Default value for p2_id (CPU opponent)
+                    winner ? 1 : 0, // SQLite uses 1/0 for boolean
+                    game_duration || 0,
+                    new Date().toISOString() // Add current date
+                ],
+                function (err) {
+                    if (err) {
+                        console.error("❌ Error al guardar puntuación:", err);
+                        reject(err);
+                    } else {
+                        const result = { 
+                            id: this.lastID, 
+                            p1_id: userId,
+                            p1score: p1score,
+                            p2score: p2score,
+                            p2_id: p2_id || 0,
+                            winner: winner ? 1 : 0,
+                            game_duration: game_duration || 0,
+                            fecha: new Date().toISOString()
+                        };
+                        console.log("✅ Puntuación guardada:", result);
+                        resolve(result);
+                    }
+                }
+            );
+        });
+        
+        return nuevaPuntuacion;
+        
+    } catch (error) {
+        console.error("❌ Error grave al guardar puntuación:", error);
+        return reply.code(500).send({ error: 'Error al guardar puntuación', details: error.message });
+    }
+});
+
+// Replace the existing GET /pong/leaderboard endpoint with this code
+fastify.get('/pong/leaderboard', async (req, reply) => {
+  try {
+    const rows = await new Promise((resolve, reject) => {
+      // Updated query to use user_picture instead of picture
+      db.all(`
+        SELECT ps.*, 
+             u1.username as user_name, 
+             CASE WHEN ps.p2_id = 0 THEN 'CPU' ELSE COALESCE(u2.username, 'Unknown') END as opponent_name,
+             COALESCE(u1.user_picture, 'https://ui-avatars.com/api/?name=' || u1.username || '&background=random&color=fff') as user_picture,
+             CASE 
+                WHEN ps.p2_id = 0 THEN 'https://ui-avatars.com/api/?name=CPU&background=random&color=fff'
+                ELSE COALESCE(u2.user_picture, 'https://ui-avatars.com/api/?name=' || COALESCE(u2.username, 'Unknown') || '&background=random&color=fff')
+             END as opponent_picture
+        FROM pong_scores ps
+        JOIN (
+            SELECT p1_id, MAX(p1score) as max_score
+            FROM pong_scores
+            GROUP BY p1_id
+        ) top ON ps.p1_id = top.p1_id AND ps.p1score = top.max_score
+        LEFT JOIN users u1 ON ps.p1_id = u1.user_id
+        LEFT JOIN users u2 ON ps.p2_id = u2.user_id AND ps.p2_id != 0
+        ORDER BY ps.p1score DESC
+        LIMIT 10
+      `, [], (err, rows) => {
         if (err) {
-          console.error("❌ Error al guardar puntuación:", err);
+          console.error("❌ Error al obtener mejores puntuaciones:", err);
           reject(err);
         } else {
-            const nuevaPuntuacion = { 
-              id: this.lastID, 
-              user_id: userId,
-              p1score: p1score,
-			  p2score: p2score,
-              opponent: opponent || "CPU",
-              winner: winner || false,
-              game_duration: game_duration || 0,
-              fecha: new Date().toISOString()
-            };
-            
-            console.log("✅ Puntuación guardada:", nuevaPuntuacion);
-            resolve(nuevaPuntuacion);
-          }
+          console.log(`✅ ${rows.length} mejores puntuaciones obtenidas`);
+          resolve(rows);
         }
-      );
-    });
-  });
-
-  // Obtener mejores puntuaciones
-  fastify.get('/pong/leaderboard', async (req, reply) => {
-    try {
-      const rows = await new Promise((resolve, reject) => {
-        db.all(`
-          SELECT ps.*, u.username as user_name, 'https://ui-avatars.com/api/?name=' || u.username || '&background=random&color=fff' as user_picture
-          FROM pong_scores ps
-          JOIN (
-            SELECT user_id, MAX(p1score) as max_score
-            FROM pong_scores
-            GROUP BY user_id
-          ) top ON ps.user_id = top.user_id AND ps.p1score = top.max_score
-          LEFT JOIN users u ON ps.user_id = u.email
-          ORDER BY ps.p1score DESC
-          LIMIT 10
-        `, [], (err, rows) => {
-          if (err) {
-            console.error("❌ Error al obtener mejores puntuaciones:", err);
-            reject(err);
-          } else {
-            console.log(`✅ ${rows.length} mejores puntuaciones obtenidas`);
-            resolve(rows);
-          }
-        });
       });
-      
-      return rows;
-    } catch (error) {
-      console.error("Error al obtener leaderboard:", error);
-      return reply.code(500).send({ error: "Error al obtener leaderboard" });
-    }
-  });
+    });
+    
+    return rows;
+  } catch (error) {
+    console.error("Error al obtener leaderboard:", error);
+    return reply.code(500).send({ error: "Error al obtener leaderboard" });
+  }
+});
 
 // Endpoint para verificar si el juego de Pong está disponible
 fastify.get('/pong/status', async (req, reply) => {
@@ -217,10 +254,11 @@ fastify.get('/pong/status', async (req, reply) => {
   };
 });
 
-// Función para obtener la última puntuación de un usuario
+// Replace the existing getLastScore function with this code
 async function getLastScore(userId) {
   return new Promise((resolve, reject) => {
-    db.get('SELECT * FROM pong_scores WHERE user_id = ? ORDER BY fecha DESC LIMIT 1', [userId], (err, row) => {
+    // Updated query to use p1_id instead of user_id
+    db.get('SELECT * FROM pong_scores WHERE p1_id = ? ORDER BY fecha DESC LIMIT 1', [userId], (err, row) => {
       if (err) {
         console.error('Error al obtener última puntuación:', err);
         resolve(null);
@@ -263,56 +301,124 @@ fastify.post('/auth/google', async (req, reply) => {
     }
 });
 
+// Reemplaza el endpoint /auth/callback con esta versión mejorada
 fastify.get('/auth/callback', async (req, reply) => {
   const { code } = req.query;
-
+  
   if (!code) {
     console.error("❌ No se recibió código en la redirección.");
-    return reply.redirect('http://localhost:8080/?error=no_code');
+    return reply.redirect(`${FRONTEND_URL}/?error=no_code`);
   }
-
+  
+  console.log("🔍 Verificando variables de entorno:");
+  console.log(`- CLIENT_ID: ${GOOGLE_CLIENT_ID ? "✅ Configurado" : "❌ No configurado"}`);
+  console.log(`- CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET ? "✅ Configurado" : "❌ No configurado"}`);
+  console.log(`- CALLBACK_URL: ${GOOGLE_CALLBACK_URL || "❌ No configurado"}`);
+  
   try {
-    console.log("🔁 Código recibido:", code);
-
+    console.log("🔁 Código recibido, intentando intercambio de token...");
+    
+    // Construir los parámetros de forma explícita para mejor depuración
+    const tokenParams = new URLSearchParams({
+      code,
+      client_id: GOOGLE_CLIENT_ID,
+      client_secret: GOOGLE_CLIENT_SECRET,
+      redirect_uri: GOOGLE_CALLBACK_URL,
+      grant_type: 'authorization_code',
+    });
+    
+    console.log("📤 Parámetros de solicitud de token:");
+    console.log(`- code: ${code.substring(0, 10)}...`); // Solo mostrar parte del código por seguridad
+    console.log(`- redirect_uri: ${GOOGLE_CALLBACK_URL}`);
+    
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        code,
-        client_id: GOOGLE_CLIENT_ID,
-        client_secret: GOOGLE_CLIENT_SECRET,
-        redirect_uri: GOOGLE_CALLBACK_URL,
-        grant_type: 'authorization_code',
-      }),
+      body: tokenParams
     });
-
+    
     const tokenData = await tokenResponse.json();
-    console.log("🔑 Respuesta del token:", tokenData);
-
+    
+    if (!tokenResponse.ok) {
+      console.error("❌ Error en respuesta de token:", tokenData);
+      console.error("Código de estado:", tokenResponse.status);
+      return reply.redirect(`${FRONTEND_URL}/?error=token_exchange_failed&details=${encodeURIComponent(tokenData.error || "unknown")}`);
+    }
+    
     if (!tokenData.access_token) {
       console.error("❌ No se recibió token de acceso:", tokenData);
-      return reply.status(400).send({ error: 'Token de acceso inválido' });
+      return reply.redirect(`${FRONTEND_URL}/?error=no_access_token`);
     }
-
+    
+    console.log("✅ Token recibido, obteniendo información del usuario...");
+    
     const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-      headers: { Authorization: `Bearer ${tokenData.access_token}` },
+      headers: { Authorization: `Bearer ${tokenData.access_token}` }
     });
-
+    
+    if (!userInfoResponse.ok) {
+      console.error("❌ Error al obtener información del usuario:", await userInfoResponse.text());
+      return reply.redirect(`${FRONTEND_URL}/?error=userinfo_failed`);
+    }
+    
     const userInfo = await userInfoResponse.json();
-    console.log("👤 Usuario autenticado:", userInfo);
-
-    // Guardar la información del usuario en la sesión
-    req.session.user = userInfo;
+    console.log("👤 Usuario autenticado:", userInfo.email);
     
-    // Verificar si el usuario existe en la base de datos
-    await checkUserInDatabase(userInfo.name, userInfo.email);
+    // Guardar en sesión con estructura consistente
+    req.session.user = {
+      id: userInfo.id || userInfo.sub,
+      name: userInfo.name,
+      email: userInfo.email,
+      picture: userInfo.picture
+    };
     
-    // IMPORTANTE: Redirigir directamente a /dashboard sin extensión
-    return reply.redirect('http://localhost:8080/dashboard');
+    // Verificar existencia en DB con manejo de errores explícito
+    try {
+      await checkUserInDatabase(userInfo.name, userInfo.email);
+    } catch (dbError) {
+      console.error("⚠️ Error en operación de base de datos:", dbError);
+      // Continuar a pesar del error de DB (no crítico para la autenticación)
+    }
+    
+    // Asegurar que la sesión se guarde antes de redirigir
+    await new Promise((resolve, reject) => {
+      req.session.save(err => {
+        if (err) {
+          console.error("❌ Error al guardar la sesión:", err);
+          reject(err);
+        } else {
+          resolve(true);
+        }
+      });
+    });
+    
+    return reply.redirect(`${FRONTEND_URL}/dashboard`);
   } catch (err) {
     console.error("❌ Error en /auth/callback:", err);
-    return reply.redirect('http://localhost:8080/?error=auth_failed');
+    return reply.redirect(`${FRONTEND_URL}/?error=auth_failed&message=${encodeURIComponent(err.message)}`);
   }
+});
+
+// Añade esta ruta de diagnóstico para verificar la configuración
+fastify.get('/auth/diagnose', async (req, reply) => {
+  return {
+    environment: {
+      GOOGLE_CLIENT_ID_SET: !!GOOGLE_CLIENT_ID,
+      GOOGLE_CLIENT_SECRET_SET: !!GOOGLE_CLIENT_SECRET,
+      GOOGLE_CALLBACK_URL: GOOGLE_CALLBACK_URL,
+      FRONTEND_URL: FRONTEND_URL,
+      BACKEND_URL: BACKEND_URL,
+      NODE_ENV: process.env.NODE_ENV
+    },
+    session: {
+      configured: !!SESSION_SECRET,
+      cookieSecure: false // Valor actual de tu configuración
+    },
+    server: {
+      port: PORT,
+      host: HOST
+    }
+  };
 });
 
 // Mejora el endpoint user/me para asegurar datos completos
@@ -449,45 +555,47 @@ fastify.listen({ port: PORT, host: HOST });
 
 // Check if user is authenticated before database operations
 fastify.post('/users/check', async (request, reply) => {
-	// Verify if user is authenticated
-	if (!request.session || !request.session.user) {
-		return reply.code(401).send({ error: 'Not authenticated' });
-	}
+  // Verify if user is authenticated
+  if (!request.session || !request.session.user) {
+    return reply.code(401).send({ error: 'Not authenticated' });
+  }
 
-	const user = request.session.user;
-	
-	db.get("SELECT id FROM users WHERE username = ? OR email = ?", [user.name, user.email], function(err, row) {
-		if (err) {
-			console.error("Error al verificar usuario:", err.message);
-			return reply.code(500).send({ error: 'Database error' });
-		} else if (!row) {
-			// User doesn't exist, insert new user
-			db.run("INSERT INTO users (username, email) VALUES (?, ?)", [user.name, user.email], function(err) {
-				if (err) {
-					console.error("Error al insertar usuario:", err.message);
-					return reply.code(500).send({ error: 'Failed to create user' });
-				} else {
-					console.log("Usuario insertado con éxito, ID:", this.lastID);
-					return reply.send({ success: true, id: this.lastID });
-				}
-			});
-		} else {
-			console.log(`Usuario con nombre '${user.name}' o email '${user.email}' ya existe en la base de datos.`);
-			return reply.send({ success: true, id: row.id, existing: true });
-		}
-	});
+  const user = request.session.user;
+  
+  // Updated query to use user_id and user_email instead of id and email
+  db.get("SELECT user_id FROM users WHERE username = ? OR user_email = ?", [user.name, user.email], function(err, row) {
+    if (err) {
+      console.error("Error al verificar usuario:", err.message);
+      return reply.code(500).send({ error: 'Database error' });
+    } else if (!row) {
+      // User doesn't exist, insert new user with correct field names
+      db.run("INSERT INTO users (username, user_email) VALUES (?, ?)", [user.name, user.email], function(err) {
+        if (err) {
+          console.error("Error al insertar usuario:", err.message);
+          return reply.code(500).send({ error: 'Failed to create user' });
+        } else {
+          console.log("Usuario insertado con éxito, ID:", this.lastID);
+          return reply.send({ success: true, id: this.lastID });
+        }
+      });
+    } else {
+      console.log(`Usuario con nombre '${user.name}' o email '${user.email}' ya existe en la base de datos.`);
+      return reply.send({ success: true, id: row.user_id, existing: true });
+    }
+  });
 });
 
 // Función auxiliar para verificar si un usuario existe y crearlo si no existe
 async function checkUserInDatabase(username, email) {
   return new Promise((resolve, reject) => {
-    db.get("SELECT id FROM users WHERE username = ? OR email = ?", [username, email], function(err, row) {
+    // Updated query to use user_id instead of id
+    db.get("SELECT user_id FROM users WHERE username = ? OR user_email = ?", [username, email], function(err, row) {
       if (err) {
         console.error("Error al verificar usuario:", err.message);
         reject(err);
       } else if (!row) {
-        // Usuario no existe, insertarlo
-        db.run("INSERT INTO users (username, email) VALUES (?, ?)", [username, email], function(err) {
+        // Usuario no existe, insertarlo with correct field names
+        db.run("INSERT INTO users (username, user_email) VALUES (?, ?)", [username, email], function(err) {
           if (err) {
             console.error("Error al insertar usuario:", err.message);
             reject(err);
@@ -497,7 +605,7 @@ async function checkUserInDatabase(username, email) {
           }
         });
       } else {
-        console.log(`✓ Usuario '${username}' o '${email}' ya existe en la BD con ID ${row.id}`);
+        console.log(`✓ Usuario '${username}' o '${email}' ya existe en la BD con ID ${row.user_id}`);
         resolve(true); // Retorna true porque el usuario ya existía
       }
     });

@@ -14,6 +14,7 @@ export class Playground {
 	static CreateScene(engine, canvas) {
 		var scene = new BABYLON.Scene(engine);
 		// Cámara orbital cenital
+		document.getElementById('changeCameraButton').style.display = 'none';
 		var camera = new BABYLON.ArcRotateCamera(
 			"camera1",
 			-Math.PI / 2,
