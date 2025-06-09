@@ -1,225 +1,285 @@
 <!DOCTYPE html>
 <html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Dashboard - Transcender</title>
-    <script>
-      // MODIFICAR para que solo redirija si realmente es .html
-      if (window.location.pathname.endsWith('.html')) {
-        window.location.replace(window.location.pathname.replace('.html', ''));
-      }
-    </script>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" href="/favicon.ico" />
-    <link href="/dist/styles.css" rel="stylesheet" />
-    <!-- Cargar primero las variables de entorno -->
-    <script src="/env-config.js"></script>
-    
-    <!-- Script de verificación y diagnóstico -->
-    <script>
-      console.log('🔍 Dashboard HTML cargado:', new Date().toISOString());
-      
-      // Variable global para comprobar si dashboard.js se carga
-      window.dashboardJsLoaded = false;
-      window.dashboardCheckCount = 0;
-      
-      // Timeout para verificar la carga del script principal
-      const dashboardCheckInterval = setInterval(() => {
-        window.dashboardCheckCount++;
-        
-        // Detener después de 5 intentos o si se ha marcado como cargado
-        if (window.dashboardJsLoaded || window.stopDashboardCheck || window.dashboardCheckCount > 5) {
-          clearInterval(dashboardCheckInterval);
-          if (!window.dashboardJsLoaded && !window.stopDashboardCheck) {
-            console.error('⚠️ dashboard.js no se cargó correctamente después de varios intentos');
-            document.body.insertAdjacentHTML('afterbegin', 
-              `<div class="bg-yellow-100 text-yellow-800 p-3 fixed top-0 left-0 right-0 z-50">
+
+<head>
+	<meta charset="UTF-8" />
+	<title>Dashboard - Transcender</title>
+	<script>
+		// MODIFICAR para que solo redirija si realmente es .html
+		if (window.location.pathname.endsWith('.html')) {
+			window.location.replace(window.location.pathname.replace('.html', ''));
+		}
+	</script>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<link rel="icon" href="/favicon.ico" />
+	<link href="/dist/styles.css" rel="stylesheet" />
+	<!-- Cargar primero las variables de entorno -->
+	<script src="/env-config.js"></script>
+	<!-- Agregar antes de tus scripts de dashboard -->
+	<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+	<!-- Script de verificación y diagnóstico -->
+	<script>
+		console.log('🔍 Dashboard HTML cargado:', new Date().toISOString());
+
+		// Variable global para comprobar si dashboard.js se carga
+		window.dashboardJsLoaded = false;
+		window.dashboardCheckCount = 0;
+
+		// Timeout para verificar la carga del script principal
+		const dashboardCheckInterval = setInterval(() => {
+			window.dashboardCheckCount++;
+
+			// Detener después de 5 intentos o si se ha marcado como cargado
+			if (window.dashboardJsLoaded || window.stopDashboardCheck || window.dashboardCheckCount > 5) {
+				clearInterval(dashboardCheckInterval);
+				if (!window.dashboardJsLoaded && !window.stopDashboardCheck) {
+					console.error('⚠️ dashboard.js no se cargó correctamente después de varios intentos');
+					document.body.insertAdjacentHTML('afterbegin',
+						`<div class="bg-yellow-100 text-yellow-800 p-3 fixed top-0 left-0 right-0 z-50">
                 ⚠️ Advertencia: dashboard.js no se cargó correctamente.
                 <button class="ml-2 underline" id="reloadButton">Recargar</button>
               </div>`
-            );
-            // Usar un eventListener en lugar de onclick inline
-            document.getElementById('reloadButton')?.addEventListener('click', () => {
-              location.reload();
-            });
-          }
-        }
-      }, 1000);
-    </script>
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-    <meta http-equiv="Pragma" content="no-cache" />
-    <meta http-equiv="Expires" content="0" />
-  </head>
-  <body class="bg-gray-100 font-sans min-h-screen">
-    <!-- Barra de navegación superior -->
-    <nav class="bg-blue-600 text-white shadow-lg">
-      <div class="container mx-auto px-4">
-        <div class="flex justify-between items-center py-3">
-          <div class="flex items-center">
-            <h1 class="text-xl font-bold">Transcender Pong</h1>
-          </div>
-          <div id="userProfileNav"></div>
-        </div>
-      </div>
-    </nav>
-    
-    <div class="container mx-auto px-4 py-8">
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <!-- Tarjeta de perfil -->
-        <div class="bg-white rounded-lg shadow-md p-6">
-          <div class="flex flex-col items-center">
-            <div id="userProfileImage" class="mb-4"></div>
-            <h2 id="user_name" class="text-xl font-bold mb-1"></h2>
-            <p id="userEmail" class="text-gray-600 text-sm mb-4"></p>
-            <button id="logoutButton" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded">
-              Cerrar sesión
-            </button>
-          </div>
-        </div>
-        
-        <!-- Tarjeta de bienvenida y juego -->
-        <div class="bg-white rounded-lg shadow-md p-6">
-          <div id="welcomeMessage" class="text-center mb-6"></div>
-          <div class="text-center">
-            <a href="/pong.html" id="playPongButton" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg text-lg font-bold inline-block transition-transform hover:scale-105">
-              🏓 Jugar Pong
-            </a>
-          </div>
-        </div>
-        
-        <!-- Tarjeta de puntuaciones -->
-        <div class="bg-white rounded-lg shadow-md p-6">
-          <h2 class="text-xl font-bold mb-4">Mis puntuaciones de Pong</h2>
-          <div id="pongScores" class="space-y-3">
-            <div class="text-center py-8">
-              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
-              <p class="text-gray-500 mt-2">Cargando puntuaciones...</p>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Tabla de mejores puntuaciones globales -->
-      <div class="mt-8">
-        <div class="bg-white rounded-lg shadow-md p-6">
-          <h2 class="text-xl font-bold mb-4">Mejores puntuaciones globales</h2>
-          <div id="globalHighScores" class="overflow-x-auto">
-            <table class="min-w-full bg-white">
-              <thead>
-                <tr>
-                  <th class="py-2 px-4 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Posición</th>
-                  <th class="py-2 px-4 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Jugador 1</th>
-                  <th class="py-2 px-4 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Jugador 2</th>
-                  <th class="py-2 px-4 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Puntuación</th>
-                  <th class="py-2 px-4 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Fecha</th>
-                </tr>
-              </thead>
-              <tbody id="highScoresList">
-                <tr>
-                  <td colspan="4" class="py-4 text-center text-gray-500">Cargando mejores puntuaciones...</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
+					);
+					// Usar un eventListener en lugar de onclick inline
+					document.getElementById('reloadButton')?.addEventListener('click', () => {
+						location.reload();
+					});
+				}
+			}
+		}, 1000);
+	</script>
+	<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+	<meta http-equiv="Pragma" content="no-cache" />
+	<meta http-equiv="Expires" content="0" />
+</head>
 
-    <!-- Scripts incrustados para depuración -->
-    <script>
-      console.log('⏳ Antes de cargar dashboard.js:', new Date().toISOString());
-      
-      // Función de carga de emergencia
-      function cargarDatosUsuario() {
-        console.log("🔄 Iniciando carga de emergencia");
-        
-        fetch('http://localhost:3000/user/me', {
-          credentials: 'include'
-        })
-        .then(response => {
-          console.log("📥 Respuesta recibida:", response.status);
-          return response.json();
-        })
-        .then(data => {
-          console.log("📊 Datos:", data);
-          
-          if (data.authenticated && data.user) {
-            // Actualizar UI
-            document.getElementById('user_name').textContent = data.user.name || 'Usuario';
-            document.getElementById('userEmail').textContent = data.user.email || '';
-            
-            // Actualizar imagen
-            document.getElementById('userProfileImage').innerHTML = `
+<body class="bg-gray-100 font-sans min-h-screen">
+	<!-- Barra de navegación superior -->
+	<nav class="bg-blue-600 text-white shadow-lg">
+		<div class="container mx-auto px-4">
+			<div class="flex justify-between items-center py-3">
+				<div class="flex items-center">
+					<h1 class="text-xl font-bold">Transcender Pong</h1>
+				</div>
+				<div id="userProfileNav"></div>
+			</div>
+		</div>
+	</nav>
+
+	<div class="container mx-auto px-4 py-8">
+		<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+			<!-- Tarjeta de perfil -->
+			<div class="bg-white rounded-lg shadow-md p-6">
+				<div class="flex flex-col items-center">
+					<div id="userProfileImage" class="mb-4"></div>
+					<h2 id="user_name" class="text-xl font-bold mb-1"></h2>
+					<p id="userEmail" class="text-gray-600 text-sm mb-4"></p>
+					<button id="logoutButton" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded">
+						Cerrar sesión
+					</button>
+				</div>
+			</div>
+
+			<!-- Tarjeta de bienvenida y juego -->
+			<div class="bg-white rounded-lg shadow-md p-6">
+				<div id="welcomeMessage" class="text-center mb-6"></div>
+				<div class="text-center">
+					<a href="/pong.html" id="playPongButton"
+						class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg text-lg font-bold inline-block transition-transform hover:scale-105">
+						🏓 Jugar Pong
+					</a>
+				</div>
+			</div>
+
+			<!-- Tarjeta de puntuaciones -->
+			<div class="bg-white rounded-lg shadow-md p-6">
+				<h2 class="text-xl font-bold mb-4">Mis puntuaciones de Pong</h2>
+				<div id="pongScores" class="space-y-3">
+					<div class="text-center py-8">
+						<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+						<p class="text-gray-500 mt-2">Cargando puntuaciones...</p>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Gráficos de estadísticas de partidas -->
+		<div class="mt-8" id="statsContainer">
+			<div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+				<h2 class="text-2xl font-bold text-gray-800 mb-6">📊 Estadísticas de Partidas</h2>
+
+				<!-- Gráfica de puntuaciones -->
+				<div class="mb-8">
+					<div class="bg-gray-50 rounded-lg p-4" style="height: 400px;">
+						<canvas id="gameStatsChart" class="w-full h-full"></canvas>
+					</div>
+				</div>
+
+				<!-- Gráfica de ratio de victorias y estadísticas -->
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+					<div class="bg-gray-50 rounded-lg p-4" style="height: 300px;">
+						<canvas id="winRateChart" class="w-full h-full"></canvas>
+					</div>
+
+					<!-- Estadísticas adicionales -->
+					<div class="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-lg p-6">
+						<h3 class="text-lg font-semibold text-gray-800 mb-4">📈 Resumen</h3>
+						<div class="space-y-3">
+							<div class="flex justify-between">
+								<span class="text-gray-600">Partidas jugadas:</span>
+								<span class="font-bold text-blue-600" id="totalGames">-</span>
+							</div>
+							<div class="flex justify-between">
+								<span class="text-gray-600">Victorias:</span>
+								<span class="font-bold text-green-600" id="totalWins">-</span>
+							</div>
+							<div class="flex justify-between">
+								<span class="text-gray-600">Mejor puntuación:</span>
+								<span class="font-bold text-purple-600" id="bestScore">-</span>
+							</div>
+							<div class="flex justify-between">
+								<span class="text-gray-600">Promedio puntos:</span>
+								<span class="font-bold text-orange-600" id="avgScore">-</span>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Tabla de mejores puntuaciones globales -->
+		<div class="mt-8">
+			<div class="bg-white rounded-lg shadow-md p-6">
+				<h2 class="text-xl font-bold mb-4">Mejores puntuaciones globales</h2>
+				<div id="globalHighScores" class="overflow-x-auto">
+					<table class="min-w-full bg-white">
+						<thead>
+							<tr>
+								<th
+									class="py-2 px-4 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+									Posición</th>
+								<th
+									class="py-2 px-4 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+									Jugador 1</th>
+								<th
+									class="py-2 px-4 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+									Jugador 2</th>
+								<th
+									class="py-2 px-4 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+									Puntuación</th>
+								<th
+									class="py-2 px-4 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+									Fecha</th>
+							</tr>
+						</thead>
+						<tbody id="highScoresList">
+							<tr>
+								<td colspan="4" class="py-4 text-center text-gray-500">Cargando mejores puntuaciones...
+								</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Scripts incrustados para depuración -->
+	<script>
+		console.log('⏳ Antes de cargar dashboard.js:', new Date().toISOString());
+
+		// Función de carga de emergencia
+		function cargarDatosUsuario() {
+			console.log("🔄 Iniciando carga de emergencia");
+
+			fetch('http://localhost:3000/user/me', {
+				credentials: 'include'
+			})
+				.then(response => {
+					console.log("📥 Respuesta recibida:", response.status);
+					return response.json();
+				})
+				.then(data => {
+					console.log("📊 Datos:", data);
+
+					if (data.authenticated && data.user) {
+						// Actualizar UI
+						document.getElementById('user_name').textContent = data.user.name || 'Usuario';
+						document.getElementById('userEmail').textContent = data.user.email || '';
+
+						// Actualizar imagen
+						document.getElementById('userProfileImage').innerHTML = `
               <img src="${data.user.picture}" alt="Perfil" 
                 class="h-32 w-32 object-cover rounded-full border-4 border-white"
                 onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(data.user.name)}&size=128&background=random';">
             `;
-            
-            // Configurar botón de logout
-            document.getElementById('logoutButton').addEventListener('click', function() {
-              console.log("👆 Click en botón de logout");
-              this.textContent = 'Cerrando sesión...';
-              this.disabled = true;
-              
-              fetch('http://localhost:3000/auth/logout', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                credentials: 'include',
-                body: JSON.stringify({action: 'logout'})
-              })
-              .then(() => {
-                window.location.href = "/?logout=true";
-              })
-              .catch(error => {
-                console.error("Error al cerrar sesión:", error);
-                this.textContent = 'Cerrar sesión';
-                this.disabled = false;
-              });
-            });
-          } else {
-            console.error("⚠️ No autenticado");
-            window.location.href = "/";
-          }
-        })
-        .catch(error => {
-          console.error("❌ Error cargando datos:", error);
-        });
-      }
-      
-      // Ejecutar después de 500ms para dar tiempo a dashboard.js
-      setTimeout(function() {
-        if (!window.dashboardJsLoaded) {
-          console.log("⚠️ dashboard.js no se cargó, usando plan B");
-          cargarDatosUsuario();
-        }
-      }, 1500); // FIXED: Increased timeout from 500ms to 1500ms
-    </script>
-    
-    <!-- Script para marcar como cargado -->
-    <script>
-      window.onerror = function(message, source, lineno, colno, error) {
-        console.error('❌ Error de JavaScript:', message, source, lineno);
-        document.body.insertAdjacentHTML('afterbegin', 
-          `<div class="bg-red-100 text-red-800 p-3 fixed top-0 left-0 right-0 z-50">
+
+						// Configurar botón de logout
+						document.getElementById('logoutButton').addEventListener('click', function () {
+							console.log("👆 Click en botón de logout");
+							this.textContent = 'Cerrando sesión...';
+							this.disabled = true;
+
+							fetch('http://localhost:3000/auth/logout', {
+								method: 'POST',
+								headers: { 'Content-Type': 'application/json' },
+								credentials: 'include',
+								body: JSON.stringify({ action: 'logout' })
+							})
+								.then(() => {
+									window.location.href = "/?logout=true";
+								})
+								.catch(error => {
+									console.error("Error al cerrar sesión:", error);
+									this.textContent = 'Cerrar sesión';
+									this.disabled = false;
+								});
+						});
+					} else {
+						console.error("⚠️ No autenticado");
+						window.location.href = "/";
+					}
+				})
+				.catch(error => {
+					console.error("❌ Error cargando datos:", error);
+				});
+		}
+
+		// Ejecutar después de 500ms para dar tiempo a dashboard.js
+		setTimeout(function () {
+			if (!window.dashboardJsLoaded) {
+				console.log("⚠️ dashboard.js no se cargó, usando plan B");
+				cargarDatosUsuario();
+			}
+		}, 1500); // FIXED: Increased timeout from 500ms to 1500ms
+	</script>
+
+	<!-- Script para marcar como cargado -->
+	<script>
+		window.onerror = function (message, source, lineno, colno, error) {
+			console.error('❌ Error de JavaScript:', message, source, lineno);
+			document.body.insertAdjacentHTML('afterbegin',
+				`<div class="bg-red-100 text-red-800 p-3 fixed top-0 left-0 right-0 z-50">
             Error en JavaScript: ${message} (línea ${lineno})
             <button onclick="location.reload()" class="ml-2 underline">Recargar</button>
           </div>`
-        );
-        return false;
-      };
-    </script>
-    
-    <!-- Cargar el script compilado de dashboard -->
-    <script type="module" src="/dist/dashboard.js?v=<?php echo time(); ?>"></script>
-    
-    <!-- Script para marcar como cargado -->
-    <script>
-      // Este script se ejecutará después de dashboard.js
-      window.dashboardJsLoaded = true;
-      console.log('✅ Scripts de página cargados:', new Date().toISOString());
-      
-      // AÑADIR: Desactivar la verificación de recarga automática
-      window.stopDashboardCheck = true;
-    </script>
-  </body>
+			);
+			return false;
+		};
+	</script>
+
+	<!-- Cargar el script compilado de dashboard -->
+	<script type="module" src="/dist/dashboard.js?v=<?php echo time(); ?>"></script>
+
+	<!-- Script para marcar como cargado -->
+	<script>
+		// Este script se ejecutará después de dashboard.js
+		window.dashboardJsLoaded = true;
+		console.log('✅ Scripts de página cargados:', new Date().toISOString());
+
+		// AÑADIR: Desactivar la verificación de recarga automática
+		window.stopDashboardCheck = true;
+	</script>
+</body>
+
 </html>
