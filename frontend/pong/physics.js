@@ -316,10 +316,10 @@ export function createPhysics(scene, engine, camera, tableTop, materiales, glow)
 
 		// Game over
 		if (bolaPos.x > 1.05) {
-			if (!gameOver("¡Punto para el jugador 2!", bola, pala2, pala1, tableTop, scene))
+			if (!gameOver("¡Punto para el jugador 1!", bola, pala2, pala1, tableTop, scene))
 				return;
 		} else if (bolaPos.x < -1.05) {
-			if (!gameOver("¡Punto para el jugador 1!", bola, pala2, pala1, tableTop, scene))
+			if (!gameOver("¡Punto para el jugador 2!", bola, pala2, pala1, tableTop, scene))
 				return;
 		}
 
