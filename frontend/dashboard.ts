@@ -3,26 +3,6 @@ console.log("🚀 dashboard.ts cargando...");
 import './env-types.js'; // Import the type definitions
 export { };
 
-// Extender el objeto global con Chart.js
-declare global {
-    interface Window {
-        userSessionId?: string;
-        env: {
-            BACKEND_URL?: string;
-            FRONTEND_URL?: string;
-            GOOGLE_CLIENT_ID?: string;
-            NODE_ENV?: string;
-        };
-        Chart?: any; // Para soporte a versiones antiguas
-    }
-    
-    // Estas definiciones permiten usar Chart.getChart estático
-    namespace Chart {
-        function getChart(ctx: CanvasRenderingContext2D): Chart | undefined;
-    }
-}
-
-// Extend window interface to include custom properties
 declare global {
 	interface Window {
 		userSessionId?: string;
@@ -32,9 +12,14 @@ declare global {
 			GOOGLE_CLIENT_ID?: string;
 			NODE_ENV?: string;
 		};
+		Chart?: any; // Para soporte a versiones antiguas
+	}
+
+	// Estas definiciones permiten usar Chart.getChart estático
+	namespace Chart {
+		function getChart(ctx: CanvasRenderingContext2D): Chart | undefined;
 	}
 }
-
 // Variables globales
 interface User {
 	name: string;
@@ -59,7 +44,6 @@ interface PongScore {
 }
 
 
-
 // Añadir esta variable global
 let scoresRetryCount = 0;
 const MAX_SCORES_RETRIES = 3;
@@ -68,6 +52,238 @@ const MAX_SCORES_RETRIES = 3;
 const BACKEND_URL = window.env?.BACKEND_URL || 'http://localhost:3000';
 const FRONTEND_URL = window.env?.FRONTEND_URL || 'http://localhost:8080';
 
+
+// profile-manager.ts
+
+// profile-manager.ts
+export class ProfileManager {
+	private profileImage: string = 'assets/default-avatar.jpg';
+	private isEditing: boolean = false;
+	private isLoading: boolean = false;
+
+	constructor(user: User) {
+		this.initializeElements();
+		this.loadCurrentImage(user);
+	}
+
+	private initializeElements(): void {
+		const editButton = document.getElementById('edit-profile-btn') as HTMLButtonElement;
+		const saveButton = document.getElementById('save-image-btn') as HTMLButtonElement;
+		const cancelButton = document.getElementById('cancel-btn') as HTMLButtonElement;
+		const imageInput = document.getElementById('image-url-input') as HTMLInputElement;
+		const aliasInput = document.getElementById('alias-input') as HTMLInputElement;
+		const modal = document.getElementById('edit-modal') as HTMLDivElement;
+
+		editButton?.addEventListener('click', () => this.openEditModal());
+		saveButton?.addEventListener('click', () => this.handleImageUpdate());
+		cancelButton?.addEventListener('click', () => this.closeEditModal());
+		modal?.addEventListener('click', (e) => this.handleModalClick(e));
+
+		imageInput?.addEventListener('keypress', (e) => {
+			if (e.key === 'Enter') this.handleImageUpdate();
+		});
+	}
+
+	private validateImageUrl(url: string): boolean {
+		try {
+			new URL(url);
+			return true;
+		} catch {
+			return false;
+		}
+	}
+
+	// Cargar la imagen actual del usuario desde el servidor
+	private async loadCurrentImage(user: User): Promise<void> {
+		try {
+			if (user.picture) {
+				this.updateProfileImageUI(user.picture);
+			}
+		} catch (error) {
+			console.error('Error al cargar la imagen del perfil:', error);
+			// Mantener imagen por defecto
+		}
+	}
+
+	private openEditModal(): void {
+		const modal = document.getElementById('edit-modal') as HTMLDivElement;
+		modal.classList.remove('hidden');
+		modal.classList.add('flex');
+		this.isEditing = true;
+
+		const input = document.getElementById('image-url-input') as HTMLInputElement;
+		setTimeout(() => input?.focus(), 100);
+	}
+
+	private closeEditModal(): void {
+		const modal = document.getElementById('edit-modal') as HTMLDivElement;
+		const input = document.getElementById('image-url-input') as HTMLInputElement;
+
+		modal.classList.add('hidden');
+		modal.classList.remove('flex');
+		input.value = '';
+		this.isEditing = false;
+	}
+
+	private handleModalClick(e: Event): void {
+		const modal = document.getElementById('edit-modal') as HTMLDivElement;
+		if (e.target === modal) {
+			this.closeEditModal();
+		}
+	}
+
+	private async handleImageUpdate(): Promise<void> {
+		const input = document.getElementById('image-url-input') as HTMLInputElement;
+		const input2 = document.getElementById('alias-input') as HTMLInputElement;
+		const newUrl = input.value.trim();
+		const newAlias = input2.value.trim();
+
+		if (!newUrl && !newAlias) {
+			this.showError('Por favor, ingresa una URL o un alias');
+			return;
+		}
+
+		if (newAlias && !newUrl) {
+			// Validar alias (opcional, puedes agregar más reglas)
+			if (newAlias.length < 3 || newAlias.length > 20) {
+				this.showError('El alias debe tener entre 3 y 20 caracteres');
+				return;
+			}
+
+			// Aquí podrías enviar el alias al servidor si es necesario
+			await this.updateImageOnServer(newAlias, null);
+		}
+
+		if (!this.validateImageUrl(newUrl) && !newAlias) {
+			this.showError('Por favor, ingresa una URL válida de imagen');
+			return;
+		}
+
+		// Verificar si la imagen se puede cargar antes de enviarla al servidor
+		const imageExists = await this.testImageLoad(newUrl);
+		if (!imageExists) {
+			this.showError('No se pudo cargar la imagen. Verifica la URL');
+			return;
+		}
+
+		// Enviar al servidor
+		if (!newAlias)
+			await this.updateImageOnServer(null, newUrl);
+	}
+
+	private testImageLoad(url: string): Promise<boolean> {
+		return new Promise((resolve) => {
+			const img = new Image();
+			img.onload = () => resolve(true);
+			img.onerror = () => resolve(false);
+			img.src = url;
+		});
+	}
+
+	private async updateImageOnServer(alias: string, imageUrl: string): Promise<void> {
+		if (this.isLoading) return;
+
+		this.setLoadingState(true);
+
+		try {
+			const response = await fetch(`${BACKEND_URL}/user/aliaspicture`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				credentials: 'include',
+				body: JSON.stringify({
+					alias: alias,
+					picture: imageUrl
+				})
+			});
+
+			if (response.ok) {
+				const data = await response.json();
+
+				// Si tu servidor devuelve la URL actualizada
+				const finalImageUrl = data.picture || imageUrl;
+
+				if (imageUrl)
+					this.updateProfileImageUI(finalImageUrl);
+				if (alias)
+				{
+					document.getElementById('user_name')!.textContent = alias;
+					document.getElementById('userProfileNav')!.querySelector('span')!.textContent = alias;
+				}
+				this.closeEditModal();
+				this.showSuccess('Imagen actualizada correctamente');
+
+			} else {
+				// Manejo de errores del servidor
+				const errorData = await response.json().catch(() => null);
+				const errorMessage = errorData?.message || `Error del servidor: ${response.status}`;
+				this.showError(errorMessage);
+			}
+
+		} catch (error) {
+			console.error('Error al actualizar la imagen:', error);
+			this.showError('Error de conexión. Inténtalo de nuevo');
+		} finally {
+			this.setLoadingState(false);
+		}
+	}
+
+	private updateProfileImageUI(url: string): void {
+		const profileContainer = document.getElementById('userProfileImage');
+		if (profileContainer) {
+			profileContainer.innerHTML = `
+                    <img src="${url}" alt="${'Usuario'}"
+                         class="h-32 w-32 object-cover rounded-full border-4 border-white"
+                         onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent('Usuario')}&size=128&background=random';">
+                `;
+		}
+
+		// Actualizar también la imagen en la barra de navegación
+		const navProfileContainer = document.getElementById('userProfileNav');
+		if (navProfileContainer) {
+			const navProfileImg = navProfileContainer.querySelector('img');
+			if (navProfileImg) {
+				navProfileImg.src = url;
+			}
+		}
+	}
+
+	private setLoadingState(loading: boolean): void {
+		this.isLoading = loading;
+		const saveButton = document.getElementById('save-image-btn') as HTMLButtonElement;
+		const input = document.getElementById('image-url-input') as HTMLInputElement;
+
+		if (saveButton) {
+			saveButton.disabled = loading;
+			saveButton.textContent = loading ? 'Guardando...' : 'Guardar';
+		}
+
+		if (input) {
+			input.disabled = loading;
+		}
+	}
+
+	private showError(message: string): void {
+		const errorDiv = document.getElementById('error-message');
+		if (errorDiv) {
+			errorDiv.textContent = message;
+			errorDiv.classList.remove('hidden');
+			setTimeout(() => errorDiv.classList.add('hidden'), 5000);
+		} else {
+			alert(message);
+		}
+	}
+
+	private showSuccess(message: string): void {
+		const successDiv = document.getElementById('success-message');
+		if (successDiv) {
+			successDiv.textContent = message;
+			successDiv.classList.remove('hidden');
+			setTimeout(() => successDiv.classList.add('hidden'), 3000);
+		}
+	}
+}
 
 // Función principal que se ejecuta al cargar la página
 async function init(): Promise<void> {
@@ -83,6 +299,7 @@ async function init(): Promise<void> {
 			updateUserProfile(user);
 			updateNavProfile(user);
 			updateWelcomeMessage(user);
+			new ProfileManager(user);
 
 			// Añadir un retraso para dar tiempo a que la sesión se establezca completamente
 			console.log("⏳ Esperando 1 segundo antes de cargar mensajes...");
@@ -617,204 +834,204 @@ async function loadGameStatsChart(user: User): Promise<void> {
 
 // Crear gráfica de puntuaciones por partida
 function createStatsChart(games: PongScore[]): void {
-    try {
-        const canvas = document.getElementById('gameStatsChart') as HTMLCanvasElement;
-        if (!canvas) {
-            console.error("❌ No se encontró el elemento canvas 'gameStatsChart'");
-            return;
-        }
+	try {
+		const canvas = document.getElementById('gameStatsChart') as HTMLCanvasElement;
+		if (!canvas) {
+			console.error("❌ No se encontró el elemento canvas 'gameStatsChart'");
+			return;
+		}
 
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-            console.error("❌ No se pudo obtener el contexto 2D del canvas");
-            return;
-        }
+		const ctx = canvas.getContext('2d');
+		if (!ctx) {
+			console.error("❌ No se pudo obtener el contexto 2D del canvas");
+			return;
+		}
 
-        // Verificar que Chart.js esté cargado
-        if (typeof Chart === 'undefined') {
-            console.error("❌ Chart.js no está cargado. Asegúrate de incluir la biblioteca en tu HTML");
-            showChartError();
-            return;
-        }
+		// Verificar que Chart.js esté cargado
+		if (typeof Chart === 'undefined') {
+			console.error("❌ Chart.js no está cargado. Asegúrate de incluir la biblioteca en tu HTML");
+			showChartError();
+			return;
+		}
 
-        // Preparar datos para la gráfica
-        const last10Games = games.slice(-10); // Últimas 10 partidas
-        
-        if (last10Games.length === 0) {
-            console.warn("⚠️ No hay datos para mostrar en la gráfica");
-            // Mostrar mensaje en el canvas
-            ctx.font = '14px Arial';
-            ctx.fillStyle = '#666';
-            ctx.textAlign = 'center';
-            ctx.fillText('No hay partidas para mostrar', canvas.width / 2, canvas.height / 2);
-            return;
-        }
+		// Preparar datos para la gráfica
+		const last10Games = games.slice(-10); // Últimas 10 partidas
 
-        const chartData: ChartData = {
-            labels: last10Games.map((game, index) => `Partida ${index + 1}`),
-            datasets: [
-                {
-                    label: 'Tu Puntuación',
-                    data: last10Games.map(game => game.p1score),
-                    borderColor: '#3b82f6',
-                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                    borderWidth: 3,
-                    fill: true,
-                    tension: 0.4
-                },
-                {
-                    label: 'Oponente',
-                    data: last10Games.map(game => game.p2score),
-                    borderColor: '#ef4444',
-                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                    borderWidth: 3,
-                    fill: true,
-                    tension: 0.4
-                }
-            ]
-        };
+		if (last10Games.length === 0) {
+			console.warn("⚠️ No hay datos para mostrar en la gráfica");
+			// Mostrar mensaje en el canvas
+			ctx.font = '14px Arial';
+			ctx.fillStyle = '#666';
+			ctx.textAlign = 'center';
+			ctx.fillText('No hay partidas para mostrar', canvas.width / 2, canvas.height / 2);
+			return;
+		}
 
-        // Destruir gráfico anterior si existe
-        const chartStatus = Chart.getChart(ctx);
-        if (chartStatus !== undefined) {
-            chartStatus.destroy();
-        }
+		const chartData: ChartData = {
+			labels: last10Games.map((game, index) => `Partida ${index + 1}`),
+			datasets: [
+				{
+					label: 'Tu Puntuación',
+					data: last10Games.map(game => game.p1score),
+					borderColor: '#3b82f6',
+					backgroundColor: 'rgba(59, 130, 246, 0.1)',
+					borderWidth: 3,
+					fill: true,
+					tension: 0.4
+				},
+				{
+					label: 'Oponente',
+					data: last10Games.map(game => game.p2score),
+					borderColor: '#ef4444',
+					backgroundColor: 'rgba(239, 68, 68, 0.1)',
+					borderWidth: 3,
+					fill: true,
+					tension: 0.4
+				}
+			]
+		};
 
-        new Chart(ctx, {
-            type: 'line',
-            data: chartData,
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    title: {
-                        display: true,
-                        text: 'Últimas 10 Partidas - Puntuaciones',
-                        font: {
-                            size: 16,
-                            weight: 'bold'
-                        }
-                    },
-                    legend: {
-                        display: true,
-                        position: 'top'
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: 'Puntuación'
-                        }
-                    },
-                    x: {
-                        title: {
-                            display: true,
-                            text: 'Partidas'
-                        }
-                    }
-                },
-                elements: {
-                    point: {
-                        radius: 6,
-                        hoverRadius: 8
-                    }
-                }
-            }
-        });
-        
-        console.log("✅ Gráfica de estadísticas creada exitosamente");
-    } catch (error) {
-        console.error("❌ Error al crear la gráfica de estadísticas:", error);
-        showChartError();
-    }
+		// Destruir gráfico anterior si existe
+		const chartStatus = Chart.getChart(ctx);
+		if (chartStatus !== undefined) {
+			chartStatus.destroy();
+		}
+
+		new Chart(ctx, {
+			type: 'line',
+			data: chartData,
+			options: {
+				responsive: true,
+				maintainAspectRatio: false,
+				plugins: {
+					title: {
+						display: true,
+						text: 'Últimas 10 Partidas - Puntuaciones',
+						font: {
+							size: 16,
+							weight: 'bold'
+						}
+					},
+					legend: {
+						display: true,
+						position: 'top'
+					}
+				},
+				scales: {
+					y: {
+						beginAtZero: true,
+						title: {
+							display: true,
+							text: 'Puntuación'
+						}
+					},
+					x: {
+						title: {
+							display: true,
+							text: 'Partidas'
+						}
+					}
+				},
+				elements: {
+					point: {
+						radius: 6,
+						hoverRadius: 8
+					}
+				}
+			}
+		});
+
+		console.log("✅ Gráfica de estadísticas creada exitosamente");
+	} catch (error) {
+		console.error("❌ Error al crear la gráfica de estadísticas:", error);
+		showChartError();
+	}
 }
 
 // Crear gráfica de ratio de victorias
 function createWinRateChart(games: PongScore[]): void {
-    try {
-        const canvas = document.getElementById('winRateChart') as HTMLCanvasElement;
-        if (!canvas) {
-            console.error("❌ No se encontró el elemento canvas 'winRateChart'");
-            return;
-        }
+	try {
+		const canvas = document.getElementById('winRateChart') as HTMLCanvasElement;
+		if (!canvas) {
+			console.error("❌ No se encontró el elemento canvas 'winRateChart'");
+			return;
+		}
 
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-            console.error("❌ No se pudo obtener el contexto 2D del canvas");
-            return;
-        }
+		const ctx = canvas.getContext('2d');
+		if (!ctx) {
+			console.error("❌ No se pudo obtener el contexto 2D del canvas");
+			return;
+		}
 
-        // Verificar que Chart.js esté cargado
-        if (typeof Chart === 'undefined') {
-            console.error("❌ Chart.js no está cargado. Asegúrate de incluir la biblioteca en tu HTML");
-            showChartError();
-            return;
-        }
+		// Verificar que Chart.js esté cargado
+		if (typeof Chart === 'undefined') {
+			console.error("❌ Chart.js no está cargado. Asegúrate de incluir la biblioteca en tu HTML");
+			showChartError();
+			return;
+		}
 
-        // Calcular estadísticas
-        const totalGames = games.length;
-        
-        if (totalGames === 0) {
-            console.warn("⚠️ No hay datos para mostrar en la gráfica de ratio de victorias");
-            // Mostrar mensaje en el canvas
-            ctx.font = '14px Arial';
-            ctx.fillStyle = '#666';
-            ctx.textAlign = 'center';
-            ctx.fillText('No hay partidas para mostrar', canvas.width / 2, canvas.height / 2);
-            return;
-        }
-        
-        const wins = games.filter(game => game.winner).length;
-        const losses = totalGames - wins;
-        const winRate = totalGames > 0 ? ((wins / totalGames) * 100).toFixed(1) : '0';
+		// Calcular estadísticas
+		const totalGames = games.length;
 
-        // Destruir gráfico anterior si existe
-        const chartStatus = Chart.getChart(ctx);
-        if (chartStatus !== undefined) {
-            chartStatus.destroy();
-        }
+		if (totalGames === 0) {
+			console.warn("⚠️ No hay datos para mostrar en la gráfica de ratio de victorias");
+			// Mostrar mensaje en el canvas
+			ctx.font = '14px Arial';
+			ctx.fillStyle = '#666';
+			ctx.textAlign = 'center';
+			ctx.fillText('No hay partidas para mostrar', canvas.width / 2, canvas.height / 2);
+			return;
+		}
 
-        new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Victorias', 'Derrotas'],
-                datasets: [{
-                    data: [wins, losses],
-                    backgroundColor: [
-                        '#10b981', // Verde para victorias
-                        '#ef4444'  // Rojo para derrotas
-                    ],
-                    borderWidth: 3,
-                    borderColor: '#ffffff'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    title: {
-                        display: true,
-                        text: `Ratio de Victorias: ${winRate}%`,
-                        font: {
-                            size: 16,
-                            weight: 'bold'
-                        }
-                    },
-                    legend: {
-                        display: true,
-                        position: 'bottom'
-                    }
-                }
-            }
-        });
-        
-        console.log("✅ Gráfica de ratio de victorias creada exitosamente");
-    } catch (error) {
-        console.error("❌ Error al crear la gráfica de ratio de victorias:", error);
-        showChartError();
-    }
+		const wins = games.filter(game => game.winner).length;
+		const losses = totalGames - wins;
+		const winRate = totalGames > 0 ? ((wins / totalGames) * 100).toFixed(1) : '0';
+
+		// Destruir gráfico anterior si existe
+		const chartStatus = Chart.getChart(ctx);
+		if (chartStatus !== undefined) {
+			chartStatus.destroy();
+		}
+
+		new Chart(ctx, {
+			type: 'doughnut',
+			data: {
+				labels: ['Victorias', 'Derrotas'],
+				datasets: [{
+					data: [wins, losses],
+					backgroundColor: [
+						'#10b981', // Verde para victorias
+						'#ef4444'  // Rojo para derrotas
+					],
+					borderWidth: 3,
+					borderColor: '#ffffff'
+				}]
+			},
+			options: {
+				responsive: true,
+				maintainAspectRatio: false,
+				plugins: {
+					title: {
+						display: true,
+						text: `Ratio de Victorias: ${winRate}%`,
+						font: {
+							size: 16,
+							weight: 'bold'
+						}
+					},
+					legend: {
+						display: true,
+						position: 'bottom'
+					}
+				}
+			}
+		});
+
+		console.log("✅ Gráfica de ratio de victorias creada exitosamente");
+	} catch (error) {
+		console.error("❌ Error al crear la gráfica de ratio de victorias:", error);
+		showChartError();
+	}
 }
 
 // Mostrar error si no se pueden cargar las gráficas

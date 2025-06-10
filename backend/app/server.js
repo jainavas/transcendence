@@ -450,38 +450,140 @@ fastify.get('/auth/diagnose', async (req, reply) => {
 	};
 });
 
-// Mejora el endpoint user/me para asegurar datos completos
+// Endpoint mejorado que prioriza datos de la base de datos
 fastify.get('/user/me', async (req, reply) => {
-	console.log('Solicitud a /user/me - Datos de sesión:', JSON.stringify(req.session, null, 2));
+    console.log('Solicitud a /user/me - Datos de sesión:', JSON.stringify(req.session, null, 2));
 
-	if (req.session && req.session.user) {
-		// Asegurar que la información está completa
-		const userInfo = req.session.user;
+    if (req.session && req.session.user) {
+        const sessionUser = req.session.user;
+        let user;
 
-		// Corregir: si picture no está definido o está vacío, usar un avatar
-		if (!userInfo.picture) {
-			const user_name = userInfo.name || userInfo.email?.split('@')[0] || 'Usuario';
-			userInfo.picture = `https://ui-avatars.com/api/?name=${encodeURIComponent(user_name)}&background=random&color=fff&size=128`;
-		}
+        try {
+            // Primero intentar obtener el usuario de la base de datos por email
+            const dbUser = await getUserFromDatabase(sessionUser.email);
+            
+            if (dbUser) {
+                // Usar datos del usuario desde la base de datos
+                user = dbUser;
+                console.log('✅ Usando datos de usuario desde la base de datos');
+            } else {
+                // Si no se encuentra en la BD, usar datos de la sesión
+                console.log('⚠️ Usuario no encontrado en base de datos, usando datos de sesión');
+                
+                // Asegurar que la información está completa
+                const userInfo = sessionUser;
+                
+                // Corregir: si picture no está definido o está vacío, usar un avatar
+                if (!userInfo.picture) {
+                    const user_name = userInfo.name || userInfo.email?.split('@')[0] || 'Usuario';
+                    userInfo.picture = `https://ui-avatars.com/api/?name=${encodeURIComponent(user_name)}&background=random&color=fff&size=128`;
+                }
+                
+                user = {
+                    name: userInfo.name || userInfo.given_name || userInfo.email?.split('@')[0] || 'Usuario',
+                    email: userInfo.email || 'sin-email@ejemplo.com',
+                    picture: userInfo.picture,
+                    id: userInfo.id || userInfo.sub || Date.now().toString()
+                };
+            }
+            
+            console.log('Enviando datos de usuario:', user);
+    
+            return {
+                authenticated: true,
+                user
+            };
+        } catch (error) {
+            console.error('❌ Error al obtener usuario:', error);
+            
+            // En caso de error, seguir usando los datos de sesión como respaldo
+            const userInfo = sessionUser;
+            
+            // Asegurar campos mínimos
+            user = {
+                name: userInfo.name || userInfo.given_name || userInfo.email?.split('@')[0] || 'Usuario',
+                email: userInfo.email || 'sin-email@ejemplo.com',
+                picture: userInfo.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(userInfo.name || 'Usuario')}&background=random&color=fff&size=128`,
+                id: userInfo.id || userInfo.sub || Date.now().toString()
+            };
+            
+            return {
+                authenticated: true,
+                user,
+                fromSession: true // Indicador de que se usaron datos de sesión por error
+            };
+        }
+    }
 
-		// Asegurarse de que todos los campos requeridos estén presentes
-		const user = {
-			name: userInfo.name || userInfo.given_name || userInfo.email?.split('@')[0] || 'Usuario',
-			email: userInfo.email || 'sin-email@ejemplo.com',
-			picture: userInfo.picture,
-			id: userInfo.id || userInfo.sub || Date.now().toString()
-		};
+    console.log('No se encontró usuario en la sesión');
+    return { authenticated: false };
+});
 
-		console.log('Enviando datos de usuario:', user);
+// Función auxiliar para obtener usuario de la base de datos por email
+async function getUserFromDatabase(email) {
+    return new Promise((resolve, reject) => {
+        if (!email) {
+            resolve(null);
+            return;
+        }
+        
+        db.get("SELECT * FROM users WHERE user_email = ?", [email], (err, row) => {
+            if (err) {
+                console.error("❌ Error al buscar usuario en base de datos:", err.message);
+                reject(err);
+            } else if (!row) {
+                console.log(`⚠️ No se encontró usuario con email ${email} en la base de datos`);
+                resolve(null);
+            } else {
+                console.log(`✅ Usuario encontrado en base de datos: ${row.user_name} (ID: ${row.user_id})`);
+                
+                // Transformar fila de base de datos al formato de objeto de usuario
+                const user = {
+                    id: row.google_id || row.user_id.toString(),
+                    name: row.user_name,
+                    email: row.user_email,
+                    picture: row.user_picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(row.user_name)}&background=random&color=fff&size=128`
+                };
+                
+                resolve(user);
+            }
+        });
+    });
+}
 
-		return {
-			authenticated: true,
-			user
-		};
+fastify.post('/user/aliaspicture', async (req, reply) => {
+	if (!req.session || !req.session.user) {
+		return reply.code(401).send({ error: 'No autenticado' });
 	}
 
-	console.log('No se encontró usuario en la sesión');
-	return { authenticated: false };
+	const { alias, picture } = req.body;
+
+	if (!picture && !alias) {
+		return reply.code(400).send({ error: 'Faltan parametros' });
+	}
+
+	try {
+		const userId = req.session.user.id || req.session.user.sub || req.session.user.email;
+
+		// Actualizar la foto del usuario en la base de datos
+		if (picture)
+			await changeUserPicture(req.session.user.email, picture);
+		if (alias)
+			await changeUserAlias(req.session.user.email, alias);
+
+		// Actualizar la sesión con la nueva foto
+		if (picture)
+			req.session.user.picture = picture;
+		if (alias)
+			req.session.user.user_name = alias;
+
+		console.log(`✅ Foto de usuario y alias actualizados para ID: ${userId}`);
+
+		return { success: true, message: 'Foto y alias actualizados correctamente', picture };
+	} catch (error) {
+		console.error('❌ Error al actualizar la foto y alias del usuario:', error);
+		return reply.code(500).send({ error: 'Error al actualizar la foto o alias', details: error.message });
+	}
 });
 
 // Reemplaza el endpoint de logout con este código
@@ -614,11 +716,75 @@ fastify.post('/users/check', async (request, reply) => {
 	});
 });
 
+async function changeUserPicture(email, newpicture) {
+	return new Promise((resolve, reject) => {
+		// Primero verifica si el usuario existe
+		db.get("SELECT user_id FROM users WHERE user_email = ?", [email], function (err, row) {
+			if (err) {
+				console.error("Error al verificar usuario:", err.message);
+				reject(err);
+			} else if (!row) {
+				return reject(new Error("Usuario no encontrado"));
+			} else {
+				// Usuario existe, ACTUALIZAR LA FOTO si se proporciona
+				if (newpicture) {
+					db.run(
+						"UPDATE users SET user_picture = ? WHERE user_id = ?",
+						[newpicture, row.user_id],
+						function (err) {
+							if (err) {
+								console.error("Error al actualizar foto de usuario:", err.message);
+								// No fallar por esto, seguir adelante
+							} else {
+								console.log("✅ Foto de usuario actualizada para ID:", row.user_id);
+							}
+						}
+					);
+				}
+				// Retorna el ID del usuario existente
+				resolve({ exists: true, userId: row.user_id });
+			}
+		});
+	});
+}
+
+async function changeUserAlias(email, newalias) {
+	return new Promise((resolve, reject) => {
+		// Primero verifica si el usuario existe
+		db.get("SELECT user_id FROM users WHERE user_email = ?", [email], function (err, row) {
+			if (err) {
+				console.error("Error al verificar usuario:", err.message);
+				reject(err);
+			} else if (!row) {
+				return reject(new Error("Usuario no encontrado"));
+			} else {
+				// Usuario existe, ACTUALIZAR LA FOTO si se proporciona
+				if (newalias) {
+					db.run(
+						"UPDATE users SET user_name = ? WHERE user_id = ?",
+						[newalias, row.user_id],
+						function (err) {
+							if (err) {
+								console.error("Error al actualizar foto de usuario:", err.message);
+								// No fallar por esto, seguir adelante
+							} else {
+								console.log("✅ Foto de usuario actualizada para ID:", row.user_id);
+							}
+						}
+					);
+				}
+				// Retorna el ID del usuario existente
+				resolve({ exists: true, userId: row.user_id });
+			}
+		});
+	});
+}
+
 // Reemplaza la función checkUserInDatabase con esta versión mejorada
 async function checkUserInDatabase(id, user_name, email, picture) {
 	return new Promise((resolve, reject) => {
 		// Primero verifica si el usuario existe
-		db.get("SELECT user_id FROM users WHERE user_name = ? OR user_email = ?", [user_name, email], function (err, row) {
+		db.get("SELECT user_id FROM users WHERE user_email = ?", [email], function (err, row) {
 			if (err) {
 				console.error("Error al verificar usuario:", err.message);
 				reject(err);
@@ -640,7 +806,7 @@ async function checkUserInDatabase(id, user_name, email, picture) {
 				);
 			} else {
 				// Usuario existe, ACTUALIZAR LA FOTO si se proporciona
-				if (picture) {
+				if (picture && row.user_picture === null) {
 					db.run(
 						"UPDATE users SET user_picture = ? WHERE user_id = ?",
 						[picture, row.user_id],
