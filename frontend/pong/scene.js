@@ -141,7 +141,7 @@ export class Playground {
 				escala: new BABYLON.Vector3(0.5, 0.5, 0.5),
 				rotacion: new BABYLON.Vector3(0, Math.PI / 2, Math.PI)
 			},
-			{
+/*			{
 				nombre: "Tiburon",
 				ruta: "textures/tiburon/",
 				miniatura: "minitibu.png",
@@ -150,6 +150,7 @@ export class Playground {
 				escala: new BABYLON.Vector3(0.004, 0.004, 0.004),
 				rotacion: new BABYLON.Vector3(0, Math.PI / 2, Math.PI)
 			},
+*/
 			{
 				nombre: "Pez Payaso",
 				ruta: "textures/pezpayaso/",

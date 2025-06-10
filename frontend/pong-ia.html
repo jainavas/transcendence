@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="es">
+
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>MegaPong</title>
+
+	<!-- Babylon.js y dependencias -->
+	<script src="https://cdn.babylonjs.com/babylon.js"></script>
+	<script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+	<script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
+	<script src="https://cdn.babylonjs.com/cannon.js"></script>
+
+
+	<!-- CSS para pantalla completa y UI -->
+	<style>
+		html,
+		body {
+			width: 100%;
+			height: 100%;
+			margin: 0;
+			padding: 0;
+			overflow: hidden;
+			font-family: Arial, sans-serif;
+		}
+
+		#renderCanvas {
+			width: 100%;
+			height: 100%;
+			display: block;
+			touch-action: none;
+			background-color: #000;
+		}
+
+		#uiContainer {
+			position: absolute;
+			top: 10px;
+			left: 0;
+			width: 100%;
+			z-index: 10;
+			pointer-events: none;
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			padding: 2 1rem;
+		}
+
+		#uiContainer>* {
+			pointer-events: auto;
+		}
+
+		#scoreDisplay {
+			background: rgba(0, 0, 0, 0.5);
+			color: #fff;
+			padding: 0.5rem 1rem;
+			border-radius: 4px;
+		}
+
+		#gameOver {
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+			background: rgba(0, 0, 0, 0.8);
+			color: #fff;
+			padding: 2rem;
+			border-radius: 8px;
+			text-align: center;
+			z-index: 20;
+			display: none;
+		}
+
+		#gameOver button {
+			display: block;
+			width: 100%;
+			margin: 0.5rem 0;
+			padding: 0.75rem;
+			border: none;
+			border-radius: 4px;
+			font-size: 1rem;
+			cursor: pointer;
+		}
+
+		.btn-blue {
+			background: #007bff;
+			color: #fff;
+		}
+
+		.btn-blue:hover {
+			background: #0056b3;
+		}
+
+		.btn-green {
+			background: #28a745;
+			color: #fff;
+		}
+
+		.btn-green:hover {
+			background: #218838;
+		}
+
+		.btn-gray {
+			background: #6c757d;
+			color: #fff;
+		}
+
+		.btn-gray:hover {
+			background: #5a6268;
+		}
+
+		/* Estilos mejorados para botones */
+		.game-button {
+			border: none;
+			padding: 8px 14px;
+			border-radius: 6px;
+			font-weight: 600;
+			cursor: pointer;
+			transition: all 0.2s ease;
+			box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+			display: flex;
+			align-items: center;
+			gap: 6px;
+			font-size: 0.9rem;
+			letter-spacing: 0.5px;
+			margin-left: 10px;
+		}
+
+		.btn-blue {
+			background: linear-gradient(to bottom, #3498db, #2980b9);
+			color: #fff;
+			border: 1px solid #2980b9;
+		}
+
+		.btn-blue:hover {
+			background: linear-gradient(to bottom, #2980b9, #2573a7);
+			transform: translateY(-2px);
+			box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+		}
+
+		.btn-orange {
+			background: linear-gradient(to bottom, #e67e22, #d35400);
+			color: #fff;
+			border: 1px solid #d35400;
+		}
+
+		.btn-orange:hover {
+			background: linear-gradient(to bottom, #d35400, #c04e00);
+			transform: translateY(-2px);
+			box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+		}
+
+		#resetCameraButton {
+			display: none;
+			/* Oculto por defecto */
+			background: linear-gradient(to bottom, #2ecc71, #27ae60);
+			color: #fff;
+			border: 1px solid #27ae60;
+		}
+
+		#resetCameraButton:hover {
+			background: linear-gradient(to bottom, #27ae60, #1e8449);
+			transform: translateY(-2px);
+			box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+		}
+
+		/* Contenedor de botones */
+		.buttons-container {
+			display: flex;
+			align-items: center;
+		}
+
+		.loading-screen {
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			background: linear-gradient(135deg, #000428, #004e92);
+			z-index: 1000;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			transition: opacity 0.8s ease-in-out;
+		}
+
+		.loading-container {
+			width: 80%;
+			max-width: 500px;
+			text-align: center;
+		}
+
+		.loading-logo {
+			font-size: 2.5rem;
+			font-weight: 700;
+			color: white;
+			margin-bottom: 2rem;
+			text-shadow: 0 0 10px rgba(0, 150, 255, 0.8);
+			animation: pulse 2s infinite;
+		}
+
+		@keyframes pulse {
+			0% {
+				transform: scale(1);
+			}
+
+			50% {
+				transform: scale(1.05);
+			}
+
+			100% {
+				transform: scale(1);
+			}
+		}
+
+		.loading-progress-container {
+			height: 24px;
+			background: rgba(255, 255, 255, 0.1);
+			border-radius: 12px;
+			padding: 2px;
+			margin-bottom: 1rem;
+			box-shadow: 0 0 20px rgba(0, 150, 255, 0.3);
+		}
+
+		.loading-progress-bar {
+			height: 100%;
+			width: 0%;
+			background: linear-gradient(90deg, #00d2ff, #3a7bd5);
+			border-radius: 10px;
+			transition: width 0.2s ease;
+		}
+
+		.loading-text {
+			color: white;
+			font-size: 1rem;
+			text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+		}
+	</style>
+</head>
+
+<body>
+	<div id="loadingScreen" class="loading-screen">
+		<div class="loading-container">
+			<div class="loading-logo">🤖 TRANSCENDER PONG IA</div>
+			<div class="loading-progress-container">
+				<div id="loadingProgressBar" class="loading-progress-bar"></div>
+			</div>
+			<div id="loadingText" class="loading-text">Cargando recursos (0%)...</div>
+		</div>
+	</div>
+	<!-- Canvas 3D -->
+	<canvas id="renderCanvas"></canvas>
+
+	<!-- UI Superior -->
+	<div id="uiContainer">
+		<div id="scoreDisplay">Puntuación: <span id="score">0 - 0</span></div>
+		<div class="buttons-container">
+			<button id="resetCameraButton" class="game-button btn-orange">
+				<i>↺</i> Resetear cámara
+			</button>
+			<button id="changeCameraButton" class="game-button btn-red">
+				<i>⇄</i> Cambiar cámara
+			</button>
+			<button id="backButton" class="game-button btn-blue">
+				<i>←</i> Volver al Dashboard
+			</button>
+		</div>
+	</div>
+
+	<!-- Pantalla Game Over -->
+	<div id="gameOver">
+		<h2>¡Juego terminado!</h2>
+		<p>Tu puntuación: <span id="finalScore">0</span></p>
+		<button id="playAgainButton" class="btn-green">Jugar de nuevo</button>
+		<button id="saveToDashboardButton" class="btn-blue">Guardar puntuación</button>
+		<button id="returnToDashboardButton" class="btn-gray">Volver al Dashboard</button>
+	</div>
+
+	<!-- Scripts del juego -->
+	<script type="module" src="pong/pong-ia.js"></script>
+	<script>
+		// Simple file watcher that checks if files have changed
+		(function () {
+			const CHECK_INTERVAL = 2000; // Check every 2 seconds
+			const files = [
+				'pong/pong-ia.js',
+				'pong/scene.js',
+				'pong/materials.js',
+				'pong/physics.js'
+			];
+
+			let lastModified = {};
+
+			// Initialize with current file timestamps
+			files.forEach(file => {
+				fetch(file + '?t=' + Date.now(), { method: 'HEAD' })
+					.then(response => {
+						lastModified[file] = response.headers.get('last-modified');
+					})
+					.catch(err => console.log('Error checking ' + file, err));
+			});
+
+			// Periodically check for file changes
+			setInterval(() => {
+				let needsReload = false;
+
+				files.forEach(file => {
+					fetch(file + '?t=' + Date.now(), { method: 'HEAD' })
+						.then(response => {
+							const currentMod = response.headers.get('last-modified');
+							if (lastModified[file] && currentMod !== lastModified[file]) {
+								console.log('File changed: ' + file);
+								lastModified[file] = currentMod;
+								needsReload = true;
+							}
+						})
+						.catch(err => console.log('Error checking ' + file, err));
+				});
+
+				if (needsReload) {
+					console.log('Reloading due to file changes...');
+					location.reload();
+				}
+			}, CHECK_INTERVAL);
+		})();
+	</script>
+</body>
+
+</html>
