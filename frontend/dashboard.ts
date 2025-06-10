@@ -57,7 +57,7 @@ const FRONTEND_URL = window.env?.FRONTEND_URL || 'http://localhost:8080';
 
 // profile-manager.ts
 export class ProfileManager {
-	private profileImage: string = 'assets/default-avatar.jpg';
+	private profileImage: string = null;
 	private isEditing: boolean = false;
 	private isLoading: boolean = false;
 
@@ -80,6 +80,9 @@ export class ProfileManager {
 		modal?.addEventListener('click', (e) => this.handleModalClick(e));
 
 		imageInput?.addEventListener('keypress', (e) => {
+			if (e.key === 'Enter') this.handleImageUpdate();
+		});
+		aliasInput?.addEventListener('keypress', (e) => {
 			if (e.key === 'Enter') this.handleImageUpdate();
 		});
 	}
