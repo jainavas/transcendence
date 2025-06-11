@@ -51,11 +51,29 @@ const client = new OAuth2Client(
 
 // Reemplazar la configuración CORS actual con esta:
 fastify.register(require('@fastify/cors'), {
-	origin: FRONTEND_URL,
+	origin: [FRONTEND_URL, 'https://lh3.googleusercontent.com', 'https://lh4.googleusercontent.com', 'https://lh5.googleusercontent.com', 'https://lh6.googleusercontent.com'],
 	credentials: true,
 	methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-	allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With', 'Cache-Control', 'Pragma'],
-	exposedHeaders: ['Content-Disposition', 'Set-Cookie'],
+	allowedHeaders: [
+		'Content-Type',
+		'Authorization',
+		'Accept',
+		'Origin',
+		'X-Requested-With',
+		'Cache-Control',
+		'Pragma',
+		'Access-Control-Allow-Origin', // Añadir este
+		'Access-Control-Allow-Credentials' // Y este
+	],
+	exposedHeaders: [
+		'Content-Disposition',
+		'Set-Cookie',
+		'Access-Control-Allow-Origin', // Exponer estos headers
+		'Access-Control-Allow-Credentials'
+	],
+	optionsSuccessStatus: 200, // Firefox necesita esto explícito
+	preflightContinue: false,
+	credentials: true
 });
 
 // Registrar plugin para archivos estáticos (añade esta línea)
@@ -452,103 +470,103 @@ fastify.get('/auth/diagnose', async (req, reply) => {
 
 // Endpoint mejorado que prioriza datos de la base de datos
 fastify.get('/user/me', async (req, reply) => {
-    console.log('Solicitud a /user/me - Datos de sesión:', JSON.stringify(req.session, null, 2));
+	console.log('Solicitud a /user/me - Datos de sesión:', JSON.stringify(req.session, null, 2));
 
-    if (req.session && req.session.user) {
-        const sessionUser = req.session.user;
-        let user;
+	if (req.session && req.session.user) {
+		const sessionUser = req.session.user;
+		let user;
 
-        try {
-            // Primero intentar obtener el usuario de la base de datos por email
-            const dbUser = await getUserFromDatabase(sessionUser.email);
-            
-            if (dbUser) {
-                // Usar datos del usuario desde la base de datos
-                user = dbUser;
-                console.log('✅ Usando datos de usuario desde la base de datos');
-            } else {
-                // Si no se encuentra en la BD, usar datos de la sesión
-                console.log('⚠️ Usuario no encontrado en base de datos, usando datos de sesión');
-                
-                // Asegurar que la información está completa
-                const userInfo = sessionUser;
-                
-                // Corregir: si picture no está definido o está vacío, usar un avatar
-                if (!userInfo.picture) {
-                    const user_name = userInfo.name || userInfo.email?.split('@')[0] || 'Usuario';
-                    userInfo.picture = `https://ui-avatars.com/api/?name=${encodeURIComponent(user_name)}&background=random&color=fff&size=128`;
-                }
-                
-                user = {
-                    name: userInfo.name || userInfo.given_name || userInfo.email?.split('@')[0] || 'Usuario',
-                    email: userInfo.email || 'sin-email@ejemplo.com',
-                    picture: userInfo.picture,
-                    id: userInfo.id || userInfo.sub || Date.now().toString()
-                };
-            }
-            
-            console.log('Enviando datos de usuario:', user);
-    
-            return {
-                authenticated: true,
-                user
-            };
-        } catch (error) {
-            console.error('❌ Error al obtener usuario:', error);
-            
-            // En caso de error, seguir usando los datos de sesión como respaldo
-            const userInfo = sessionUser;
-            
-            // Asegurar campos mínimos
-            user = {
-                name: userInfo.name || userInfo.given_name || userInfo.email?.split('@')[0] || 'Usuario',
-                email: userInfo.email || 'sin-email@ejemplo.com',
-                picture: userInfo.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(userInfo.name || 'Usuario')}&background=random&color=fff&size=128`,
-                id: userInfo.id || userInfo.sub || Date.now().toString()
-            };
-            
-            return {
-                authenticated: true,
-                user,
-                fromSession: true // Indicador de que se usaron datos de sesión por error
-            };
-        }
-    }
+		try {
+			// Primero intentar obtener el usuario de la base de datos por email
+			const dbUser = await getUserFromDatabase(sessionUser.email);
 
-    console.log('No se encontró usuario en la sesión');
-    return { authenticated: false };
+			if (dbUser) {
+				// Usar datos del usuario desde la base de datos
+				user = dbUser;
+				console.log('✅ Usando datos de usuario desde la base de datos');
+			} else {
+				// Si no se encuentra en la BD, usar datos de la sesión
+				console.log('⚠️ Usuario no encontrado en base de datos, usando datos de sesión');
+
+				// Asegurar que la información está completa
+				const userInfo = sessionUser;
+
+				// Corregir: si picture no está definido o está vacío, usar un avatar
+				if (!userInfo.picture) {
+					const user_name = userInfo.name || userInfo.email?.split('@')[0] || 'Usuario';
+					userInfo.picture = `https://ui-avatars.com/api/?name=${encodeURIComponent(user_name)}&background=random&color=fff&size=128`;
+				}
+
+				user = {
+					name: userInfo.name || userInfo.given_name || userInfo.email?.split('@')[0] || 'Usuario',
+					email: userInfo.email || 'sin-email@ejemplo.com',
+					picture: userInfo.picture,
+					id: userInfo.id || userInfo.sub || Date.now().toString()
+				};
+			}
+
+			console.log('Enviando datos de usuario:', user);
+
+			return {
+				authenticated: true,
+				user
+			};
+		} catch (error) {
+			console.error('❌ Error al obtener usuario:', error);
+
+			// En caso de error, seguir usando los datos de sesión como respaldo
+			const userInfo = sessionUser;
+
+			// Asegurar campos mínimos
+			user = {
+				name: userInfo.name || userInfo.given_name || userInfo.email?.split('@')[0] || 'Usuario',
+				email: userInfo.email || 'sin-email@ejemplo.com',
+				picture: userInfo.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(userInfo.name || 'Usuario')}&background=random&color=fff&size=128`,
+				id: userInfo.id || userInfo.sub || Date.now().toString()
+			};
+
+			return {
+				authenticated: true,
+				user,
+				fromSession: true // Indicador de que se usaron datos de sesión por error
+			};
+		}
+	}
+
+	console.log('No se encontró usuario en la sesión');
+	return { authenticated: false };
 });
 
 // Función auxiliar para obtener usuario de la base de datos por email
 async function getUserFromDatabase(email) {
-    return new Promise((resolve, reject) => {
-        if (!email) {
-            resolve(null);
-            return;
-        }
-        
-        db.get("SELECT * FROM users WHERE user_email = ?", [email], (err, row) => {
-            if (err) {
-                console.error("❌ Error al buscar usuario en base de datos:", err.message);
-                reject(err);
-            } else if (!row) {
-                console.log(`⚠️ No se encontró usuario con email ${email} en la base de datos`);
-                resolve(null);
-            } else {
-                console.log(`✅ Usuario encontrado en base de datos: ${row.user_name} (ID: ${row.user_id})`);
-                
-                // Transformar fila de base de datos al formato de objeto de usuario
-                const user = {
-                    id: row.google_id || row.user_id.toString(),
-                    name: row.user_name,
-                    email: row.user_email,
-                    picture: row.user_picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(row.user_name)}&background=random&color=fff&size=128`
-                };
-                
-                resolve(user);
-            }
-        });
-    });
+	return new Promise((resolve, reject) => {
+		if (!email) {
+			resolve(null);
+			return;
+		}
+
+		db.get("SELECT * FROM users WHERE user_email = ?", [email], (err, row) => {
+			if (err) {
+				console.error("❌ Error al buscar usuario en base de datos:", err.message);
+				reject(err);
+			} else if (!row) {
+				console.log(`⚠️ No se encontró usuario con email ${email} en la base de datos`);
+				resolve(null);
+			} else {
+				console.log(`✅ Usuario encontrado en base de datos: ${row.user_name} (ID: ${row.user_id})`);
+
+				// Transformar fila de base de datos al formato de objeto de usuario
+				const user = {
+					id: row.google_id || row.user_id.toString(),
+					name: row.user_name,
+					email: row.user_email,
+					picture: row.user_picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(row.user_name)}&background=random&color=fff&size=128`
+				};
+
+				resolve(user);
+			}
+		});
+	});
 }
 
 fastify.post('/user/aliaspicture', async (req, reply) => {

@@ -435,7 +435,7 @@ function updateNavProfile(user: User): void {
 		navProfile.innerHTML = `
       <div class="flex items-center">
         <span class="text-sm mr-3">${user.name}</span>
-        <img src="${user.picture}" alt="Avatar" 
+        <img crossorigin="anonymous" src="${user.picture}" alt="Avatar" 
              class="w-8 h-8 rounded-full border-2 border-white"
              onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&size=32&background=random';">
       </div>
