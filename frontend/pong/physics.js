@@ -3,23 +3,39 @@ import { setGameActive, gameActive } from "./scene.js";
 import { puntoTexto, anunciarPunto, mensajeInicio } from "./menus.js";
 
 function gameOver(message, bola, pala2, pala1, tableTop, scene) {
+	// Prevent multiple simultaneous goal triggers
+	if (!gameActive) {
+		console.log("⚠️ Goal ignored - game already inactive");
+		return true;
+	}
+
+	console.log("🥅 Processing goal:", message, "- gameActive:", gameActive);
+	
+	// Set game inactive IMMEDIATELY to prevent multiple triggers
+	setGameActive(false);
+
+	// IMPORTANT: Clear all pressed keys to prevent paddles from moving during inactive state
+	const keysPressed = scene.metadata?.physics?.keysPressed;
+	if (keysPressed) {
+		keysPressed["a"] = false;
+		keysPressed["d"] = false;
+		keysPressed["ArrowLeft"] = false;
+		keysPressed["ArrowRight"] = false;
+		console.log("All keys cleared on goal");
+	}
+
 	// Actualizar puntuaciones
-	if (message.includes("jugador 1") && gameActive) {
+	if (message.includes("jugador 1")) {
 		changeScore1();
 		anunciarPunto(puntoTexto, "¡Punto para el jugador 1!", scene);
-	} else if (message.includes("jugador 2") && gameActive) {
+	} else if (message.includes("jugador 2")) {
 		changeScore2();
 		anunciarPunto(puntoTexto, "¡Punto para el jugador 2!", scene);
 	}
-	setGameActive(false);
-	// Lanzar la bola hacia abajo con rotación
-	const haciaLaDerecha = bola.position.x > 0;
-	const impulse = new BABYLON.Vector3(haciaLaDerecha ? 1 : -1, -1, 0).scale(1.2); // ajusta fuerza
-	const contactPoint = bola.getAbsolutePosition(); // centro del mesh
 
-	bola.physicsImpostor.applyImpulse(impulse, contactPoint);
-
-	bola.physicsImpostor.setAngularVelocity(new BABYLON.Vector3(2, 2, 0.5));
+	// Stop ball movement immediately
+	bola.physicsImpostor.setLinearVelocity(BABYLON.Vector3.Zero());
+	bola.physicsImpostor.setAngularVelocity(BABYLON.Vector3.Zero());
 
 	// Actualizar marcador
 	document.getElementById('score').textContent = `${scoreP1} - ${scoreP2}`;
@@ -31,29 +47,40 @@ function gameOver(message, bola, pala2, pala1, tableTop, scene) {
 		return false;
 	}
 
-	// Reiniciar tras 1 segundo
+	// Reiniciar tras 1.5 segundos (más tiempo para evitar triggers accidentales)
 	setTimeout(() => {
-		// Reiniciar posiciones
+		// Ensure ball and paddles are visible and properly positioned
+		const y = tableTop.position.y + 0.05 + tableTop.getBoundingInfo().boundingBox.extendSize.y;
+		
+		// Reset ball position and physics completely
+		bola.position.set(0, y, 0);
 		bola.physicsImpostor.setLinearVelocity(BABYLON.Vector3.Zero());
 		bola.physicsImpostor.setAngularVelocity(BABYLON.Vector3.Zero());
+		
+		// Reset paddle positions
+		pala2.position.set(0.95, y, 0);
+		pala1.position.set(-0.95, y, 0);
+		
+		// Ensure ball is visible
+		bola.setEnabled(true);
+		bola.visibility = 1.0;
 
-		const y = tableTop.position.y + 0.05 + tableTop.getBoundingInfo().boundingBox.extendSize.y;
-		bola.position = new BABYLON.Vector3(0, y, 0);
-		bola.physicsImpostor.setDeltaPosition(bola.position); // importante
+		// Clear any stuck keys again
+		if (keysPressed) {
+			Object.keys(keysPressed).forEach(key => {
+				keysPressed[key] = false;
+			});
+		}
 
-		pala2.position = new BABYLON.Vector3(0.95, y, 0);
-		pala1.position = new BABYLON.Vector3(-0.95, y, 0);
-		pala2.physicsImpostor.setDeltaPosition(pala2.position);
-		pala1.physicsImpostor.setDeltaPosition(pala1.position);
+		// Show start message for next round
+		if (mensajeInicio) {
+			mensajeInicio.alpha = 1;
+		}
 
-		// Dirección inicial alterna
-		const direccion = message.includes("jugador 1") ? -1 : 1;
-		const velocidadInicial = new BABYLON.Vector3(1.1 * direccion, 0, (Math.random() - 0.5) * 0.1);
-		bola.physicsImpostor.setLinearVelocity(velocidadInicial);
-
-
-		setGameActive(true);
-	}, 1000);
+		// IMPORTANT: Do NOT set game active here - wait for spacebar
+		// This prevents automatic goal triggers during reset
+		console.log("Round reset complete - waiting for spacebar");
+	}, 1500);
 	return true;
 }
 
@@ -129,15 +156,9 @@ function gameOver4P(message, bola, pala2, pala1, pala3, pala4, tableTop, scene) 
 		pala3.physicsImpostor.setDeltaPosition(pala3.position);
 		pala4.physicsImpostor.setDeltaPosition(pala4.position);
 
-		// Dirección inicial alterna
-		const directions = [
-			new BABYLON.Vector3(1.5, 0, 0),   // Hacia pala1
-			new BABYLON.Vector3(-1.5, 0, 0),  // Hacia pala4
-			new BABYLON.Vector3(0, 0, 1.5),   // Hacia pala2
-			new BABYLON.Vector3(0, 0, -1.5)   // Hacia pala3
-		];
-		const randomDir = directions[Math.floor(Math.random() * directions.length)];
-		bola.physicsImpostor.setLinearVelocity(randomDir);
+		// NO establecer velocidad inicial automáticamente en modo 4P - esperar entrada del jugador
+		// const randomDir = directions[Math.floor(Math.random() * directions.length)];
+		// bola.physicsImpostor.setLinearVelocity(randomDir);
 
 		setGameActive(true);
 	}, 1500);
@@ -146,6 +167,13 @@ function gameOver4P(message, bola, pala2, pala1, pala3, pala4, tableTop, scene) 
 
 
 export function createPhysics(scene, engine, camera, tableTop, materiales, glow) {
+	console.log("🏗️ Creando física del juego");
+	
+	// Limpiar listeners anteriores para evitar duplicados
+	window.removeEventListener("keydown", window.currentSpaceHandler);
+	window.removeEventListener("keydown", window.currentKeydownHandler);
+	window.removeEventListener("keyup", window.currentKeyupHandler);
+	
 	// Configurar physics engine
 	scene.enablePhysics(new BABYLON.Vector3(0, 0, 0), new BABYLON.CannonJSPlugin());
 	scene.getPhysicsEngine().setTimeStep(1 / 60);
@@ -155,6 +183,19 @@ export function createPhysics(scene, engine, camera, tableTop, materiales, glow)
 	const paddleZLimit = tableHalfDepth - 0.01;
 	const bolaRadio = 0.05;
 	const keysPressed = {};
+
+	// AI configuration for player 2 (pala2)
+	const aiConfig = {
+		enabled: true,
+		difficulty: 0.85, // 0.0 to 1.0 - how accurately AI tracks the ball
+		reactionSpeed: 0.7, // 0.0 to 1.0 - how quickly AI reacts
+		lastUpdateTime: 0,
+		updateInterval: 1000, // milliseconds between AI updates (1 second)
+		targetZ: 0, // AI's target position
+		isMoving: false, // Track if AI is currently moving
+		movementDuration: 0, // How long AI should keep moving
+		movementStartTime: 0 // When current movement started
+	};
 
 	// Crear palas
 	const pala2 = BABYLON.MeshBuilder.CreateBox("pala2", { width: 0.1, depth: 0.25, height: 0.05 }, scene);
@@ -167,9 +208,19 @@ export function createPhysics(scene, engine, camera, tableTop, materiales, glow)
 
 	// Crear bola
 	const bola = BABYLON.MeshBuilder.CreateSphere("bola", { diameter: bolaRadio * 2 }, scene);
-	bola.position.y = pala2.position.y;
-	bola.material = new BABYLON.StandardMaterial("bolaMat", scene);
-	bola.material.emissiveColor = new BABYLON.Color3(0.2, 0.2, 0.2);
+	bola.position = new BABYLON.Vector3(0, pala2.position.y, 0);
+	bola.material = new BABYLON.PBRMaterial("bolaMat", scene);
+	bola.material.albedoColor = new BABYLON.Color3(1, 1, 1); // Blanco
+	bola.material.emissiveColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Muy poco brillo
+	bola.material.metallic = 0.1;
+	bola.material.roughness = 0.3;
+
+	// Excluir palas y bola del glow layer para mejor visibilidad
+	if (glow) {
+		glow.addExcludedMesh(pala1);
+		glow.addExcludedMesh(pala2);
+		glow.addExcludedMesh(bola);
+	}
 
 	// IMPORTANTE: Crear los physics impostors DESPUÉS de posicionar los meshes
 	pala2.physicsImpostor = new BABYLON.PhysicsImpostor(pala2, BABYLON.PhysicsImpostor.BoxImpostor, {
@@ -190,137 +241,346 @@ export function createPhysics(scene, engine, camera, tableTop, materiales, glow)
 		friction: 0
 	}, scene);
 
-	function prepararInicioJuego(bola) {
-		window.addEventListener("keydown", (e) => {
-			if (e.code === "Space" && !gameActive) {
-				setGameActive(true);
+	// Store AI config and keysPressed in scene metadata for UI access
+	scene.metadata = scene.metadata || {};
+	scene.metadata.physics = { aiConfig, keysPressed };
 
-				// Ocultar mensaje
-				if (mensajeInicio) mensajeInicio.alpha = 0;
+	// NO lanzar la bola inmediatamente - esperar a que se pulse espacio
+	// La velocidad inicial se establecerá cuando el jugador presione la barra espaciadora
 
-				// Lanzar bola
-				bola.physicsImpostor.setLinearVelocity(new BABYLON.Vector3(1.2, 0, 0));
-			}
-		});
-	}
-
-	prepararInicioJuego(bola);
-
-	// Velocidad inicial de la bola
-
-	// Variables para tracking de colisiones
+	// Variables para tracking de colisiones y goles
 	let lastCollisionTime = 0;
+	let lastGoalTime = 0;
+	let gameStartTime = 0; // Track when game/round starts
 	const collisionCooldown = 100; // ms
+	const goalCooldown = 500; // ms - prevenir goles múltiples
+	const gameStartDelay = 500; // ms - prevent goals immediately after start
 
 	// Método alternativo: usar onCollide en lugar de registerOnPhysicsCollide
+	let lastStatusLog = 0;
 	scene.registerBeforeRender(() => {
+		// Log de estado cada 5 segundos para debug
 		const currentTime = Date.now();
+		if (currentTime - lastStatusLog > 5000) {
+			console.log(`🔄 Estado del juego - gameActive: ${gameActive}, bola velocidad: ${bola.physicsImpostor?.getLinearVelocity()?.length()?.toFixed(2) || 'N/A'}`);
+			lastStatusLog = currentTime;
+		}
+		
+		const deltaTime = engine.getDeltaTime() / 1000.0; // Convert from ms to seconds
+		
+		// MOVIMIENTO DE PALAS - SIEMPRE ACTIVO (independiente de gameActive)
+		
+		// Movimiento manual del jugador 1 (pala1) - SIEMPRE ACTIVO
+		if (keysPressed["a"] && pala1.position.z > -paddleZLimit) {
+			pala1.position.z -= paddleSpeed;
+			pala1.physicsImpostor.setDeltaPosition(pala1.position);
+		}
+		if (keysPressed["d"] && pala1.position.z < paddleZLimit) {
+			pala1.position.z += paddleSpeed;
+			pala1.physicsImpostor.setDeltaPosition(pala1.position);
+		}
 
+		// Movimiento manual del jugador 2 (pala2) - SIEMPRE ACTIVO (si AI no está habilitada)
+		if (!aiConfig.enabled) {
+			if (keysPressed["ArrowLeft"] && pala2.position.z > -paddleZLimit) {
+				pala2.position.z -= paddleSpeed;
+				pala2.physicsImpostor.setDeltaPosition(pala2.position);
+			}
+			if (keysPressed["ArrowRight"] && pala2.position.z < paddleZLimit) {
+				pala2.position.z += paddleSpeed;
+				pala2.physicsImpostor.setDeltaPosition(pala2.position);
+			}
+		}
+		
+		// LÓGICA QUE SOLO SE EJECUTA CUANDO EL JUEGO ESTÁ ACTIVO
+		if (!gameActive) return;
+		
 		// Detectar colisiones manualmente como backup
 		const bolaPos = bola.position;
 		const pala2Pos = pala2.position;
 		const pala1Pos = pala1.position;
 
-		// Colisión con pala2 (derecha)
-		if (Math.abs(bolaPos.x - pala2Pos.x) < 0.1 &&
-			Math.abs(bolaPos.z - pala2Pos.z) < 0.15 &&
-			Math.abs(bolaPos.y - pala2Pos.y) < 0.1 &&
-			currentTime - lastCollisionTime > collisionCooldown) {
-
-			console.log("Colisión manual con pala2!");
-			const vel = bola.physicsImpostor.getLinearVelocity();
-			const newVelX = -Math.abs(vel.x) * 1.1; // Acelerar ligeramente
-			const newVelZ = vel.z + (bolaPos.z - pala2Pos.z) * 2; // Agregar spin basado en donde golpea
-			bola.physicsImpostor.setLinearVelocity(new BABYLON.Vector3(newVelX, 0, newVelZ));
-			glow.intensity = 0.8;
-			lastCollisionTime = currentTime;
+		// Debug: Log ball position if it's moving fast or in suspicious positions
+		const currentBallVel = bola.physicsImpostor.getLinearVelocity();
+		if (currentBallVel.length() > 0.1 && (bolaPos.x < -1.0 || bolaPos.x > 1.0)) {
+			console.log("Ball at suspicious position:", bolaPos.x, "with velocity:", currentBallVel.x, "total speed:", currentBallVel.length());
 		}
 
-		// Colisión con pala1 (izquierda)
-		if (Math.abs(bolaPos.x - pala1Pos.x) < 0.1 &&
-			Math.abs(bolaPos.z - pala1Pos.z) < 0.15 &&
-			Math.abs(bolaPos.y - pala1Pos.y) < 0.1 &&
-			currentTime - lastCollisionTime > collisionCooldown) {
-
-			console.log("Colisión manual con pala1!");
-			const vel = bola.physicsImpostor.getLinearVelocity();
-			const newVelX = Math.abs(vel.x) * 1.1; // Acelerar ligeramente
-			const newVelZ = vel.z + (bolaPos.z - pala1Pos.z) * 2; // Agregar spin
-			bola.physicsImpostor.setLinearVelocity(new BABYLON.Vector3(newVelX, 0, newVelZ));
-			glow.intensity = 0.8;
-			lastCollisionTime = currentTime;
-		}
-
-		// Movimiento de palas - método directo sin physics
-		if (keysPressed["a"]) {
-			const newZ = Math.max(pala1.position.z - paddleSpeed, -paddleZLimit);
-			pala1.position.z = newZ;
-			// Sincronizar impostor manualmente
-			if (pala1.physicsImpostor) {
-				pala1.physicsImpostor.setDeltaPosition(pala1.position);
-			}
-		}
-		if (keysPressed["d"]) {
-			const newZ = Math.min(pala1.position.z + paddleSpeed, paddleZLimit);
-			pala1.position.z = newZ;
-			if (pala1.physicsImpostor) {
-				pala1.physicsImpostor.setDeltaPosition(pala1.position);
-			}
-		}
-		if (keysPressed["ArrowLeft"]) {
-			const newZ = Math.max(pala2.position.z - paddleSpeed, -paddleZLimit);
-			pala2.position.z = newZ;
-			if (pala2.physicsImpostor) {
-				pala2.physicsImpostor.setDeltaPosition(pala2.position);
-			}
-		}
-		if (keysPressed["ArrowRight"]) {
-			const newZ = Math.min(pala2.position.z + paddleSpeed, paddleZLimit);
-			pala2.position.z = newZ;
-			if (pala2.physicsImpostor) {
-				pala2.physicsImpostor.setDeltaPosition(pala2.position);
-			}
-		}
-
-		// Rebote con bordes laterales
-		if (Math.abs(bolaPos.z) + bolaRadio >= tableHalfDepth) {
-			const vel = bola.physicsImpostor.getLinearVelocity();
-			bola.physicsImpostor.setLinearVelocity(new BABYLON.Vector3(vel.x, 0, -vel.z));
-			// Ajustar posición para evitar que se atasque
-			if (bolaPos.z > 0) {
-				bola.position.z = tableHalfDepth - bolaRadio - 0.01;
+		// AI for player 2 (pala2) - calculates once per second, then moves briefly
+		if (aiConfig.enabled && currentTime - aiConfig.lastUpdateTime > aiConfig.updateInterval) {
+			const ballVelForPrediction = bola.physicsImpostor.getLinearVelocity();
+			
+			// Only react if ball is moving towards AI paddle and has some velocity
+			if (ballVelForPrediction && ballVelForPrediction.length() > 0.1 && ballVelForPrediction.x > 0) {
+				// Predict where ball will be when it reaches paddle's X position
+				let predictedZ = bolaPos.z;
+				const timeToReach = Math.abs((pala2Pos.x - bolaPos.x) / ballVelForPrediction.x);
+				predictedZ = bolaPos.z + (ballVelForPrediction.z * timeToReach);
+				
+				// Add some inaccuracy based on difficulty (lower difficulty = more error)
+				const error = (1 - aiConfig.difficulty) * (Math.random() - 0.5) * 0.3;
+				aiConfig.targetZ = predictedZ + error;
+				
+				// Limit target to playable area
+				aiConfig.targetZ = Math.max(-paddleZLimit, Math.min(paddleZLimit, aiConfig.targetZ));
+				
+				// Calculate movement duration based on distance and reaction speed
+				const distance = Math.abs(aiConfig.targetZ - pala2Pos.z);
+				const movementTime = (distance / paddleSpeed) * (2 - aiConfig.reactionSpeed) * 16.67; // Convert to milliseconds
+				
+				// Start movement if target is significantly different from current position
+				if (distance > paddleSpeed * 2) {
+					aiConfig.isMoving = true;
+					aiConfig.movementStartTime = currentTime;
+					aiConfig.movementDuration = Math.min(movementTime, 800); // Max 800ms movement
+					console.log(`AI deciding to move to ${aiConfig.targetZ.toFixed(2)}, duration: ${aiConfig.movementDuration}ms`);
+				} else {
+					aiConfig.isMoving = false;
+				}
 			} else {
-				bola.position.z = -tableHalfDepth + bolaRadio + 0.01;
+				// Ball not moving towards AI, stop any movement
+				aiConfig.isMoving = false;
+			}
+			
+			aiConfig.lastUpdateTime = currentTime;
+		}
+
+		// AI movement execution - only move during movement window
+		if (aiConfig.enabled) {
+			// Clear previous AI inputs first
+			if (keysPressed["ArrowLeft"]) keysPressed["ArrowLeft"] = false;
+			if (keysPressed["ArrowRight"]) keysPressed["ArrowRight"] = false;
+			
+			// Only move if we're in a movement phase
+			if (aiConfig.isMoving && (currentTime - aiConfig.movementStartTime) < aiConfig.movementDuration) {
+				const paddleDiff = aiConfig.targetZ - pala2Pos.z;
+				const threshold = paddleSpeed * 0.5; // Smaller threshold for more precise movement
+				
+				// Simulate key press based on target position
+				if (Math.abs(paddleDiff) > threshold) {
+					if (paddleDiff > 0) {
+						keysPressed["ArrowRight"] = true;
+					} else {
+						keysPressed["ArrowLeft"] = true;
+					}
+				} else {
+					// Close enough to target, stop moving
+					aiConfig.isMoving = false;
+				}
+			} else if (aiConfig.isMoving) {
+				// Movement time expired
+				aiConfig.isMoving = false;
+				console.log("AI movement time expired");
 			}
 		}
 
-		// Limitar velocidad máxima
-		const vel = bola.physicsImpostor.getLinearVelocity();
-		const maxSpeed = 6;
+		// Colisión con pala2 (derecha) - PREVENTIVA para evitar escapes
+		const aiUpdateBallVel = bola.physicsImpostor.getLinearVelocity();
+		const pala2RightEdge = pala2Pos.x + 0.05; // Right edge of paddle
+		const willEscapePala2 = bolaPos.x + (aiUpdateBallVel.x * deltaTime) > pala2RightEdge; // Predictive check
+		const nearPala2 = Math.abs(bolaPos.x - pala2Pos.x) < 0.15; // Larger detection area
+		const inPaddle2Range = Math.abs(bolaPos.z - pala2Pos.z) < 0.25; // Wider Z range
+		const movingTowardsPala2 = aiUpdateBallVel.x > 0;
+		
+		if ((nearPala2 || willEscapePala2) && 
+			inPaddle2Range && 
+			Math.abs(bolaPos.y - pala2Pos.y) < 0.1 &&
+			movingTowardsPala2 && 
+			currentTime - lastCollisionTime > collisionCooldown) {
 
-		// IMPORTANTE: Forzar velocidad Y a 0 siempre
-		if (Math.abs(vel.y) > 0.01 && bola.position.x >= -1 && bola.position.x <= 1) {
-			bola.physicsImpostor.setLinearVelocity(new BABYLON.Vector3(vel.x, 0, vel.z));
+			console.log("Colisión PREVENTIVA con pala2! Ball pos:", bolaPos.x.toFixed(3), "Paddle pos:", pala2Pos.x.toFixed(3), "Will escape:", willEscapePala2);
+			const vel = bola.physicsImpostor.getLinearVelocity();
+			
+			// Force ball position to safe side of paddle
+			if (bolaPos.x > pala2Pos.x) {
+				bola.position.x = pala2Pos.x - 0.06; // Force ball to left side of paddle
+				console.log("Ball forced to safe position:", bola.position.x);
+			}
+			
+			// Accelerate slightly but cap the acceleration
+			const currentSpeed = Math.abs(vel.x);
+			const baseSpeed = 1.2; // Velocidad base
+			const maxSpeed = 2.5; // Velocidad máxima horizontal
+			const acceleration = 0.1; // Aceleración fija en lugar de multiplicador
+			
+			const newSpeed = Math.min(Math.max(currentSpeed + acceleration, baseSpeed), maxSpeed);
+			const newVelX = -newSpeed; // Siempre hacia la izquierda
+			const newVelZ = vel.z + (bolaPos.z - pala2Pos.z) * 0.8; // Spin reducido
+			
+			bola.physicsImpostor.setLinearVelocity(new BABYLON.Vector3(newVelX, 0, newVelZ));
+			
+			glow.intensity = 0.8;
+			lastCollisionTime = currentTime;
 		}
 
-		// Corregir posición Y si se desvía
+		// Colisión con pala1 (izquierda) - PREVENTIVA para evitar escapes
+		const pala1BallVel = bola.physicsImpostor.getLinearVelocity();
+		const pala1LeftEdge = pala1Pos.x - 0.05; // Left edge of paddle
+		const willEscapePala1 = bolaPos.x + (pala1BallVel.x * deltaTime) < pala1LeftEdge; // Predictive check
+		const nearPala1 = Math.abs(bolaPos.x - pala1Pos.x) < 0.15; // Larger detection area
+		const inPaddleRange = Math.abs(bolaPos.z - pala1Pos.z) < 0.25; // Wider Z range
+		const movingTowardsPala1 = pala1BallVel.x < 0;
+		
+		if ((nearPala1 || willEscapePala1) && 
+			inPaddleRange && 
+			Math.abs(bolaPos.y - pala1Pos.y) < 0.1 &&
+			movingTowardsPala1 && 
+			currentTime - lastCollisionTime > collisionCooldown) {
+
+			console.log("Colisión PREVENTIVA con pala1! Ball pos:", bolaPos.x.toFixed(3), "Paddle pos:", pala1Pos.x.toFixed(3), "Will escape:", willEscapePala1);
+			const vel = bola.physicsImpostor.getLinearVelocity();
+			
+			// Force ball position to safe side of paddle
+			if (bolaPos.x < pala1Pos.x) {
+				bola.position.x = pala1Pos.x + 0.06; // Force ball to right side of paddle
+				console.log("Ball forced to safe position:", bola.position.x);
+			}
+			
+			// Accelerate slightly but cap the acceleration
+			const currentSpeed = Math.abs(vel.x);
+			const baseSpeed = 1.2; // Velocidad base
+			const maxSpeed = 2.5; // Velocidad máxima horizontal
+			const acceleration = 0.1; // Aceleración fija en lugar de multiplicador
+			
+			const newSpeed = Math.min(Math.max(currentSpeed + acceleration, baseSpeed), maxSpeed);
+			const newVelX = newSpeed; // Siempre hacia la derecha
+			const newVelZ = vel.z + (bolaPos.z - pala1Pos.z) * 0.8; // Spin reducido
+			
+			bola.physicsImpostor.setLinearVelocity(new BABYLON.Vector3(newVelX, 0, newVelZ));
+			
+			glow.intensity = 0.8;
+			lastCollisionTime = currentTime;
+		}
+
+		// Movimiento de palas - solo cuando el juego está activo
+		if (gameActive) {
+			if (keysPressed["a"]) {
+				const newZ = Math.max(pala1.position.z - paddleSpeed, -paddleZLimit);
+				pala1.position.z = newZ;
+			}
+			if (keysPressed["d"]) {
+				const newZ = Math.min(pala1.position.z + paddleSpeed, paddleZLimit);
+				pala1.position.z = newZ;
+			}
+			if (keysPressed["ArrowLeft"]) {
+				const newZ = Math.max(pala2.position.z - paddleSpeed, -paddleZLimit);
+				pala2.position.z = newZ;
+			}
+			if (keysPressed["ArrowRight"]) {
+				const newZ = Math.min(pala2.position.z + paddleSpeed, paddleZLimit);
+				pala2.position.z = newZ;
+			}
+		}
+
+		// Rebote con bordes laterales - MEJORADO para prevenir escapes
+		const ballVelForBounds = bola.physicsImpostor.getLinearVelocity();
+		const safeZLimit = tableHalfDepth - bolaRadio - 0.02; // Safe boundary
+		
+		// Predictive collision detection - check if ball will escape in next frame
+		const nextZ = bolaPos.z + (ballVelForBounds.z * deltaTime);
+		const willEscape = Math.abs(nextZ) > safeZLimit;
+		const alreadyEscaped = Math.abs(bolaPos.z) > safeZLimit;
+		
+		if (willEscape || alreadyEscaped) {
+			console.log("Side collision detected - Current Z:", bolaPos.z.toFixed(3), "Next Z:", nextZ.toFixed(3), "Vel Z:", ballVelForBounds.z.toFixed(3));
+			
+			// Reverse Z velocity immediately
+			bola.physicsImpostor.setLinearVelocity(new BABYLON.Vector3(ballVelForBounds.x, 0, -Math.abs(ballVelForBounds.z) * Math.sign(-bolaPos.z)));
+			
+			// Force position back to safe area
+			if (bolaPos.z > safeZLimit) {
+				bola.position.z = safeZLimit;
+				console.log("Ball escaped positive Z, forcing back to:", safeZLimit);
+			} else if (bolaPos.z < -safeZLimit) {
+				bola.position.z = -safeZLimit;
+				console.log("Ball escaped negative Z, forcing back to:", -safeZLimit);
+			}
+		}
+		
+		// Emergency fallback - force ball back if it somehow gets too far
+		if (Math.abs(bolaPos.z) > tableHalfDepth) {
+			console.log("EMERGENCY: Ball escaped table bounds at Z:", bolaPos.z);
+			const emergencyBallVel = bola.physicsImpostor.getLinearVelocity();
+			bola.position.z = Math.sign(bolaPos.z) * safeZLimit;
+			bola.physicsImpostor.setLinearVelocity(new BABYLON.Vector3(emergencyBallVel.x, 0, -emergencyBallVel.z * 0.8));
+		}
+
+		// Control de velocidad y posición de la bola
+		const currentVel = bola.physicsImpostor.getLinearVelocity();
+		const maxSpeed = 3.0; // Velocidad máxima total reducida
+		const maxHorizontalSpeed = 2.5; // Velocidad máxima horizontal
+		const maxVerticalSpeed = 1.5; // Velocidad máxima vertical (Z)
+		const minHorizontalSpeed = 0.8; // Velocidad mínima para evitar bola muy lenta
 		const targetY = pala2.position.y;
-		if (Math.abs(bolaPos.y - targetY) > 0.05 && bolaPos.x >= -1 && bolaPos.x <= 1) {
+
+		// IMPORTANTE: Mantener bola en la mesa (Y fijo)
+		if (Math.abs(currentVel.y) > 0.01) {
+			bola.physicsImpostor.setLinearVelocity(new BABYLON.Vector3(currentVel.x, 0, currentVel.z));
+		}
+
+		// Corregir posición Y solo si está muy desviada
+		if (Math.abs(bolaPos.y - targetY) > 0.1) {
 			bola.position.y = targetY;
 		}
 
-		if (vel.length() > maxSpeed) {
-			const normalized = vel.normalize();
-			bola.physicsImpostor.setLinearVelocity(normalized.scale(maxSpeed));
+		// Limitar velocidades por componente para mejor control
+		let newVelX = currentVel.x;
+		let newVelZ = currentVel.z;
+		let velocityChanged = false;
+
+		// Limitar velocidad horizontal
+		if (Math.abs(newVelX) > maxHorizontalSpeed) {
+			newVelX = Math.sign(newVelX) * maxHorizontalSpeed;
+			velocityChanged = true;
+		}
+		
+		// Asegurar velocidad mínima horizontal para evitar bola muy lenta
+		if (Math.abs(newVelX) < minHorizontalSpeed && Math.abs(newVelX) > 0.05) {
+			newVelX = Math.sign(newVelX) * minHorizontalSpeed;
+			velocityChanged = true;
+			console.log("Ball speed too low, enforcing minimum:", newVelX);
 		}
 
-		// Game over
-		if (bolaPos.x > 1.05) {
-			if (!gameOver("¡Punto para el jugador 1!", bola, pala2, pala1, tableTop, scene))
-				return;
-		} else if (bolaPos.x < -1.05) {
-			if (!gameOver("¡Punto para el jugador 2!", bola, pala2, pala1, tableTop, scene))
-				return;
+		// Limitar velocidad vertical (Z)
+		if (Math.abs(newVelZ) > maxVerticalSpeed) {
+			newVelZ = Math.sign(newVelZ) * maxVerticalSpeed;
+			velocityChanged = true;
+		}
+
+		// Limitar velocidad total como backup
+		const totalSpeed = Math.sqrt(newVelX * newVelX + newVelZ * newVelZ);
+		if (totalSpeed > maxSpeed) {
+			const factor = maxSpeed / totalSpeed;
+			newVelX *= factor;
+			newVelZ *= factor;
+			velocityChanged = true;
+		}
+
+		// Aplicar cambios de velocidad si es necesario
+		if (velocityChanged) {
+			bola.physicsImpostor.setLinearVelocity(new BABYLON.Vector3(newVelX, 0, newVelZ));
+		}
+
+		// Game over - only check for goals when game is active and with proper cooldown
+		if (gameActive && 
+			currentTime - lastGoalTime > goalCooldown && 
+			currentTime - gameStartTime > gameStartDelay) {
+			const ballVelForGoals = bola.physicsImpostor.getLinearVelocity();
+			
+			// Goal for player 1 (ball goes past right edge - pala2 missed)
+			if (bolaPos.x > 1.1 && Math.abs(ballVelForGoals.x) > 0.1) {
+				console.log("Goal detected for player 1 at position:", bolaPos.x);
+				lastGoalTime = currentTime;
+				if (!gameOver("¡Punto para el jugador 1!", bola, pala2, pala1, tableTop, scene))
+					return;
+			} 
+			// Goal for player 2 (ball goes past left edge - pala1 missed)
+			else if (bolaPos.x < -1.1 && Math.abs(ballVelForGoals.x) > 0.1) {
+				console.log("Goal detected for player 2 at position:", bolaPos.x);
+				lastGoalTime = currentTime;
+				if (!gameOver("¡Punto para el jugador 2!", bola, pala2, pala1, tableTop, scene))
+					return;
+			}
 		}
 
 		// Glow feedback
@@ -329,24 +589,101 @@ export function createPhysics(scene, engine, camera, tableTop, materiales, glow)
 		}
 	});
 
-	// Event listeners para teclado
-	window.addEventListener("keydown", (e) => {
-		if (["a", "d", "ArrowLeft", "ArrowRight"].includes(e.key)) {
-			keysPressed[e.key] = true;
-			e.preventDefault();
-		}
-	});
+	// Function to clear all pressed keys
+	const clearAllKeys = () => {
+		keysPressed["a"] = false;
+		keysPressed["d"] = false;
+		keysPressed["ArrowLeft"] = false;
+		keysPressed["ArrowRight"] = false;
+		console.log("All keys cleared");
+	};
 
-	window.addEventListener("keyup", (e) => {
-		if (["a", "d", "ArrowLeft", "ArrowRight"].includes(e.key)) {
+	// Event listeners para teclado - usando referencias globales para poder limpiarlas
+	window.currentKeydownHandler = (e) => {
+		// Toggle AI with 'T' key
+		if (e.key === "t" || e.key === "T") {
+			aiConfig.enabled = !aiConfig.enabled;
+			console.log("🤖 AI", aiConfig.enabled ? "activada" : "desactivada");
+			// Clear AI inputs when disabled
+			if (!aiConfig.enabled) {
+				keysPressed["ArrowLeft"] = false;
+				keysPressed["ArrowRight"] = false;
+			}
+			e.preventDefault();
+			return;
+		}
+
+		// Space to start game
+		if (e.code === "Space") {
+			console.log(`🚀 ESPACIO presionado - gameActive: ${gameActive}, velocidad bola: ${bola.physicsImpostor.getLinearVelocity().length()}`);
+			if (!gameActive || bola.physicsImpostor.getLinearVelocity().length() < 0.1) {
+				console.log("🎯 Iniciando juego...");
+				// Clear all keys before starting game to prevent stuck movement
+				clearAllKeys();
+				
+				setGameActive(true);
+				// Ocultar mensaje
+				if (mensajeInicio) mensajeInicio.alpha = 0;
+				
+				// Ensure ball is at correct position before launching
+				const y = tableTop.position.y + 0.05 + tableTop.getBoundingInfo().boundingBox.extendSize.y;
+				bola.position.set(0, y, 0);
+				
+				// Reset AI state when starting new round
+				aiConfig.isMoving = false;
+				aiConfig.lastUpdateTime = 0;
+				
+				// Set game start time to prevent immediate goals
+				gameStartTime = Date.now();
+				
+				// Launch ball with random direction
+				const randomDirection = Math.random() > 0.5 ? 1 : -1;
+				const startVelocity = new BABYLON.Vector3(1.0 * randomDirection, 0, 0); // Velocidad inicial reducida
+				bola.physicsImpostor.setLinearVelocity(startVelocity);
+				
+				console.log("Ball launched with velocity:", startVelocity, "at time:", gameStartTime);
+			}
+			e.preventDefault();
+			return;
+		}
+
+		// Only allow manual player controls during active game
+		if (gameActive) {
+			if (["a", "d"].includes(e.key)) {
+				keysPressed[e.key] = true;
+				e.preventDefault();
+			} else if (["ArrowLeft", "ArrowRight"].includes(e.key) && !aiConfig.enabled) {
+				keysPressed[e.key] = true;
+				e.preventDefault();
+			}
+		}
+	};
+
+	window.addEventListener("keydown", window.currentKeydownHandler);
+
+	// IMPORTANT: KeyUp listener should work regardless of game state
+	// This prevents keys from getting stuck when game becomes inactive
+	window.currentKeyupHandler = (e) => {
+		if (["a", "d"].includes(e.key)) {
+			keysPressed[e.key] = false;
+		} else if (["ArrowLeft", "ArrowRight"].includes(e.key)) {
 			keysPressed[e.key] = false;
 		}
-	});
+	};
 
-	return { pala2, pala1, bola };
+	window.addEventListener("keyup", window.currentKeyupHandler);
+
+	return { pala2, pala1, bola, aiConfig };
 }
 
 export function createPhysics4P(scene, engine, camera, tableTop, materiales, glow) {
+	console.log("🏗️ Creando física del juego 4P");
+	
+	// Limpiar listeners anteriores para evitar duplicados
+	window.removeEventListener("keydown", window.currentSpaceHandler);
+	window.removeEventListener("keydown", window.currentKeydownHandler);
+	window.removeEventListener("keyup", window.currentKeyupHandler);
+	
 	scene.enablePhysics(new BABYLON.Vector3(0, 0, 0), new BABYLON.CannonJSPlugin());
 	scene.getPhysicsEngine().setTimeStep(1 / 60);
 
@@ -380,8 +717,20 @@ export function createPhysics4P(scene, engine, camera, tableTop, materiales, glo
 	// Crear bola en el centro
 	const bola = BABYLON.MeshBuilder.CreateSphere("bola", { diameter: bolaRadio * 2 }, scene);
 	bola.position.set(0, pala2.position.y, 0); // Centro del campo
-	bola.material = new BABYLON.StandardMaterial("bolaMat", scene);
-	bola.material.emissiveColor = new BABYLON.Color3(0.2, 0.2, 0.2);
+	bola.material = new BABYLON.PBRMaterial("bolaMat", scene);
+	bola.material.albedoColor = new BABYLON.Color3(1, 1, 1); // Blanco
+	bola.material.emissiveColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Muy poco brillo
+	bola.material.metallic = 0.1;
+	bola.material.roughness = 0.3;
+
+	// Excluir palas y bola del glow layer para mejor visibilidad
+	if (glow) {
+		glow.addExcludedMesh(pala1);
+		glow.addExcludedMesh(pala2);
+		glow.addExcludedMesh(pala3);
+		glow.addExcludedMesh(pala4);
+		glow.addExcludedMesh(bola);
+	}
 
 	// Crear physics impostors
 	pala2.physicsImpostor = new BABYLON.PhysicsImpostor(pala2, BABYLON.PhysicsImpostor.BoxImpostor, {
@@ -408,8 +757,9 @@ export function createPhysics4P(scene, engine, camera, tableTop, materiales, glo
 		bola.physicsImpostor.setLinearVelocity(BABYLON.Vector3.Zero());
 		bola.position.set(0, pala2.position.y, 0);
 
-		const spaceHandler = (e) => {
+		window.currentSpaceHandler = (e) => {
 			if (e.code === "Space" && !gameActive) {
+				console.log("🚀 Iniciando juego 4P...");
 				setGameActive(true);
 				if (mensajeInicio)
 					mensajeInicio.alpha = 0;
@@ -424,11 +774,11 @@ export function createPhysics4P(scene, engine, camera, tableTop, materiales, glo
 				const randomDir = directions[Math.floor(Math.random() * directions.length)];
 				bola.physicsImpostor.setLinearVelocity(randomDir);
 
-				window.removeEventListener("keydown", spaceHandler);
+				window.removeEventListener("keydown", window.currentSpaceHandler);
 			}
 		};
 
-		window.addEventListener("keydown", spaceHandler);
+		window.addEventListener("keydown", window.currentSpaceHandler);
 	}
 
 	// Inicializar juego

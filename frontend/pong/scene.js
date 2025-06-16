@@ -3,15 +3,41 @@ import { advancedTexture, createUI, createUI4P } from "./menus.js";
 import { createPhysics, createPhysics4P } from "./physics.js";
 
 
-export var gameActive;
+export var gameActive = false; // Inicializar como false para mostrar selectores
 export function setGameActive(value) {
+	console.log(`🎮 gameActive cambiado: ${gameActive} → ${value}`);
 	gameActive = value;
 }
 
 export var materiales = {};
 
+// Helper function to load HDR texture with error handling
+function loadHDRTexture(path, scene, onSuccess, onError) {
+	try {
+		const hdrTexture = new BABYLON.HDRCubeTexture(path, scene, 1024, false, true, false, true);
+		
+		hdrTexture.onError = function(message, exception) {
+			console.warn("HDR texture failed to load:", path, message, exception);
+			if (onError) onError();
+		};
+		
+		hdrTexture.onLoad = function() {
+			console.log("HDR texture loaded successfully:", path);
+			if (onSuccess) onSuccess(hdrTexture);
+		};
+		
+		return hdrTexture;
+	} catch (error) {
+		console.warn("Error creating HDR texture:", path, error);
+		if (onError) onError();
+		return null;
+	}
+}
+
 export class Playground {
 	static CreateScene(engine, canvas) {
+		console.log("🏓 Iniciando creación de escena Pong IA");
+		console.log("🎮 Estado inicial gameActive:", gameActive);
 		var scene = new BABYLON.Scene(engine);
 		// Cámara orbital cenital
 		document.getElementById('changeCameraButton').style.display = 'none';
@@ -26,6 +52,10 @@ export class Playground {
 		camera.attachControl(canvas, true);
 		camera.lowerRadiusLimit = 2.3;
 		camera.upperRadiusLimit = 2.3;
+		
+		// Asegurar que la cámara pueda ver todas las capas incluyendo GUI
+		camera.layerMask = 0x0FFFFFFF;
+		
 		canvas.focus();
 		var defaultPosition = {
 			alpha: -Math.PI / 2,
@@ -71,11 +101,26 @@ export class Playground {
 		// Comprobar posición inicial
 		checkCameraPosition();
 
-
-		const hdrTexture = new BABYLON.HDRCubeTexture("textures/city.hdr", scene, 1024, false, true, false, true);
-		scene.environmentTexture = hdrTexture;
-		scene.createDefaultSkybox(hdrTexture, true, 1000);
-		scene.environmentIntensity = 0.5;
+		// HDR environment setup with error handling
+		loadHDRTexture("textures/galaxia.hdr", scene, 
+			function(hdrTexture) {
+				// Success callback
+				scene.environmentTexture = hdrTexture;
+				scene.createDefaultSkybox(hdrTexture, true, 1000);
+				scene.environmentIntensity = 0.5;
+				console.log("✅ HDR environment loaded successfully");
+			},
+			function() {
+				// Error callback - fallback to default environment
+				console.log("⚠️ Using fallback environment due to HDR error");
+				scene.createDefaultEnvironment({
+					environmentTexture: null,
+					createSkybox: true,
+					skyboxSize: 1000,
+					groundColor: new BABYLON.Color3(0.2, 0.2, 0.3)
+				});
+			}
+		);
 		const fillLight = new BABYLON.HemisphericLight("fill", new BABYLON.Vector3(0, 1, 0), scene);
 		fillLight.intensity = 0.5; // Puedes ajustar entre 0.3–0.7
 		fillLight.diffuse = new BABYLON.Color3(1, 1, 1); // Luz blanca suave
@@ -106,7 +151,7 @@ export class Playground {
 
 		// Brillo general
 		const glow = new BABYLON.GlowLayer("glow", scene);
-		glow.intensity = 0.3;
+		glow.intensity = 0.15; // Reducido para mejor visibilidad de palas
 		// Crear materiales
 		createMaterials(scene, materiales);
 		const personajesContenedores = {
@@ -114,11 +159,38 @@ export class Playground {
 			derecha: null
 		};
 
-		const entornos = {
-			"galaxia": new BABYLON.HDRCubeTexture("textures/galaxia.hdr", scene, 1024, false, true, false, true),
-			"cielo": new BABYLON.HDRCubeTexture("textures/cielo.hdr", scene, 1024, false, true, false, true),
-			"city": new BABYLON.HDRCubeTexture("textures/city.hdr", scene, 1024, false, true, false, true),
-		};
+		// Environment textures with error handling
+		const entornos = {};
+		
+		// Load environment textures safely
+		function setupEnvironments() {
+			const envPaths = {
+				"galaxia": "textures/galaxia.hdr",
+				"cielo": "textures/cielo.hdr", 
+				"city": "textures/city.hdr"
+			};
+			
+			Object.keys(envPaths).forEach(name => {
+				try {
+					const hdrTexture = new BABYLON.HDRCubeTexture(envPaths[name], scene, 1024, false, true, false, true);
+					hdrTexture.onError = function(message, exception) {
+						console.warn(`Environment texture ${name} failed to load:`, message, exception);
+						// Create a simple color instead
+						entornos[name] = null;
+					};
+					hdrTexture.onLoad = function() {
+						console.log(`Environment texture ${name} loaded successfully`);
+						entornos[name] = hdrTexture;
+					};
+					entornos[name] = hdrTexture; // Set it initially
+				} catch (error) {
+					console.warn(`Error creating environment texture ${name}:`, error);
+					entornos[name] = null;
+				}
+			});
+		}
+		
+		setupEnvironments();
 
 		let skyboxActual = null;
 
@@ -141,6 +213,7 @@ export class Playground {
 				escala: new BABYLON.Vector3(0.5, 0.5, 0.5),
 				rotacion: new BABYLON.Vector3(0, Math.PI / 2, Math.PI)
 			},
+/*			TIBURON PESADO DE PELOTAS HASTA LUEGO
 			{
 				nombre: "Tiburon",
 				ruta: "textures/tiburon/",
@@ -150,6 +223,7 @@ export class Playground {
 				escala: new BABYLON.Vector3(0.004, 0.004, 0.004),
 				rotacion: new BABYLON.Vector3(0, Math.PI / 2, Math.PI)
 			},
+*/
 			{
 				nombre: "Pez Payaso",
 				ruta: "textures/pezpayaso/",
@@ -162,7 +236,7 @@ export class Playground {
 		];
 
 		createUI(
-			advancedTexture,
+			null, // No necesitamos pasar advancedTexture porque se crea internamente
 			scene,
 			personajes,
 			personajesContenedores,
@@ -233,6 +307,13 @@ export class Playground {
 		camera.keysRight = []; // Tecla derecha (normalmente es 39)
 		scene.onBeforeRenderObservable.clear(); // Elimina observadores existentes
 
+		// NO crear física automáticamente - esperar a que el usuario presione ESPACIO
+		// Pero sí marcar que la física necesita inicializarse
+		scene.metadata = scene.metadata || {};
+		scene.metadata.physicsInitialized = false;
+		
+		// Crear la física inmediatamente para que esté disponible
+		// pero sin activar el juego (gameActive permanece false)
 		createPhysics(
 			scene,
 			engine,
@@ -241,6 +322,8 @@ export class Playground {
 			materiales,
 			glow
 		);
+		
+		scene.metadata.physicsInitialized = true;
 
 		// Add loading screen functionality
 		function showLoadingUI() {
@@ -329,6 +412,10 @@ export class Playground {
 		camera.attachControl(canvas, true);
 		camera.lowerRadiusLimit = 3.5;
 		camera.upperRadiusLimit = 3.5;
+		
+		// Asegurar que la cámara pueda ver todas las capas incluyendo GUI
+		camera.layerMask = 0x0FFFFFFF;
+		
 		canvas.focus();
 		var defaultPosition = {
 			alpha: -Math.PI / 2,
@@ -394,11 +481,26 @@ export class Playground {
 		// Comprobar posición inicial
 		checkCameraPosition();
 
-
-		const hdrTexture = new BABYLON.HDRCubeTexture("textures/city.hdr", scene, 1024, false, true, false, true);
-		scene.environmentTexture = hdrTexture;
-		scene.createDefaultSkybox(hdrTexture, true, 1000);
-		scene.environmentIntensity = 0.5;
+		// HDR environment setup with error handling for 4P
+		loadHDRTexture("textures/galaxia.hdr", scene, 
+			function(hdrTexture) {
+				// Success callback
+				scene.environmentTexture = hdrTexture;
+				scene.createDefaultSkybox(hdrTexture, true, 1000);
+				scene.environmentIntensity = 0.5;
+			},
+			function() {
+				// Error callback - fallback to default environment
+				console.log("Using fallback environment in 4P mode");
+				scene.createDefaultEnvironment({
+					environmentTexture: null,
+					createSkybox: true,
+					skyboxSize: 1000,
+					groundColor: new BABYLON.Color3(0.2, 0.2, 0.3)
+				});
+			}
+		);
+		
 		const fillLight = new BABYLON.HemisphericLight("fill", new BABYLON.Vector3(0, 1, 0), scene);
 		fillLight.intensity = 0.5; // Puedes ajustar entre 0.3–0.7
 		fillLight.diffuse = new BABYLON.Color3(1, 1, 1); // Luz blanca suave
@@ -429,7 +531,7 @@ export class Playground {
 
 		// Brillo general
 		const glow = new BABYLON.GlowLayer("glow", scene);
-		glow.intensity = 0.3;
+		glow.intensity = 0.15; // Reducido para mejor visibilidad de palas
 		// Crear materiales
 		createMaterials(scene, materiales);
 		const personajesContenedores = {
@@ -439,11 +541,38 @@ export class Playground {
 			arriba: null
 		};
 
-		const entornos = {
-			"galaxia": new BABYLON.HDRCubeTexture("textures/galaxia.hdr", scene, 1024, false, true, false, true),
-			"cielo": new BABYLON.HDRCubeTexture("textures/cielo.hdr", scene, 1024, false, true, false, true),
-			"city": new BABYLON.HDRCubeTexture("textures/city.hdr", scene, 1024, false, true, false, true),
-		};
+		// Environment textures with error handling for 4P
+		const entornos = {};
+		
+		// Load environment textures safely
+		function setupEnvironments4P() {
+			const envPaths = {
+				"galaxia": "textures/galaxia.hdr",
+				"cielo": "textures/cielo.hdr", 
+				"city": "textures/city.hdr"
+			};
+			
+			Object.keys(envPaths).forEach(name => {
+				try {
+					const hdrTexture = new BABYLON.HDRCubeTexture(envPaths[name], scene, 1024, false, true, false, true);
+					hdrTexture.onError = function(message, exception) {
+						console.warn(`Environment texture ${name} failed to load in 4P:`, message, exception);
+						// Create a simple color instead
+						entornos[name] = null;
+					};
+					hdrTexture.onLoad = function() {
+						console.log(`Environment texture ${name} loaded successfully in 4P`);
+						entornos[name] = hdrTexture;
+					};
+					entornos[name] = hdrTexture; // Set it initially
+				} catch (error) {
+					console.warn(`Error creating environment texture ${name} in 4P:`, error);
+					entornos[name] = null;
+				}
+			});
+		}
+		
+		setupEnvironments4P();
 
 		let skyboxActual = null;
 
@@ -558,7 +687,7 @@ export class Playground {
 		camera.keysRight = []; // Tecla derecha (normalmente es 39)
 		scene.onBeforeRenderObservable.clear(); // Elimina observadores existentes
 
-		gameActive = false; // Activar el juego
+		gameActive = false; // Inicializar como inactivo para mostrar selectores
 		createPhysics4P(
 			scene,
 			engine,

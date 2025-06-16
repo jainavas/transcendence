@@ -1,3 +1,5 @@
+import { gameActive } from "./scene.js";
+
 export function cambiarEntorno(nombre, scene, entornos, skyboxActual) {
 	const nuevoHDR = entornos[nombre];
 	scene.environmentTexture = nuevoHDR;
@@ -122,8 +124,31 @@ export function cargarPersonajeEnLado({
 }
 
 export var advancedTexture = null;
-export function createUI(advancedTexture, scene, personajes, personajesContenedores, entornos, skyboxActual) {
-	advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+export function createUI(advancedTextureParam, scene, personajes, personajesContenedores, entornos, skyboxActual) {
+	console.log("🎮 Creando UI - selectores de personajes y escenarios");
+	console.log("🔍 Parámetros recibidos:", {
+		scene: !!scene,
+		personajes: personajes?.length || 0,
+		entornos: Object.keys(entornos || {}).length,
+		skyboxActual: !!skyboxActual
+	});
+	
+	try {
+		advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+		console.log("✅ AdvancedTexture creado:", !!advancedTexture);
+		
+		// FORZAR PROPIEDADES DE VISIBILIDAD - Usar layerMask compatible
+		advancedTexture.layer.layerMask = 0x0FFFFFFF; // Todas las capas visibles
+		advancedTexture.idealWidth = 1920;
+		advancedTexture.idealHeight = 1080;
+		advancedTexture.renderScale = 1;
+		advancedTexture.background = "transparent";
+		console.log("✅ AdvancedTexture configurado:", advancedTexture);
+	} catch (error) {
+		console.error("❌ Error creando AdvancedTexture:", error);
+		return;
+	}
+	
 	const panelIzquierda = new BABYLON.GUI.StackPanel();
 	panelIzquierda.isVertical = true;
 	panelIzquierda.height = "400px";
@@ -131,8 +156,17 @@ export function createUI(advancedTexture, scene, personajes, personajesContenedo
 	panelIzquierda.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
 	panelIzquierda.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
 	panelIzquierda.top = "70px";
-	panelIzquierda.left = "-15px";
-	advancedTexture.addControl(panelIzquierda);
+	panelIzquierda.left = "20px"; // Más separado del borde
+	panelIzquierda.isVisible = true;
+	panelIzquierda.cornerRadius = 10;
+	panelIzquierda.zIndex = 1000; // Z-index alto
+	
+	try {
+		advancedTexture.addControl(panelIzquierda);
+		console.log("✅ Panel izquierda agregado al advancedTexture");
+	} catch (error) {
+		console.error("❌ Error agregando panel izquierda:", error);
+	}
 
 	const panelDerecha = new BABYLON.GUI.StackPanel();
 	panelDerecha.isVertical = true;
@@ -141,19 +175,29 @@ export function createUI(advancedTexture, scene, personajes, personajesContenedo
 	panelDerecha.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
 	panelDerecha.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
 	panelDerecha.top = "70px";
-	panelDerecha.left = "15px";  // para separarlo del borde derecho
+	panelDerecha.left = "-20px";  // Más separado del borde derecho
+	panelDerecha.isVisible = true;
+	panelDerecha.cornerRadius = 10;
+	panelDerecha.zIndex = 1000; // Z-index alto
 	advancedTexture.addControl(panelDerecha);
+	console.log("📋 Panel derecha creado y configurado");
 
 	// Luego rellenas cada panel con sus botones correspondientes
+	console.log("🎭 Creando botones de personajes...");
 	personajes.forEach((p, index) => {
+		console.log(`Creando botón para ${p.nombre}`);
 		const btnIzq = BABYLON.GUI.Button.CreateImageOnlyButton("izq_" + p.nombre, (p.ruta + "izq" + p.miniatura));
 		btnIzq.width = "100px";
 		btnIzq.height = "100px";
 		btnIzq.cornerRadius = 20;
-		btnIzq.thickness = 0;
+		btnIzq.thickness = 2;
 		btnIzq.paddingRight = "0px";
-		btnIzq.background = "transparent";
+		btnIzq.background = "rgba(255,255,255,0.1)"; // Fondo ligeramente visible
+		btnIzq.color = "white"; // Borde blanco
+		btnIzq.isVisible = true;
+		btnIzq.zIndex = 1001;
 		btnIzq.onPointerUpObservable.add(() => {
+			console.log(`Clic en personaje izquierda: ${p.nombre}`);
 			cargarPersonajeEnLado({
 				personajeConfig: personajes[index], lado: "izquierda", escena: scene, personajesContenedores: personajesContenedores, callback: function ({ animationGroups }) {
 					const idle = animationGroups[0];
@@ -167,10 +211,14 @@ export function createUI(advancedTexture, scene, personajes, personajesContenedo
 		btnDer.width = "100px";
 		btnDer.height = "100px";
 		btnDer.cornerRadius = 20;
-		btnDer.thickness = 0;
+		btnDer.thickness = 2;
 		btnDer.paddingLeft = "0px";
-		btnDer.background = "transparent";
+		btnDer.background = "rgba(255,255,255,0.1)"; // Fondo ligeramente visible
+		btnDer.color = "white"; // Borde blanco
+		btnDer.isVisible = true;
+		btnDer.zIndex = 1001;
 		btnDer.onPointerUpObservable.add(() => {
+			console.log(`Clic en personaje derecha: ${p.nombre}`);
 			cargarPersonajeEnLado({
 				personajeConfig: personajes[index], lado: "derecha", escena: scene, personajesContenedores: personajesContenedores, callback: function ({ animationGroups }) {
 					const idle = animationGroups[0];
@@ -179,6 +227,7 @@ export function createUI(advancedTexture, scene, personajes, personajesContenedo
 			});
 		});
 		panelDerecha.addControl(btnDer);
+		console.log(`✅ Botones creados para ${p.nombre}`);
 	});
 
 	const panelCentro = new BABYLON.GUI.StackPanel();
@@ -189,23 +238,33 @@ export function createUI(advancedTexture, scene, personajes, personajesContenedo
 	panelCentro.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
 	panelCentro.top = "20px";
 	panelCentro.left = "0px";
+	panelCentro.isVisible = true;
+	panelCentro.cornerRadius = 10;
+	panelCentro.zIndex = 1000; // Z-index alto
 	advancedTexture.addControl(panelCentro);
+	console.log("🌍 Panel de entornos creado y configurado");
 
 	Object.keys(entornos).forEach(nombre => {
+		console.log(`🌍 Creando botón de entorno: ${nombre}`);
 		const boton = BABYLON.GUI.Button.CreateImageOnlyButton("btn_" + nombre, "textures/mini" + nombre + ".png");
 		boton.width = "100px";
 		boton.height = "60px";
 		boton.cornerRadius = 6;
-		boton.background = "transparent";
-		boton.thickness = 0;
+		boton.background = "rgba(255,255,255,0.1)"; // Fondo ligeramente visible
+		boton.thickness = 2;
+		boton.color = "white"; // Borde blanco
 		boton.paddingLeft = "10px";
+		boton.isVisible = true;
+		boton.zIndex = 1001;
 		boton.onPointerUpObservable.add(() => {
+			console.log(`Clic en entorno: ${nombre}`);
 			if (nombre === "cielo" || nombre === "city") scene.environmentIntensity = 0.5;
 			else scene.environmentIntensity = 5;
 			cambiarEntorno(nombre, scene, entornos, skyboxActual);
 		});
 
 		panelCentro.addControl(boton);
+		console.log(`✅ Botón de entorno creado: ${nombre}`);
 	});
 
 	cargarPersonajeEnLado({
@@ -258,7 +317,14 @@ export function createUI(advancedTexture, scene, personajes, personajesContenedo
 	mensajeInicio.alpha = 1;
 	mensajeInicio.top = "-50px"; // Ajusta la posición vertical
 	mensajeInicio.isHitTestVisible = false;
+	mensajeInicio.zIndex = 1002; // Z-index más alto que los botones
 	advancedTexture.addControl(mensajeInicio);
+	
+	console.log("🎮 UI COMPLETA CREADA:");
+	console.log("  ✅ Paneles de personajes izquierda y derecha");
+	console.log("  ✅ Panel de entornos central");
+	console.log("  ✅ Mensaje de inicio");
+	console.log("  🎯 gameActive:", gameActive);
 }
 
 export function createUI4P(advancedTexture, scene, personajes, personajesContenedores, entornos, skyboxActual) {

@@ -1,0 +1,170 @@
+import { Playground, setGameActive } from "./scene.js";
+
+export var canvas = document.getElementById("renderCanvas");
+export var engine = new BABYLON.Engine(canvas, true);
+export var scene;
+export var scoreP1 = 0;
+export var scoreP2 = 0;
+export var scoreP3 = 0;
+export var scoreP4 = 0;
+export var maxScore = 5;
+
+export function changeScore1() {
+    scoreP1++;
+}
+export function changeScore2() {
+    scoreP2++;
+}
+export function changeScore3() {
+    scoreP3++;
+}
+export function changeScore4() {
+    scoreP4++;
+}
+
+var startRenderLoop = function (sceneToRender) {
+    engine.runRenderLoop(function () {
+        if (sceneToRender && sceneToRender.activeCamera) {
+            sceneToRender.render();
+        }
+    });
+};
+
+window.addEventListener("DOMContentLoaded", () => {
+
+    scene = Playground.CreateScene(engine, canvas);
+    
+    // Asegurar que el juego inicie inactivo para mostrar selectores
+    setGameActive(false);
+
+    scene.executeWhenReady(() => {
+        startRenderLoop(scene);
+
+        // Add AI status indicator
+        const aiIndicator = document.createElement('div');
+        aiIndicator.id = 'aiIndicator';
+        aiIndicator.style.position = 'fixed';
+        aiIndicator.style.top = '20px';
+        aiIndicator.style.right = '20px';
+        aiIndicator.style.backgroundColor = '#00ff00';
+        aiIndicator.style.color = '#000';
+        aiIndicator.style.padding = '10px';
+        aiIndicator.style.borderRadius = '5px';
+        aiIndicator.style.fontFamily = 'Arial, sans-serif';
+        aiIndicator.style.fontWeight = 'bold';
+        aiIndicator.style.fontSize = '14px';
+        aiIndicator.style.zIndex = '1000';
+        aiIndicator.textContent = 'AI: ON (Press T to toggle)';
+        document.body.appendChild(aiIndicator);
+
+        // Listen for AI toggle events
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 't' || e.key === 'T') {
+                setTimeout(() => {
+                    // Update indicator after a short delay to ensure AI state has changed
+                    if (scene && scene.metadata && scene.metadata.physics && scene.metadata.physics.aiConfig) {
+                        const isEnabled = scene.metadata.physics.aiConfig.enabled;
+                        aiIndicator.textContent = `AI: ${isEnabled ? 'ON' : 'OFF'} (Press T to toggle)`;
+                        aiIndicator.style.backgroundColor = isEnabled ? '#00ff00' : '#ff0000';
+                    }
+                }, 100);
+            }
+        });
+
+        // Ocultar pantalla de carga
+        setTimeout(() => {
+            const loadingScreen = document.getElementById('loadingScreen');
+            if (loadingScreen && loadingScreen.style.opacity !== "0") {
+                loadingScreen.style.opacity = "0";
+                setTimeout(() => {
+                    loadingScreen.style.display = "none";
+                }, 500);
+            }
+        }, 5000);
+    });
+    document.getElementById('backButton').addEventListener('click', function (e) {
+        e.preventDefault(); window.location.href = '/dashboard';
+    });
+    document.getElementById('returnToDashboardButton').addEventListener('click', function (e) {
+        e.preventDefault(); window.location.href = '/dashboard';
+    });
+    document.getElementById('playAgainButton').addEventListener('click', function () {
+        scoreP1 = 0;
+        scoreP2 = 0;
+        scoreP3 = 0;
+        scoreP4 = 0;
+        document.getElementById('score').textContent = `${scoreP1} - ${scoreP2}`;
+        document.getElementById('gameOver').style.display = 'none';
+        setGameActive(false);
+        engine.stopRenderLoop();
+        scene = Playground.CreateScene(engine, canvas);
+        startRenderLoop(scene);
+    });
+    document.getElementById('saveToDashboardButton').addEventListener('click', function () {
+        const playerWon = scoreP1 > scoreP2;
+
+        const scoreData = {
+            p1score: scoreP1,
+            p2score: scoreP2,
+            p2_id: 0, // CPU opponent SOCORRO :( 
+            winner: playerWon ? 1 : 0,
+            game_duration: Math.floor(performance.now() / 1000)
+        };
+
+        console.log('Intentando guardar puntuación:', scoreData);
+        
+        this.disabled = true;
+        this.textContent = "Guardando...";
+
+        fetch('http://localhost:3000/pong/scores', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            credentials: 'include', // Importante para enviar cookies de sesión
+            body: JSON.stringify(scoreData)
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(errorData => {
+                    // Extraer detalles del error del servidor si es posible
+                    throw new Error(errorData.error || 'Error al guardar la puntuación');
+                }).catch(jsonError => {
+                    // Si no podemos parsear el JSON, usar el error genérico
+                    throw new Error('Error al guardar la puntuación');
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Puntuación guardada exitosamente', data);
+            alert('¡Puntuación guardada exitosamente!');
+            this.textContent = "¡Guardado!";
+            // Opcional: redirigir al dashboard después de un breve retraso
+            setTimeout(() => {
+                window.location.href = '/dashboard';
+            }, 1500);
+        })
+        .catch(error => {
+            console.error('Error al guardar:', error);
+            alert('Error al guardar la puntuación: ' + error.message);
+            this.textContent = "Error al guardar";
+        })
+        .finally(() => {
+            // Re-habilitar el botón después de un tiempo
+            setTimeout(() => {
+                this.disabled = false;
+                this.textContent = "Guardar puntuación";
+            }, 2000);
+        });
+    });
+    document.getElementById('resetCameraButton').addEventListener('click', function () {
+        if (window.resetCamera) {
+            window.resetCamera();
+        }
+    });
+});
+// Redimensionar
+window.addEventListener('resize', function () {
+    engine.resize();
+});
