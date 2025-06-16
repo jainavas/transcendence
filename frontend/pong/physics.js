@@ -179,7 +179,7 @@ export function createPhysics(scene, engine, camera, tableTop, materiales, glow)
 	scene.getPhysicsEngine().setTimeStep(1 / 60);
 
 	const tableHalfDepth = 0.5;
-	const paddleSpeed = 0.024;
+	const paddleSpeed = 0.014;
 	const paddleZLimit = tableHalfDepth - 0.01;
 	const bolaRadio = 0.05;
 	const keysPressed = {};
@@ -378,14 +378,16 @@ export function createPhysics(scene, engine, camera, tableTop, materiales, glow)
 		const aiUpdateBallVel = bola.physicsImpostor.getLinearVelocity();
 		const pala2RightEdge = pala2Pos.x + 0.05; // Right edge of paddle
 		const willEscapePala2 = bolaPos.x + (aiUpdateBallVel.x * deltaTime) > pala2RightEdge; // Predictive check
-		const nearPala2 = Math.abs(bolaPos.x - pala2Pos.x) < 0.15; // Larger detection area
-		const inPaddle2Range = Math.abs(bolaPos.z - pala2Pos.z) < 0.25; // Wider Z range
+		const nearPala2 = Math.abs(bolaPos.x - pala2Pos.x) < 0.08; // Larger detection area
+		const inPaddle2Range = Math.abs(bolaPos.z - pala2Pos.z) < 0.15; // Wider Z range
 		const movingTowardsPala2 = aiUpdateBallVel.x > 0;
+		const closeEnoughToPala2 = bolaPos.x > (pala2Pos.x - 0.1); // NUEVA CONDICIÓN: Solo si está cerca
 		
 		if ((nearPala2 || willEscapePala2) && 
 			inPaddle2Range && 
 			Math.abs(bolaPos.y - pala2Pos.y) < 0.1 &&
-			movingTowardsPala2 && 
+			movingTowardsPala2 &&
+			closeEnoughToPala2 && 
 			currentTime - lastCollisionTime > collisionCooldown) {
 
 			console.log("Colisión PREVENTIVA con pala2! Ball pos:", bolaPos.x.toFixed(3), "Paddle pos:", pala2Pos.x.toFixed(3), "Will escape:", willEscapePala2);
@@ -417,14 +419,16 @@ export function createPhysics(scene, engine, camera, tableTop, materiales, glow)
 		const pala1BallVel = bola.physicsImpostor.getLinearVelocity();
 		const pala1LeftEdge = pala1Pos.x - 0.05; // Left edge of paddle
 		const willEscapePala1 = bolaPos.x + (pala1BallVel.x * deltaTime) < pala1LeftEdge; // Predictive check
-		const nearPala1 = Math.abs(bolaPos.x - pala1Pos.x) < 0.15; // Larger detection area
-		const inPaddleRange = Math.abs(bolaPos.z - pala1Pos.z) < 0.25; // Wider Z range
+		const nearPala1 = Math.abs(bolaPos.x - pala1Pos.x) < 0.08; // Larger detection area
+		const inPaddleRange = Math.abs(bolaPos.z - pala1Pos.z) < 0.15; // Wider Z range
 		const movingTowardsPala1 = pala1BallVel.x < 0;
-		
+		const closeEnoughToPala1 = bolaPos.x > (pala1Pos.x - 0.1); // NUEVA CONDICIÓN: Solo si está cerca
+
 		if ((nearPala1 || willEscapePala1) && 
 			inPaddleRange && 
 			Math.abs(bolaPos.y - pala1Pos.y) < 0.1 &&
 			movingTowardsPala1 && 
+			closeEnoughToPala1 &&
 			currentTime - lastCollisionTime > collisionCooldown) {
 
 			console.log("Colisión PREVENTIVA con pala1! Ball pos:", bolaPos.x.toFixed(3), "Paddle pos:", pala1Pos.x.toFixed(3), "Will escape:", willEscapePala1);
