@@ -5,7 +5,11 @@
 	<meta charset="UTF-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" href="/textures/capybara.ico" />
-	<title>MegaPong</title>
+	<title data-i18n="game.title">MegaPong</title>
+
+	<!-- Sistema de internacionalización -->
+	<script src="/i18n.js"></script>
+	<script src="/language-selector.js"></script>
 
 	<!-- Babylon.js y dependencias -->
 	<script src="https://cdn.babylonjs.com/babylon.js"></script>
@@ -52,10 +56,16 @@
 		}
 
 		#scoreDisplay {
-			background: rgba(0, 0, 0, 0.5);
+			background: rgba(0, 0, 0, 0.8);
 			color: #fff;
 			padding: 0.5rem 1rem;
 			border-radius: 4px;
+			font-size: 1.2rem;
+			font-weight: bold;
+			min-width: 120px;
+			text-align: center;
+			z-index: 100;
+			border: 2px solid #fff;
 		}
 
 		#gameOver {
@@ -263,31 +273,108 @@
 
 	<!-- UI Superior -->
 	<div id="uiContainer">
-		<div id="scoreDisplay">Puntuación: <span id="score">0 - 0</span></div>
+		<div id="scoreDisplay">
+			<span data-i18n="game.score">Puntuación</span>: <span id="score">0 - 0</span>
+		</div>
 		<div class="buttons-container">
-			<button id="changeCameraButton" class="game-button btn-red">
+			<button id="changeCameraButton" class="game-button btn-red" data-i18n="controls.change_camera">
 				<i>⇄</i> Cambiar cámara
 			</button>
-			<button id="backButton" class="game-button btn-blue">
+			<button id="backButton" class="game-button btn-blue" data-i18n="navigation.return_to_dashboard">
 				<i>←</i> Volver al Dashboard
 			</button>
 		</div>
 	</div>
 
+	<!-- Selector de idioma -->
+	<div class="fixed top-4 left-4 z-50">
+		<div id="language-selector-container"></div>
+	</div>
+
+	<!-- Script de i18n para juegos -->
+	<script>
+		// Función para crear selector de idioma en los juegos
+		function createGameLanguageSelector() {
+			const container = document.getElementById('language-selector-container');
+			if (!container) return;
+			
+			container.innerHTML = '<div style="background: rgba(30,30,30,0.95); color: white; padding: 8px 12px; border-radius: 8px; font-size: 13px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">' +
+				'🌍 <select id="game-lang-selector" style="padding: 4px 8px; border-radius: 4px; margin-left: 6px; background: white; color: black; border: none; cursor: pointer; font-size: 12px;">' +
+				'<option value="es">🇪🇸 ES</option>' +
+				'<option value="en">🇺🇸 EN</option>' +
+				'<option value="fr">🇫🇷 FR</option>' +
+				'<option value="de">🇩🇪 DE</option>' +
+				'<option value="pt">🇵🇹 PT</option>' +
+				'</select></div>';
+			
+			const selector = document.getElementById('game-lang-selector');
+			const savedLang = localStorage.getItem('transcendence_language') || 'es';
+			selector.value = savedLang;
+			
+			selector.addEventListener('change', function(e) {
+				const newLang = e.target.value;
+				localStorage.setItem('transcendence_language', newLang);
+				
+				fetch('locales/' + newLang + '.json')
+					.then(function(response) { return response.json(); })
+					.then(function(translations) {
+						document.querySelectorAll('[data-i18n]').forEach(function(element) {
+							const key = element.getAttribute('data-i18n');
+							const translation = getNestedValue(translations, key);
+							if (translation) {
+								element.textContent = translation;
+							}
+						});
+						document.title = translations.game?.title || document.title;
+						document.documentElement.lang = newLang;
+					})
+					.catch(function(error) { console.error('Error:', error); });
+			});
+		}
+		
+		function getNestedValue(obj, path) {
+			const keys = path.split('.');
+			let current = obj;
+			for (let i = 0; i < keys.length; i++) {
+				if (current && current[keys[i]] !== undefined) {
+					current = current[keys[i]];
+				} else {
+					return null;
+				}
+			}
+			return current;
+		}
+		
+		// Crear selector cuando se carga la página
+		setTimeout(createGameLanguageSelector, 500);
+		
+		// Aplicar idioma guardado al cargar
+		setTimeout(function() {
+			const savedLang = localStorage.getItem('transcendence_language');
+			if (savedLang && savedLang !== 'es') {
+				const selector = document.getElementById('game-lang-selector');
+				if (selector) {
+					selector.value = savedLang;
+					selector.dispatchEvent(new Event('change'));
+				}
+			}
+		}, 1000);
+	</script>
+
 	<!-- Botón de resetear cámara en esquina inferior derecha -->
 	<div id="resetCameraContainer">
-		<button id="resetCameraButton" class="game-button btn-orange">
+		<button id="resetCameraButton" class="game-button btn-orange" data-i18n="controls.reset_camera">
 			<i>↺</i> Resetear cámara
 		</button>
 	</div>
 
 	<!-- Pantalla Game Over -->
 	<div id="gameOver">
-		<h2>¡Juego terminado!</h2>
-		<p>Tu puntuación: <span id="finalScore">0</span></p>
-		<button id="playAgainButton" class="btn-green">Jugar de nuevo</button>
-		<button id="saveToDashboardButton" class="btn-blue">Guardar puntuación</button>
-		<button id="returnToDashboardButton" class="btn-gray">Volver al Dashboard</button>
+		<h2 data-i18n="game.game_over">¡Juego terminado!</h2>
+		<p data-i18n="game.your_score">Tu puntuación: <span id="finalScore">0</span></p>
+		<button id="playAgainButton" class="btn-green" data-i18n="game.play_again">Jugar de nuevo</button>
+		<button id="saveToDashboardButton" class="btn-blue" data-i18n="game.save_score">Guardar puntuación</button>
+		<button id="returnToDashboardButton" class="btn-gray" data-i18n="navigation.return_to_dashboard">Volver al Dashboard</button>
 	</div>
 
 	<!-- Scripts del juego -->

@@ -36,7 +36,12 @@ services:
       - ./frontend/env-types.js:/app/env-types.js
       - ./.env:/app/.env
       - ./frontend/pong.html:/app/pong.html
+      - ./frontend/pong-ia.html:/app/pong-ia.html
       - ./frontend/pong:/app/pong
+      # Archivos de internacionalización
+      - ./frontend/i18n.js:/app/i18n.js
+      - ./frontend/language-selector.js:/app/language-selector.js
+      - ./frontend/locales:/app/locales
     restart: always
     env_file:
       - .env

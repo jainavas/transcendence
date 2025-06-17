@@ -1,0 +1,107 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "close": "Close",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "yes": "Yes",
+    "no": "No",
+    "logout": "Logout"
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "return_to_dashboard": "Return to Dashboard",
+    "game": "Game",
+    "settings": "Settings",
+    "scores": "Scores"
+  },
+  "dashboard": {
+    "title": "Dashboard - Transcendence",
+    "welcome": "Welcome to Transcendence",
+    "play_pong": "🏓 Play Pong",
+    "play_vs_ai": "🤖 Play vs AI",
+    "my_scores": "Mis puntuaciones de Pong",
+    "loading_scores": "Cargando puntuaciones...",
+    "global_scores": "Mejores puntuaciones globales",
+    "no_scores": "No hay puntuaciones disponibles",
+    "warning_js_not_loaded": "⚠️ Advertencia: dashboard.js no se cargó correctamente."
+  },
+  "game": {
+    "title": "MegaPong - Transcendence",
+    "score": "Puntuación",
+    "game_over": "¡Juego terminado!",
+    "your_score": "Tu puntuación",
+    "final_score": "Puntuación final",
+    "play_again": "Jugar de nuevo",
+    "save_score": "Guardar puntuación",
+    "player": "Jugador",
+    "player_1": "Jugador 1",
+    "player_2": "Jugador 2",
+    "player_3": "Jugador 3",
+    "player_4": "Jugador 4",
+    "vs_ai": "vs IA",
+    "point_for_player_1": "Point for player 1!",
+    "point_for_player_2": "Point for player 2!",
+    "goal_for_player_1": "Goal for Player 1!",
+    "goal_for_player_2": "Goal for Player 2!",
+    "goal_for_player_3": "Goal for Player 3!",
+    "goal_for_player_4": "Goal for Player 4!",
+    "player_1_won_blue": "Player 1 won, Blue!",
+    "player_2_won_red": "Player 2 won, Red!",
+    "player_3_won_green": "Player 3 won, Green!",
+    "player_4_won_purple": "Player 4 won, Purple!",
+    "tie_game": "Tie game!",
+    "score_saved": "Score saved successfully!",
+    "saved": "Saved!",
+    "choose_character_and_environment": "Choose your character and environment\nPress SPACE to start",
+    "blue": "Blue",
+    "red": "Red",
+    "green": "Green",
+    "purple": "Purple",
+    "player_1_eliminated": "¡Jugador 1 (Arriba) eliminado!",
+    "player_2_eliminated": "¡Jugador 2 (Derecha) eliminado!",
+    "player_3_eliminated": "¡Jugador 3 (Abajo) eliminado!",
+    "player_4_eliminated": "¡Jugador 4 (Izquierda) eliminado!"
+  },
+  "controls": {
+    "camera": "Cámara",
+    "reset_camera": "Resetear cámara",
+    "change_camera": "Cambiar cámara",
+    "move_camera": "Mover cámara",
+    "zoom": "Zoom"
+  },
+  "ui": {
+    "select": "Seleccionar",
+    "character_selection": "Selección de Personaje",
+    "environment_selection": "Selección de Entorno",
+    "choose_character": "Elige tu personaje",
+    "choose_environment": "Elige el entorno",
+    "start_game": "Iniciar Juego",
+    "ready": "Listo",
+    "waiting": "Esperando..."
+  },
+  "environments": {
+    "city": "Ciudad",
+    "galaxy": "Galaxia",
+    "cielo": "Cielo"
+  },
+  "characters": {
+    "fish": "Pez",
+    "clownfish": "Pez Payaso", 
+    "cow": "Vaca",
+    "tuna": "Atún"
+  },
+  "language": {
+    "select_language": "Seleccionar idioma",
+    "current_language": "Idioma actual",
+    "change_language": "Cambiar idioma"
+  }
+}

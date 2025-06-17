@@ -2,7 +2,7 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <title>Dashboard - Transcender</title>
+    <title data-i18n="dashboard.title">Dashboard - Transcendence</title>
     <script>
       // MODIFICAR para que solo redirija si realmente es .html
       if (window.location.pathname.endsWith('.html')) {
@@ -14,6 +14,147 @@
     <link href="/dist/styles.css" rel="stylesheet" />
     <!-- Cargar primero las variables de entorno -->
     <script src="/env-config.js"></script>
+    <!-- Sistema de internacionalización -->
+    <script src="i18n.js"></script>
+    <script src="language-selector.js"></script>
+    
+    <!-- Debug del sistema i18n -->
+    <script>
+      console.log('🔧 Iniciando debug del sistema i18n...');
+      
+      // Función para crear selector manual funcional
+      function createWorkingSelector() {
+        const container = document.getElementById('language-selector-container');
+        if (!container) {
+          console.error('❌ Container no encontrado');
+          return;
+        }
+        
+        container.innerHTML = '<div style="background: rgba(30,30,30,0.95); color: white; padding: 10px 15px; border-radius: 8px; font-size: 14px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); backdrop-filter: blur(10px);">' +
+          '🌍 <select id="working-lang-selector" style="padding: 6px 10px; border-radius: 5px; margin-left: 8px; background: white; color: black; border: none; cursor: pointer;">' +
+          '<option value="es">🇪🇸 Español</option>' +
+          '<option value="en">🇺🇸 English</option>' +
+          '<option value="fr">🇫🇷 Français</option>' +
+          '<option value="de">🇩🇪 Deutsch</option>' +
+          '<option value="pt">🇵🇹 Português</option>' +
+          '</select></div>';
+        
+        const selector = document.getElementById('working-lang-selector');
+        
+        // Establecer idioma actual desde localStorage
+        const savedLang = localStorage.getItem('transcendence_language') || 'es';
+        selector.value = savedLang;
+        
+        selector.addEventListener('change', function(e) {
+          const newLang = e.target.value;
+          console.log('🌍 Cambiando idioma a:', newLang);
+          
+          // Guardar en localStorage
+          localStorage.setItem('transcendence_language', newLang);
+          
+          // Cargar traducciones
+          fetch('locales/' + newLang + '.json')
+            .then(function(response) {
+              if (!response.ok) throw new Error('HTTP ' + response.status);
+              return response.json();
+            })
+            .then(function(translations) {
+              console.log('✅ Traducciones cargadas:', translations);
+              
+              // Aplicar traducciones
+              const elements = document.querySelectorAll('[data-i18n]');
+              elements.forEach(function(element) {
+                const key = element.getAttribute('data-i18n');
+                const translation = getNestedValue(translations, key);
+                if (translation) {
+                  element.textContent = translation;
+                }
+              });
+              
+              // Actualizar título
+              if (translations.dashboard && translations.dashboard.title) {
+                document.title = translations.dashboard.title;
+              }
+              
+              // Actualizar atributo lang del HTML
+              document.documentElement.lang = newLang;
+              
+              console.log('✅ Idioma cambiado a:', getLanguageName(newLang));
+              showNotification('✅ Idioma cambiado a ' + getLanguageName(newLang));
+              
+            })
+            .catch(function(error) {
+              console.error('❌ Error cambiando idioma:', error);
+              showNotification('❌ Error cargando idioma ' + getLanguageName(newLang), true);
+            });
+        });
+        
+        console.log('✅ Selector funcional creado');
+      }
+      
+      function getNestedValue(obj, path) {
+        const keys = path.split('.');
+        let current = obj;
+        for (let i = 0; i < keys.length; i++) {
+          if (current && current[keys[i]] !== undefined) {
+            current = current[keys[i]];
+          } else {
+            return null;
+          }
+        }
+        return current;
+      }
+      
+      function getLanguageName(code) {
+        const names = {
+          'es': 'Español',
+          'en': 'English', 
+          'fr': 'Français',
+          'de': 'Deutsch',
+          'pt': 'Português'
+        };
+        return names[code] || code;
+      }
+      
+      function showNotification(message, isError) {
+        const notification = document.createElement('div');
+        const bgColor = isError ? 'rgba(220, 38, 38, 0.95)' : 'rgba(34, 197, 94, 0.95)';
+        notification.style.cssText = 'position: fixed; top: 70px; right: 20px; background: ' + bgColor + 
+          '; color: white; padding: 12px 20px; border-radius: 8px; font-size: 14px; z-index: 10000; ' +
+          'backdrop-filter: blur(10px); box-shadow: 0 4px 15px rgba(0,0,0,0.2);';
+        notification.textContent = message;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(function() {
+          if (document.body.contains(notification)) {
+            document.body.removeChild(notification);
+          }
+        }, 2500);
+      }
+      
+      // Verificar estado y crear selector
+      setTimeout(function() {
+        console.log('🔍 Estado del sistema:', {
+          i18n: !!window.i18n,
+          container: !!document.getElementById('language-selector-container')
+        });
+        
+        createWorkingSelector();
+        
+        // Aplicar idioma guardado al cargar
+        const savedLang = localStorage.getItem('transcendence_language');
+        if (savedLang && savedLang !== 'es') {
+          console.log('🔄 Aplicando idioma guardado:', savedLang);
+          const selector = document.getElementById('working-lang-selector');
+          if (selector) {
+            selector.value = savedLang;
+            selector.dispatchEvent(new Event('change'));
+          }
+        }
+        
+      }, 500);
+    </script>
     
     <!-- Script de verificación y diagnóstico -->
     <script>
@@ -71,7 +212,7 @@
             <div id="userProfileImage" class="mb-4"></div>
             <h2 id="userName" class="text-xl font-bold mb-1"></h2>
             <p id="userEmail" class="text-gray-600 text-sm mb-4"></p>
-            <button id="logoutButton" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded">
+            <button id="logoutButton" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded" data-i18n="common.logout">
               Cerrar sesión
             </button>
           </div>
@@ -79,15 +220,14 @@
         
         <!-- Tarjeta de bienvenida y juego -->
         <div class="bg-white rounded-lg shadow-md p-6">
-          <div id="welcomeMessage" class="text-center mb-6"></div>
+          <div id="welcomeMessage" class="text-center mb-6" data-i18n="dashboard.welcome">Bienvenido a Transcendence</div>
           <div class="text-center">
-            <a href="/pong.html" id="playPongButton" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg text-lg font-bold inline-block transition-transform hover:scale-105">
+            <a href="/pong.html" id="playPongButton" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg text-lg font-bold inline-block transition-transform hover:scale-105" data-i18n="dashboard.play_pong">
               🏓 Jugar Pong
             </a>
           </div>
-          <div id="welcomeMessage" class="text-center mb-6"></div>
-          <div class="text-center">
-            <a href="/pong-ia.html" id="playPongButtonIA" class="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg text-lg font-bold inline-block transition-transform hover:scale-105">
+          <div class="text-center mt-4">
+            <a href="/pong-ia.html" id="playPongButtonIA" class="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg text-lg font-bold inline-block transition-transform hover:scale-105" data-i18n="dashboard.play_vs_ai">
               🤖 Jugar contra IA
             </a>
           </div>
@@ -95,20 +235,25 @@
         
         <!-- Tarjeta de puntuaciones -->
         <div class="bg-white rounded-lg shadow-md p-6">
-          <h2 class="text-xl font-bold mb-4">Mis puntuaciones de Pong</h2>
+          <h2 class="text-xl font-bold mb-4" data-i18n="dashboard.my_scores">Mis puntuaciones de Pong</h2>
           <div id="pongScores" class="space-y-3">
             <div class="text-center py-8">
               <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
-              <p class="text-gray-500 mt-2">Cargando puntuaciones...</p>
+              <p class="text-gray-500 mt-2" data-i18n="dashboard.loading_scores">Cargando puntuaciones...</p>
             </div>
           </div>
         </div>
       </div>
       
+      <!-- Selector de idioma -->
+      <div class="fixed top-4 right-4 z-50">
+        <div id="language-selector-container" style="min-height: 40px; min-width: 120px; background: rgba(255,0,0,0.1); border: 1px dashed red; padding: 4px;"></div>
+      </div>
+      
       <!-- Tabla de mejores puntuaciones globales -->
       <div class="mt-8">
         <div class="bg-white rounded-lg shadow-md p-6">
-          <h2 class="text-xl font-bold mb-4">Mejores puntuaciones globales</h2>
+          <h2 class="text-xl font-bold mb-4" data-i18n="dashboard.global_scores">Mejores puntuaciones globales</h2>
           <div id="globalHighScores" class="overflow-x-auto">
             <table class="min-w-full bg-white">
               <thead>
