@@ -41,6 +41,7 @@ services:
       # Archivos de internacionalización
       - ./frontend/i18n.js:/app/i18n.js
       - ./frontend/language-selector.js:/app/language-selector.js
+      - ./frontend/language-config.js:/app/language-config.js
       - ./frontend/locales:/app/locales
     restart: always
     env_file:

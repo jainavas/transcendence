@@ -1,376 +1,413 @@
 <!DOCTYPE html>
 <html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <title data-i18n="dashboard.title">Dashboard - Transcendence</title>
-    <script>
-      // MODIFICAR para que solo redirija si realmente es .html
-      if (window.location.pathname.endsWith('.html')) {
-        window.location.replace(window.location.pathname.replace('.html', ''));
-      }
-    </script>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" href="/textures/capybara.ico" />
-    <link href="/dist/styles.css" rel="stylesheet" />
-    <!-- Cargar primero las variables de entorno -->
-    <script src="/env-config.js"></script>
-    <!-- Sistema de internacionalización -->
-    <script src="i18n.js"></script>
-    <script src="language-selector.js"></script>
-    
-    <!-- Debug del sistema i18n -->
-    <script>
-      console.log('🔧 Iniciando debug del sistema i18n...');
-      
-      // Función para crear selector manual funcional
-      function createWorkingSelector() {
-        const container = document.getElementById('language-selector-container');
-        if (!container) {
-          console.error('❌ Container no encontrado');
-          return;
-        }
-        
-        container.innerHTML = '<div style="background: rgba(30,30,30,0.95); color: white; padding: 10px 15px; border-radius: 8px; font-size: 14px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); backdrop-filter: blur(10px);">' +
-          '🌍 <select id="working-lang-selector" style="padding: 6px 10px; border-radius: 5px; margin-left: 8px; background: white; color: black; border: none; cursor: pointer;">' +
-          '<option value="es">🇪🇸 Español</option>' +
-          '<option value="en">🇺🇸 English</option>' +
-          '<option value="fr">🇫🇷 Français</option>' +
-          '<option value="de">🇩🇪 Deutsch</option>' +
-          '<option value="pt">🇵🇹 Português</option>' +
-          '</select></div>';
-        
-        const selector = document.getElementById('working-lang-selector');
-        
-        // Establecer idioma actual desde localStorage
-        const savedLang = localStorage.getItem('transcendence_language') || 'es';
-        selector.value = savedLang;
-        
-        selector.addEventListener('change', function(e) {
-          const newLang = e.target.value;
-          console.log('🌍 Cambiando idioma a:', newLang);
-          
-          // Guardar en localStorage
-          localStorage.setItem('transcendence_language', newLang);
-          
-          // Cargar traducciones
-          fetch('locales/' + newLang + '.json')
-            .then(function(response) {
-              if (!response.ok) throw new Error('HTTP ' + response.status);
-              return response.json();
-            })
-            .then(function(translations) {
-              console.log('✅ Traducciones cargadas:', translations);
-              
-              // Aplicar traducciones
-              const elements = document.querySelectorAll('[data-i18n]');
-              elements.forEach(function(element) {
-                const key = element.getAttribute('data-i18n');
-                const translation = getNestedValue(translations, key);
-                if (translation) {
-                  element.textContent = translation;
-                }
-              });
-              
-              // Actualizar título
-              if (translations.dashboard && translations.dashboard.title) {
-                document.title = translations.dashboard.title;
-              }
-              
-              // Actualizar atributo lang del HTML
-              document.documentElement.lang = newLang;
-              
-              console.log('✅ Idioma cambiado a:', getLanguageName(newLang));
-              showNotification('✅ Idioma cambiado a ' + getLanguageName(newLang));
-              
-            })
-            .catch(function(error) {
-              console.error('❌ Error cambiando idioma:', error);
-              showNotification('❌ Error cargando idioma ' + getLanguageName(newLang), true);
-            });
-        });
-        
-        console.log('✅ Selector funcional creado');
-      }
-      
-      function getNestedValue(obj, path) {
-        const keys = path.split('.');
-        let current = obj;
-        for (let i = 0; i < keys.length; i++) {
-          if (current && current[keys[i]] !== undefined) {
-            current = current[keys[i]];
-          } else {
-            return null;
-          }
-        }
-        return current;
-      }
-      
-      function getLanguageName(code) {
-        const names = {
-          'es': 'Español',
-          'en': 'English', 
-          'fr': 'Français',
-          'de': 'Deutsch',
-          'pt': 'Português'
-        };
-        return names[code] || code;
-      }
-      
-      function showNotification(message, isError) {
-        const notification = document.createElement('div');
-        const bgColor = isError ? 'rgba(220, 38, 38, 0.95)' : 'rgba(34, 197, 94, 0.95)';
-        notification.style.cssText = 'position: fixed; top: 70px; right: 20px; background: ' + bgColor + 
-          '; color: white; padding: 12px 20px; border-radius: 8px; font-size: 14px; z-index: 10000; ' +
-          'backdrop-filter: blur(10px); box-shadow: 0 4px 15px rgba(0,0,0,0.2);';
-        notification.textContent = message;
-        
-        document.body.appendChild(notification);
-        
-        setTimeout(function() {
-          if (document.body.contains(notification)) {
-            document.body.removeChild(notification);
-          }
-        }, 2500);
-      }
-      
-      // Verificar estado y crear selector
-      setTimeout(function() {
-        console.log('🔍 Estado del sistema:', {
-          i18n: !!window.i18n,
-          container: !!document.getElementById('language-selector-container')
-        });
-        
-        createWorkingSelector();
-        
-        // Aplicar idioma guardado al cargar
-        const savedLang = localStorage.getItem('transcendence_language');
-        if (savedLang && savedLang !== 'es') {
-          console.log('🔄 Aplicando idioma guardado:', savedLang);
-          const selector = document.getElementById('working-lang-selector');
-          if (selector) {
-            selector.value = savedLang;
-            selector.dispatchEvent(new Event('change'));
-          }
-        }
-        
-      }, 500);
-    </script>
-    
-    <!-- Script de verificación y diagnóstico -->
-    <script>
-      console.log('🔍 Dashboard HTML cargado:', new Date().toISOString());
-      
-      // Variable global para comprobar si dashboard.js se carga
-      window.dashboardJsLoaded = false;
-      window.dashboardCheckCount = 0;
-      
-      // Timeout para verificar la carga del script principal
-      const dashboardCheckInterval = setInterval(() => {
-        window.dashboardCheckCount++;
-        
-        // Detener después de 5 intentos o si se ha marcado como cargado
-        if (window.dashboardJsLoaded || window.stopDashboardCheck || window.dashboardCheckCount > 5) {
-          clearInterval(dashboardCheckInterval);
-          if (!window.dashboardJsLoaded && !window.stopDashboardCheck) {
-            console.error('⚠️ dashboard.js no se cargó correctamente después de varios intentos');
-            document.body.insertAdjacentHTML('afterbegin', 
-              `<div class="bg-yellow-100 text-yellow-800 p-3 fixed top-0 left-0 right-0 z-50">
+
+<head>
+	<meta charset="UTF-8" />
+	<title data-i18n="dashboard.title">Dashboard - Transcendence</title>
+	<script>
+		// MODIFICAR para que solo redirija si realmente es .html
+		if (window.location.pathname.endsWith('.html')) {
+			window.location.replace(window.location.pathname.replace('.html', ''));
+		}
+	</script>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<link rel="icon" href="/textures/capybara.ico" />
+	<link href="/dist/styles.css" rel="stylesheet" />
+	<!-- Cargar primero las variables de entorno -->
+	<script src="/env-config.js"></script>
+	<!-- Sistema de internacionalización -->
+	<script src="i18n.js"></script>
+	<script src="language-selector.js"></script>
+	<script src="language-config.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+
+	<!-- Debug del sistema i18n -->
+	<script>
+		function createWorkingSelector() {
+			const container = document.getElementById('language-selector-container');
+			if (!container) {
+				console.error('❌ Container no encontrado');
+				return;
+			}
+
+			container.innerHTML = '<div style="background: rgba(30,30,30,0.95); color: white; padding: 10px 15px; border-radius: 8px; font-size: 14px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); backdrop-filter: blur(10px);">' +
+				'🌍 <select id="working-lang-selector" style="padding: 6px 10px; border-radius: 5px; margin-left: 8px; background: white; color: black; border: none; cursor: pointer;">' +
+				'<option value="es">🇪🇸 Español</option>' +
+				'<option value="en">🇺🇸 English</option>' +
+				'<option value="fr">🇫🇷 Français</option>' +
+				'<option value="de">🇩🇪 Deutsch</option>' +
+				'<option value="pt">🇵🇹 Português</option>' +
+				'</select></div>';
+
+			const selector = document.getElementById('working-lang-selector');
+
+			// Obtener idioma actual del sistema i18n
+			const currentLang = window.i18n ? window.i18n.getCurrentLanguage() :
+				(localStorage.getItem('transcendence_language') || 'es');
+			selector.value = currentLang;
+
+			selector.addEventListener('change', function (e) {
+				const newLang = e.target.value;
+				console.log('🌍 HTML: Cambio de idioma iniciado:', newLang);
+
+				// Cambiar idioma usando el sistema i18n
+				if (window.changeLanguage) {
+					window.changeLanguage(newLang).then(() => {
+						console.log('✅ HTML: Idioma cambiado, notificando a TypeScript...');
+
+						// Notificar inmediatamente al TypeScript
+						if (window.notifyLanguageChange) {
+							window.notifyLanguageChange(newLang);
+						}
+
+						// También enviar evento personalizado para doble seguridad
+						const event = new CustomEvent('htmlLanguageChange', {
+							detail: { language: newLang }
+						});
+						window.dispatchEvent(event);
+					});
+				}
+			});
+
+			console.log('✅ Selector HTML integrado con notificación directa');
+		}
+	</script>
+
+	<!-- Script de verificación y diagnóstico -->
+	<script>
+		console.log('🔍 Dashboard HTML cargado:', new Date().toISOString());
+
+		// Variable global para comprobar si dashboard.js se carga
+		window.dashboardJsLoaded = false;
+		window.dashboardCheckCount = 0;
+
+		// Timeout para verificar la carga del script principal
+		const dashboardCheckInterval = setInterval(() => {
+			window.dashboardCheckCount++;
+
+			// Detener después de 5 intentos o si se ha marcado como cargado
+			if (window.dashboardJsLoaded || window.stopDashboardCheck || window.dashboardCheckCount > 5) {
+				clearInterval(dashboardCheckInterval);
+				if (!window.dashboardJsLoaded && !window.stopDashboardCheck) {
+					console.error('⚠️ dashboard.js no se cargó correctamente después de varios intentos');
+					document.body.insertAdjacentHTML('afterbegin',
+						`<div class="bg-yellow-100 text-yellow-800 p-3 fixed top-0 left-0 right-0 z-50">
                 ⚠️ Advertencia: dashboard.js no se cargó correctamente.
                 <button class="ml-2 underline" id="reloadButton">Recargar</button>
               </div>`
-            );
-            // Usar un eventListener en lugar de onclick inline
-            document.getElementById('reloadButton')?.addEventListener('click', () => {
-              location.reload();
-            });
-          }
-        }
-      }, 1000);
-    </script>
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-    <meta http-equiv="Pragma" content="no-cache" />
-    <meta http-equiv="Expires" content="0" />
-  </head>
-  <body class="bg-gray-100 font-sans min-h-screen">
-    <!-- Barra de navegación superior -->
-    <nav class="bg-blue-600 text-white shadow-lg">
-      <div class="container mx-auto px-4">
-        <div class="flex justify-between items-center py-3">
-          <div class="flex items-center">
-            <h1 class="text-xl font-bold">Transcender Pong</h1>
-          </div>
-          <div id="userProfileNav"></div>
-        </div>
-      </div>
-    </nav>
-    
-    <div class="container mx-auto px-4 py-8">
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <!-- Tarjeta de perfil -->
-        <div class="bg-white rounded-lg shadow-md p-6">
-          <div class="flex flex-col items-center">
-            <div id="userProfileImage" class="mb-4"></div>
-            <h2 id="userName" class="text-xl font-bold mb-1"></h2>
-            <p id="userEmail" class="text-gray-600 text-sm mb-4"></p>
-            <button id="logoutButton" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded" data-i18n="common.logout">
-              Cerrar sesión
-            </button>
-          </div>
-        </div>
-        
-        <!-- Tarjeta de bienvenida y juego -->
-        <div class="bg-white rounded-lg shadow-md p-6">
-          <div id="welcomeMessage" class="text-center mb-6" data-i18n="dashboard.welcome">Bienvenido a Transcendence</div>
-          <div class="text-center">
-            <a href="/pong.html" id="playPongButton" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg text-lg font-bold inline-block transition-transform hover:scale-105" data-i18n="dashboard.play_pong">
-              🏓 Jugar Pong
-            </a>
-          </div>
-          <div class="text-center mt-4">
-            <a href="/pong-ia.html" id="playPongButtonIA" class="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg text-lg font-bold inline-block transition-transform hover:scale-105" data-i18n="dashboard.play_vs_ai">
-              🤖 Jugar contra IA
-            </a>
-          </div>
-        </div>
-        
-        <!-- Tarjeta de puntuaciones -->
-        <div class="bg-white rounded-lg shadow-md p-6">
-          <h2 class="text-xl font-bold mb-4" data-i18n="dashboard.my_scores">Mis puntuaciones de Pong</h2>
-          <div id="pongScores" class="space-y-3">
-            <div class="text-center py-8">
-              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
-              <p class="text-gray-500 mt-2" data-i18n="dashboard.loading_scores">Cargando puntuaciones...</p>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Selector de idioma -->
-      <div class="fixed top-4 right-4 z-50">
-        <div id="language-selector-container" style="min-height: 40px; min-width: 120px; background: rgba(255,0,0,0.1); border: 1px dashed red; padding: 4px;"></div>
-      </div>
-      
-      <!-- Tabla de mejores puntuaciones globales -->
-      <div class="mt-8">
-        <div class="bg-white rounded-lg shadow-md p-6">
-          <h2 class="text-xl font-bold mb-4" data-i18n="dashboard.global_scores">Mejores puntuaciones globales</h2>
-          <div id="globalHighScores" class="overflow-x-auto">
-            <table class="min-w-full bg-white">
-              <thead>
-                <tr>
-                  <th class="py-2 px-4 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Posición</th>
-                  <th class="py-2 px-4 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Jugador 1</th>
-                  <th class="py-2 px-4 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Jugador 2</th>
-                  <th class="py-2 px-4 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Puntuación</th>
-                  <th class="py-2 px-4 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Fecha</th>
-                </tr>
-              </thead>
-              <tbody id="highScoresList">
-                <tr>
-                  <td colspan="4" class="py-4 text-center text-gray-500">Cargando mejores puntuaciones...</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
+					);
+					// Usar un eventListener en lugar de onclick inline
+					document.getElementById('reloadButton')?.addEventListener('click', () => {
+						location.reload();
+					});
+				}
+			}
+		}, 1000);
+	</script>
+	<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+	<meta http-equiv="Pragma" content="no-cache" />
+	<meta http-equiv="Expires" content="0" />
+</head>
 
-    <!-- Scripts incrustados para depuración -->
-    <script>
-      console.log('⏳ Antes de cargar dashboard.js:', new Date().toISOString());
-      
-      // Función de carga de emergencia
-      function cargarDatosUsuario() {
-        console.log("🔄 Iniciando carga de emergencia");
-        
-        fetch('http://localhost:3000/user/me', {
-          credentials: 'include'
-        })
-        .then(response => {
-          console.log("📥 Respuesta recibida:", response.status);
-          return response.json();
-        })
-        .then(data => {
-          console.log("📊 Datos:", data);
-          
-          if (data.authenticated && data.user) {
-            // Actualizar UI
-            document.getElementById('userName').textContent = data.user.name || 'Usuario';
-            document.getElementById('userEmail').textContent = data.user.email || '';
-            
-            // Actualizar imagen
-            document.getElementById('userProfileImage').innerHTML = `
+<body class="bg-gray-100 font-sans min-h-screen">
+	<!-- Barra de navegación superior -->
+	<nav class="bg-blue-600 text-white shadow-lg">
+		<div class="container mx-auto px-4">
+			<div class="flex justify-between items-center py-3">
+				<div class="flex items-center">
+					<h1 class="text-xl font-bold">Transcender Pong</h1>
+				</div>
+				<div id="userProfileNav"></div>
+			</div>
+		</div>
+	</nav>
+
+	<div class="container mx-auto px-4 py-8">
+		<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+			<!-- Tarjeta de perfil -->
+			<div class="bg-white rounded-lg shadow-md p-6">
+				<div class="flex flex-col items-center">
+					<div id="userProfileImage" class="mb-4"></div>
+					<button id="edit-profile-btn"
+						class="relative bottom-0 right-0 bg-blue-500 text-white p-2 rounded-full hover:bg-blue-600 transition-colors shadow-lg"
+						title="Cambiar foto de perfil">
+						<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+								d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z">
+							</path>
+						</svg>
+					</button>
+					<div id="edit-modal"
+						class="fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50 hidden">
+						<div class="bg-white p-6 rounded-lg max-w-md w-full mx-4 shadow-2xl">
+							<h3 class="text-lg font-semibold mb-4 text-gray-800">Cambiar foto de perfil</h3>
+
+							<!-- Mensajes de error y éxito -->
+							<div id="error-message"
+								class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded mb-4">
+							</div>
+							<div id="success-message"
+								class="hidden bg-green-100 border border-green-400 text-green-700 px-4 py-2 rounded mb-4">
+							</div>
+
+							<!-- Input para la URL -->
+							<div class="mb-4">
+								<label for="alias-input" class="block text-sm font-medium text-gray-700 mb-2">
+									Nuevo alias
+								</label>
+								<input type="text" id="alias-input" placeholder="Dejar en blanco para no cambiar"
+									class="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" />
+							</div>
+							<div class="mb-4">
+								<label for="image-url-input" class="block text-sm font-medium text-gray-700 mb-2">
+									URL de la imagen
+								</label>
+								<input type="url" id="image-url-input" placeholder="Dejar en blanco para no cambiar"
+									class="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" />
+								<p class="text-xs text-gray-500 mt-1">
+									Formatos soportados: JPG, PNG, GIF, WebP, SVG
+								</p>
+							</div>
+							<div class="flex gap-3">
+								<button id="save-image-btn"
+									class="flex-1 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-colors font-medium">
+									Guardar
+								</button>
+								<button id="cancel-btn"
+									class="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400 transition-colors font-medium">
+									Cancelar
+								</button>
+							</div>
+						</div>
+					</div>
+					<h2 id="user_name" class="text-xl font-bold mb-1"></h2>
+					<p id="userEmail" class="text-gray-600 text-sm mb-4"></p>
+					<button id="logoutButton" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
+						data-i18n="common.logout">
+						Cerrar sesión
+					</button>
+				</div>
+			</div>
+
+			<!-- Tarjeta de bienvenida y juego -->
+			<div class="bg-white rounded-lg shadow-md p-6">
+				<div id="welcomeMessage" class="text-center mb-6">Bienvenido a
+					Transcendence</div>
+				<div class="text-center">
+					<a href="/pong.html" id="playPongButton"
+						class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg text-lg font-bold inline-block transition-transform hover:scale-105"
+						data-i18n="dashboard.play_pong">
+						🏓 Jugar Pong
+					</a>
+				</div>
+				<div class="text-center mt-4">
+					<a href="/pong-ia.html" id="playPongButtonIA"
+						class="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg text-lg font-bold inline-block transition-transform hover:scale-105"
+						data-i18n="dashboard.play_vs_ai">
+						🤖 Jugar contra IA
+					</a>
+				</div>
+			</div>
+
+			<!-- Tarjeta de puntuaciones -->
+			<div class="bg-white rounded-lg shadow-md p-6">
+				<h2 class="text-xl font-bold mb-4" data-i18n="dashboard.my_scores">Mis puntuaciones de Pong</h2>
+				<div id="pongScores" class="space-y-3">
+					<div class="text-center py-8">
+						<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+						<p class="text-gray-500 mt-2" data-i18n="dashboard.loading_scores">Cargando puntuaciones...</p>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Selector de idioma -->
+		<div class="fixed top-4 right-4 z-50">
+			<div id="language-selector-container"
+				style="min-height: 40px; min-width: 120px; background: rgba(255,0,0,0.1); border: 1px dashed red; padding: 4px;">
+			</div>
+		</div>
+
+		<!-- Gráficos de estadísticas de partidas -->
+		<div class="mt-8" id="statsContainer">
+			<div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+				<h2 class="text-2xl font-bold text-gray-800 mb-6" data-i18n="dashboard.game_stats">📊 Estadísticas de
+					Partidas</h2>
+
+				<!-- Gráfica de puntuaciones -->
+				<div class="mb-8">
+					<div class="bg-gray-50 rounded-lg p-4" style="height: 400px;">
+						<canvas id="gameStatsChart" class="w-full h-full"></canvas>
+					</div>
+				</div>
+
+				<!-- Gráfica de ratio de victorias y estadísticas -->
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+					<div class="bg-gray-50 rounded-lg p-4" style="height: 300px;">
+						<canvas id="winRateChart" class="w-full h-full"></canvas>
+					</div>
+
+					<!-- Estadísticas adicionales -->
+					<div class="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-lg p-6">
+						<h3 class="text-lg font-semibold text-gray-800 mb-4"><span data-i18n="stats.summary">📈
+								Resumen</span></h3>
+						<div class="space-y-3">
+							<div class="flex justify-between">
+								<span class="text-gray-600" data-i18n="stats.games_played">Partidas jugadas:</span>
+								<span class="font-bold text-blue-600" id="totalGames">-</span>
+							</div>
+							<div class="flex justify-between">
+								<span class="text-gray-600" data-i18n="stats.victories">Victorias:</span>
+								<span class="font-bold text-green-600" id="totalWins">-</span>
+							</div>
+							<div class="flex justify-between">
+								<span class="text-gray-600" data-i18n="stats.best_score">Mejor puntuación:</span>
+								<span class="font-bold text-purple-600" id="bestScore">-</span>
+							</div>
+							<div class="flex justify-between">
+								<span class="text-gray-600" data-i18n="stats.average_points">Promedio puntos:</span>
+								<span class="font-bold text-orange-600" id="avgScore">-</span>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Tabla de mejores puntuaciones globales -->
+		<div class="mt-8">
+			<div class="bg-white rounded-lg shadow-md p-6">
+				<h2 class="text-xl font-bold mb-4" data-i18n="dashboard.global_scores">Mejores puntuaciones globales
+				</h2>
+				<div id="globalHighScores" class="overflow-x-auto">
+					<table class="min-w-full bg-white">
+						<thead>
+							<tr>
+								<th
+									class="py-2 px-4 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+									Posición</th>
+								<th
+									class="py-2 px-4 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+									Jugador 1</th>
+								<th
+									class="py-2 px-4 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+									Jugador 2</th>
+								<th
+									class="py-2 px-4 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+									Puntuación</th>
+								<th
+									class="py-2 px-4 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+									Fecha</th>
+							</tr>
+						</thead>
+						<tbody id="highScoresList">
+							<tr>
+								<td colspan="4" class="py-4 text-center text-gray-500">Cargando mejores puntuaciones...
+								</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Scripts incrustados para depuración -->
+	<script>
+		console.log('⏳ Antes de cargar dashboard.js:', new Date().toISOString());
+
+		// Función de carga de emergencia
+		function cargarDatosUsuario() {
+			console.log("🔄 Iniciando carga de emergencia");
+
+			fetch('http://localhost:3000/user/me', {
+				credentials: 'include'
+			})
+				.then(response => {
+					console.log("📥 Respuesta recibida:", response.status);
+					return response.json();
+				})
+				.then(data => {
+					console.log("📊 Datos:", data);
+
+					if (data.authenticated && data.user) {
+						// Actualizar UI
+						document.getElementById('userName').textContent = data.user.name || 'Usuario';
+						document.getElementById('userEmail').textContent = data.user.email || '';
+
+						// Actualizar imagen
+						document.getElementById('userProfileImage').innerHTML = `
               <img src="${data.user.picture}" alt="Perfil" 
                 class="h-32 w-32 object-cover rounded-full border-4 border-white"
                 onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(data.user.name)}&size=128&background=random';">
             `;
-            
-            // Configurar botón de logout
-            document.getElementById('logoutButton').addEventListener('click', function() {
-              console.log("👆 Click en botón de logout");
-              this.textContent = 'Cerrando sesión...';
-              this.disabled = true;
-              
-              fetch('http://localhost:3000/auth/logout', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                credentials: 'include',
-                body: JSON.stringify({action: 'logout'})
-              })
-              .then(() => {
-                window.location.href = "/?logout=true";
-              })
-              .catch(error => {
-                console.error("Error al cerrar sesión:", error);
-                this.textContent = 'Cerrar sesión';
-                this.disabled = false;
-              });
-            });
-          } else {
-            console.error("⚠️ No autenticado");
-            window.location.href = "/";
-          }
-        })
-        .catch(error => {
-          console.error("❌ Error cargando datos:", error);
-        });
-      }
-      
-      // Ejecutar después de 500ms para dar tiempo a dashboard.js
-      setTimeout(function() {
-        if (!window.dashboardJsLoaded) {
-          console.log("⚠️ dashboard.js no se cargó, usando plan B");
-          cargarDatosUsuario();
-        }
-      }, 1500); // FIXED: Increased timeout from 500ms to 1500ms
-    </script>
-    
-    <!-- Script para marcar como cargado -->
-    <script>
-      window.onerror = function(message, source, lineno, colno, error) {
-        console.error('❌ Error de JavaScript:', message, source, lineno);
-        document.body.insertAdjacentHTML('afterbegin', 
-          `<div class="bg-red-100 text-red-800 p-3 fixed top-0 left-0 right-0 z-50">
+
+						// Configurar botón de logout
+						document.getElementById('logoutButton').addEventListener('click', function () {
+							console.log("👆 Click en botón de logout");
+							this.textContent = 'Cerrando sesión...';
+							this.disabled = true;
+
+							fetch('http://localhost:3000/auth/logout', {
+								method: 'POST',
+								headers: { 'Content-Type': 'application/json' },
+								credentials: 'include',
+								body: JSON.stringify({ action: 'logout' })
+							})
+								.then(() => {
+									window.location.href = "/?logout=true";
+								})
+								.catch(error => {
+									console.error("Error al cerrar sesión:", error);
+									this.textContent = 'Cerrar sesión';
+									this.disabled = false;
+								});
+						});
+					} else {
+						console.error("⚠️ No autenticado");
+						window.location.href = "/";
+					}
+				})
+				.catch(error => {
+					console.error("❌ Error cargando datos:", error);
+				});
+		}
+
+		// Ejecutar después de 500ms para dar tiempo a dashboard.js
+		setTimeout(function () {
+			if (!window.dashboardJsLoaded) {
+				console.log("⚠️ dashboard.js no se cargó, usando plan B");
+				cargarDatosUsuario();
+			}
+		}, 1500); // FIXED: Increased timeout from 500ms to 1500ms
+	</script>
+
+	<!-- Script para marcar como cargado -->
+	<script>
+		window.onerror = function (message, source, lineno, colno, error) {
+			console.error('❌ Error de JavaScript:', message, source, lineno);
+			document.body.insertAdjacentHTML('afterbegin',
+				`<div class="bg-red-100 text-red-800 p-3 fixed top-0 left-0 right-0 z-50">
             Error en JavaScript: ${message} (línea ${lineno})
             <button onclick="location.reload()" class="ml-2 underline">Recargar</button>
           </div>`
-        );
-        return false;
-      };
-    </script>
-    
-    <!-- Cargar el script compilado de dashboard -->
-    <script type="module" src="/dist/dashboard.js?v=<?php echo time(); ?>"></script>
-    
-    <!-- Script para marcar como cargado -->
-    <script>
-      // Este script se ejecutará después de dashboard.js
-      window.dashboardJsLoaded = true;
-      console.log('✅ Scripts de página cargados:', new Date().toISOString());
-      
-      // AÑADIR: Desactivar la verificación de recarga automática
-      window.stopDashboardCheck = true;
-    </script>
-  </body>
+			);
+			return false;
+		};
+	</script>
+
+	<!-- Cargar el script compilado de dashboard -->
+	<script type="module" src="/dist/dashboard.js?v=<?php echo time(); ?>"></script>
+
+	<!-- Script para marcar como cargado -->
+	<script>
+		// Este script se ejecutará después de dashboard.js
+		window.dashboardJsLoaded = true;
+		console.log('✅ Scripts de página cargados:', new Date().toISOString());
+
+		// AÑADIR: Desactivar la verificación de recarga automática
+		window.stopDashboardCheck = true;
+	</script>
+</body>
+
 </html>

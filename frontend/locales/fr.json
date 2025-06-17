@@ -17,18 +17,123 @@
     "login": "Connexion",
     "register": "S'inscrire",
     "profile": "Profil",
-    "settings": "Paramètres"
+    "settings": "Paramètres",
+    "email": "E-mail",
+    "user": "Utilisateur",
+    "avatar": "Avatar",
+    "please_wait": "Veuillez patienter...",
+    "test_user": "Utilisateur de test",
+    "saving": "Sauvegarde...",
+    "retry": "Réessayer",
+    "unknown": "Inconnu",
+    "unknown_date": "Date inconnue",
+    "yes": "Oui",
+    "no": "Non"
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "return_to_dashboard": "Return to Dashboard",
+    "game": "Game",
+    "settings": "Settings",
+    "scores": "Scores"
+  },
+  "greeting": {
+    "morning": "Bonjour",
+    "afternoon": "Bon après-midi",
+    "evening": "Bonsoir"
+  },
+  "welcome": {
+    "logged_in_message": "Vous vous êtes connecté avec succès à Transcender."
+  },
+  "auth": {
+    "logout": "Déconnexion",
+    "logging_out": "Déconnexion...",
+    "logout_error": "Erreur de déconnexion : {{status}}",
+    "logout_error_message": "Erreur lors de la déconnexion"
+  },
+  "profile": {
+    "edit_image": "Changer l'image",
+    "change_image": "Changer l'image de profil",
+    "image_url": "URL de l'image:",
+    "image_url_placeholder": "https://exemple.com/mon-image.jpg",
+    "error": {
+      "url_or_alias_required": "Veuillez saisir une URL ou un alias",
+      "alias_length": "L'alias doit contenir entre 3 et 20 caractères",
+      "invalid_image_url": "Veuillez saisir une URL d'image valide",
+      "image_load_failed": "Impossible de charger l'image. Vérifiez l'URL",
+      "server_error": "Erreur du serveur : {{status}}",
+      "connection_error": "Erreur de connexion. Veuillez réessayer"
+    },
+    "success": {
+      "image_updated": "Image mise à jour avec succès"
+    }
   },
   "dashboard": {
-    "title": "Tableau de bord - Transcendence",
+    "title": "Tableau de Bord - Transcendence",
+    "nav_title": "Tableau de Bord Transcendence",
     "welcome": "Bienvenue à Transcendence",
-    "play_pong": "🏓 Jouer au Pong",
-    "play_vs_ai": "🤖 Jouer vs IA",
+    "play_pong": "🏓 Jouer Pong",
+    "play_vs_ai": "🤖 Jouer contre IA",
     "my_scores": "Mes Scores Pong",
+    "global_scores": "🏆 Meilleurs Scores Globaux",
+    "game_stats": "📊 Statistiques de Jeu",
+    "summary": "📈 Résumé",
+    "games_played": "Parties jouées:",
+    "victories": "Victoires:",
+    "best_score": "Meilleur score:",
+    "avg_score": "Points moyens:"
+  },
+  "pong": {
     "loading_scores": "Chargement des scores...",
-    "global_scores": "Meilleurs Scores Globaux",
-    "no_scores": "Aucun score disponible",
-    "warning_js_not_loaded": "⚠️ Attention: dashboard.js ne s'est pas chargé correctement."
+    "points": "points",
+    "vs": "vs",
+    "victory": "Victoire !",
+    "defeat": "Défaite",
+    "no_games_yet": "Vous n'avez encore joué à aucun jeu.",
+    "click_to_start": "Cliquez sur \"Jouer Pong\" pour commencer !",
+    "retrying_in_seconds": "Nouvelle tentative dans {{seconds}} secondes...",
+    "errors": {
+      "container_not_found": "Erreur lors du chargement des scores Pong",
+      "load_scores_failed": "Erreur lors du chargement des scores : {{status}}",
+      "load_failed_multiple_attempts": "Erreur lors du chargement des scores après plusieurs tentatives."
+    }
+  },
+  "leaderboard": {
+    "anonymous_player": "Joueur anonyme",
+    "you": "(Vous)",
+    "opponent": "Adversaire",
+    "unknown_opponent": "Adversaire inconnu",
+    "no_scores_yet": "Aucun score enregistré pour le moment.",
+    "errors": {
+      "load_failed": "Erreur lors du chargement des meilleurs scores : {{status}} {{statusText}}",
+      "load_error": "Erreur lors du chargement des meilleurs scores."
+    }
+  },
+  "stats": {
+    "game_number": "Jeu {{number}}",
+    "your_score": "Votre Score",
+    "opponent": "Adversaire",
+    "last_10_games_title": "10 Derniers Jeux - Scores",
+    "score": "Score",
+    "games": "Jeux",
+    "victories": "Victoires",
+    "defeats": "Défaites",
+    "win_rate_title": "Taux de Victoire : {{rate}}%",
+    "no_games_to_show": "Aucun jeu à afficher",
+    "game_statistics": "Statistiques de Jeu",
+    "summary": "Résumé",
+    "games_played": "Jeux joués",
+    "best_score": "Meilleur score",
+    "average_points": "Points moyens",
+    "errors": {
+      "load_failed": "Erreur lors du chargement des statistiques : {{status}}",
+      "chart_load_error": "Erreur lors du chargement du graphique"
+    }
+  },
+  "errors": {
+    "initialization_failed": "Erreur d'initialisation : {{error}}",
+    "server_error": "Erreur du serveur : {{status}}",
+    "session_error": "Erreur de session. Veuillez vous reconnecter depuis la page principale."
   },
   "game": {
     "title": "MegaPong - Transcendence",
@@ -99,5 +204,12 @@
     "select_language": "Sélectionner la langue",
     "current_language": "Langue actuelle",
     "change_language": "Changer de langue"
+  },
+  "languages": {
+    "spanish": "Español",
+    "english": "English",
+    "french": "Français",
+    "portuguese": "Português",
+    "german": "Deutsch"
   }
 }

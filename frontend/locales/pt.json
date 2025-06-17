@@ -17,7 +17,56 @@
     "login": "Entrar",
     "register": "Registrar",
     "profile": "Perfil",
-    "settings": "Configurações"
+    "settings": "Configurações",
+    "email": "E-mail",
+    "user": "Usuário",
+    "avatar": "Avatar",
+    "please_wait": "Por favor aguarde...",
+    "test_user": "Usuário de teste",
+    "saving": "Salvando...",
+    "retry": "Tentar novamente",
+    "unknown": "Desconhecido",
+    "unknown_date": "Data desconhecida",
+    "yes": "Sim",
+    "no": "Não"
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "return_to_dashboard": "Return to Dashboard",
+    "game": "Game",
+    "settings": "Settings",
+    "scores": "Scores"
+  },
+  "greeting": {
+    "morning": "Bom dia",
+    "afternoon": "Boa tarde",
+    "evening": "Boa noite"
+  },
+  "welcome": {
+    "logged_in_message": "Você fez login com sucesso no Transcender."
+  },
+  "auth": {
+    "logout": "Sair",
+    "logging_out": "Saindo...",
+    "logout_error": "Erro ao sair: {{status}}",
+    "logout_error_message": "Erro ao sair"
+  },
+  "profile": {
+    "edit_image": "Alterar imagem",
+    "change_image": "Alterar imagem de perfil",
+    "image_url": "URL da imagem:",
+    "image_url_placeholder": "https://exemplo.com/minha-imagem.jpg",
+    "error": {
+      "url_or_alias_required": "Por favor, insira uma URL ou um alias",
+      "alias_length": "O alias deve ter entre 3 e 20 caracteres",
+      "invalid_image_url": "Por favor, insira uma URL de imagem válida",
+      "image_load_failed": "Não foi possível carregar a imagem. Verifique a URL",
+      "server_error": "Erro do servidor: {{status}}",
+      "connection_error": "Erro de conexão. Tente novamente"
+    },
+    "success": {
+      "image_updated": "Imagem atualizada com sucesso"
+    }
   },
   "dashboard": {
     "title": "Painel - Transcendence",
@@ -26,9 +75,68 @@
     "play_vs_ai": "🤖 Jogar vs IA",
     "my_scores": "Minhas Pontuações Pong",
     "loading_scores": "Carregando pontuações...",
-    "global_scores": "Melhores Pontuações Globais",
+    "global_scores": "🏆 Melhores Pontuações Globais",
     "no_scores": "Nenhuma pontuação disponível",
-    "warning_js_not_loaded": "⚠️ Aviso: dashboard.js não carregou corretamente."
+    "warning_js_not_loaded": "⚠️ Aviso: dashboard.js não carregou corretamente.",
+    "nav_title": "Painel Transcendence",
+    "game_stats": "📊 Estatísticas do Jogo",
+    "summary": "📈 Resumo",
+    "games_played": "Jogos jogados:",
+    "victories": "Vitórias:",
+    "best_score": "Melhor pontuação:",
+    "avg_score": "Pontos médios:"
+  },
+  "pong": {
+    "loading_scores": "Carregando pontuações...",
+    "points": "pontos",
+    "vs": "vs",
+    "victory": "Vitória!",
+    "defeat": "Derrota",
+    "no_games_yet": "Você ainda não jogou nenhum jogo.",
+    "click_to_start": "Clique em \"Jogar Pong\" para começar!",
+    "retrying_in_seconds": "Tentando novamente em {{seconds}} segundos...",
+    "errors": {
+      "container_not_found": "Erro ao carregar pontuações do Pong",
+      "load_scores_failed": "Erro ao carregar pontuações: {{status}}",
+      "load_failed_multiple_attempts": "Erro ao carregar pontuações após várias tentativas."
+    }
+  },
+  "leaderboard": {
+    "anonymous_player": "Jogador anônimo",
+    "you": "(Você)",
+    "opponent": "Oponente",
+    "unknown_opponent": "Oponente desconhecido",
+    "no_scores_yet": "Nenhuma pontuação registrada ainda.",
+    "errors": {
+      "load_failed": "Erro ao carregar melhores pontuações: {{status}} {{statusText}}",
+      "load_error": "Erro ao carregar melhores pontuações."
+    }
+  },
+  "stats": {
+    "game_number": "Jogo {{number}}",
+    "your_score": "Sua Pontuação",
+    "opponent": "Oponente",
+    "last_10_games_title": "Últimos 10 Jogos - Pontuações",
+    "score": "Pontuação",
+    "games": "Jogos",
+    "victories": "Vitórias",
+    "defeats": "Derrotas",
+    "win_rate_title": "Taxa de Vitória: {{rate}}%",
+    "no_games_to_show": "Nenhum jogo para mostrar",
+    "game_statistics": "Estatísticas do Jogo",
+    "summary": "Resumo",
+    "games_played": "Jogos jogados",
+    "best_score": "Melhor pontuação",
+    "average_points": "Pontos médios",
+    "errors": {
+      "load_failed": "Erro ao carregar estatísticas: {{status}}",
+      "chart_load_error": "Erro ao carregar gráfico"
+    }
+  },
+  "errors": {
+    "initialization_failed": "Erro de inicialização: {{error}}",
+    "server_error": "Erro do servidor: {{status}}",
+    "session_error": "Erro de sessão. Faça login novamente a partir da página principal."
   },
   "game": {
     "title": "MegaPong - Transcendence",
@@ -99,5 +207,12 @@
     "select_language": "Selecionar idioma",
     "current_language": "Idioma atual",
     "change_language": "Mudar idioma"
+  },
+  "languages": {
+    "spanish": "Español",
+    "english": "English",
+    "french": "Français",
+    "portuguese": "Português",
+    "german": "Deutsch"
   }
 }

@@ -14,7 +14,16 @@
     "previous": "Previous",
     "yes": "Yes",
     "no": "No",
-    "logout": "Logout"
+    "logout": "Logout",
+    "email": "Email",
+    "user": "User",
+    "avatar": "Avatar",
+    "please_wait": "Please wait...",
+    "test_user": "Test user",
+    "saving": "Saving...",
+    "retry": "Retry",
+    "unknown": "Unknown",
+    "unknown_date": "Unknown date"
   },
   "navigation": {
     "dashboard": "Dashboard",
@@ -23,31 +32,121 @@
     "settings": "Settings",
     "scores": "Scores"
   },
+  "greeting": {
+    "morning": "Good morning",
+    "afternoon": "Good afternoon",
+    "evening": "Good evening"
+  },
+  "welcome": {
+    "logged_in_message": "You have successfully logged into Transcender."
+  },
+  "auth": {
+    "logout": "Logout",
+    "logging_out": "Logging out...",
+    "logout_error": "Logout error: {{status}}",
+    "logout_error_message": "Error logging out"
+  },
+  "profile": {
+    "edit_image": "Change image",
+    "change_image": "Change profile image",
+    "image_url": "Image URL:",
+    "image_url_placeholder": "https://example.com/my-image.jpg",
+    "error": {
+      "url_or_alias_required": "Please enter a URL or an alias",
+      "alias_length": "Alias must be between 3 and 20 characters",
+      "invalid_image_url": "Please enter a valid image URL",
+      "image_load_failed": "Could not load image. Check the URL",
+      "server_error": "Server error: {{status}}",
+      "connection_error": "Connection error. Please try again"
+    },
+    "success": {
+      "image_updated": "Image updated successfully"
+    }
+  },
   "dashboard": {
     "title": "Dashboard - Transcendence",
+    "nav_title": "Transcendence Dashboard",
     "welcome": "Welcome to Transcendence",
     "play_pong": "🏓 Play Pong",
     "play_vs_ai": "🤖 Play vs AI",
-    "my_scores": "Mis puntuaciones de Pong",
-    "loading_scores": "Cargando puntuaciones...",
-    "global_scores": "Mejores puntuaciones globales",
-    "no_scores": "No hay puntuaciones disponibles",
-    "warning_js_not_loaded": "⚠️ Advertencia: dashboard.js no se cargó correctamente."
+    "my_scores": "My Pong Scores",
+    "loading_scores": "Loading scores...",
+    "global_scores": "🏆 Global High Scores",
+    "game_stats": "📊 Game Statistics",
+    "summary": "📈 Summary",
+    "games_played": "Games played:",
+    "victories": "Victories:",
+    "best_score": "Best score:",
+    "avg_score": "Average points:",
+    "no_scores": "No scores available",
+    "warning_js_not_loaded": "⚠️ Warning: dashboard.js not loaded correctly."
+  },
+  "pong": {
+    "loading_scores": "Loading scores...",
+    "points": "points",
+    "vs": "vs",
+    "victory": "Victory!",
+    "defeat": "Defeat",
+    "no_games_yet": "You haven't played any games yet.",
+    "click_to_start": "Click \"Play Pong\" to start!",
+    "retrying_in_seconds": "Retrying in {{seconds}} seconds...",
+    "errors": {
+      "container_not_found": "Error loading Pong scores",
+      "load_scores_failed": "Error loading scores: {{status}}",
+      "load_failed_multiple_attempts": "Error loading scores after multiple attempts."
+    }
+  },
+  "leaderboard": {
+    "anonymous_player": "Anonymous player",
+    "you": "(You)",
+    "opponent": "Opponent",
+    "unknown_opponent": "Unknown opponent",
+    "no_scores_yet": "No scores registered yet.",
+    "errors": {
+      "load_failed": "Error loading high scores: {{status}} {{statusText}}",
+      "load_error": "Error loading high scores."
+    }
+  },
+  "stats": {
+    "game_number": "Game {{number}}",
+    "your_score": "Your Score",
+    "opponent": "Opponent",
+    "last_10_games_title": "Last 10 Games - Scores",
+    "score": "Score",
+    "games": "Games",
+    "victories": "Victories",
+    "defeats": "Defeats",
+    "win_rate_title": "Win Rate: {{rate}}%",
+    "no_games_to_show": "No games to show",
+    "game_statistics": "Game Statistics",
+    "summary": "Summary",
+    "games_played": "Games played",
+    "best_score": "Best score",
+    "average_points": "Average points",
+    "errors": {
+      "load_failed": "Error loading statistics: {{status}}",
+      "chart_load_error": "Error loading chart"
+    }
+  },
+  "errors": {
+    "initialization_failed": "Initialization error: {{error}}",
+    "server_error": "Server error: {{status}}",
+    "session_error": "Session error. Please log in again from the main page."
   },
   "game": {
     "title": "MegaPong - Transcendence",
-    "score": "Puntuación",
-    "game_over": "¡Juego terminado!",
-    "your_score": "Tu puntuación",
-    "final_score": "Puntuación final",
-    "play_again": "Jugar de nuevo",
-    "save_score": "Guardar puntuación",
-    "player": "Jugador",
-    "player_1": "Jugador 1",
-    "player_2": "Jugador 2",
-    "player_3": "Jugador 3",
-    "player_4": "Jugador 4",
-    "vs_ai": "vs IA",
+    "score": "Score",
+    "game_over": "Game over!",
+    "your_score": "Your score",
+    "final_score": "Final score",
+    "play_again": "Play again",
+    "save_score": "Save score",
+    "player": "Player",
+    "player_1": "Player 1",
+    "player_2": "Player 2",
+    "player_3": "Player 3",
+    "player_4": "Player 4",
+    "vs_ai": "vs AI",
     "point_for_player_1": "Point for player 1!",
     "point_for_player_2": "Point for player 2!",
     "goal_for_player_1": "Goal for Player 1!",
@@ -66,42 +165,49 @@
     "red": "Red",
     "green": "Green",
     "purple": "Purple",
-    "player_1_eliminated": "¡Jugador 1 (Arriba) eliminado!",
-    "player_2_eliminated": "¡Jugador 2 (Derecha) eliminado!",
-    "player_3_eliminated": "¡Jugador 3 (Abajo) eliminado!",
-    "player_4_eliminated": "¡Jugador 4 (Izquierda) eliminado!"
+    "player_1_eliminated": "Player 1 (Top) eliminated!",
+    "player_2_eliminated": "Player 2 (Right) eliminated!",
+    "player_3_eliminated": "Player 3 (Bottom) eliminated!",
+    "player_4_eliminated": "Player 4 (Left) eliminated!"
   },
   "controls": {
-    "camera": "Cámara",
-    "reset_camera": "Resetear cámara",
-    "change_camera": "Cambiar cámara",
-    "move_camera": "Mover cámara",
+    "camera": "Camera",
+    "reset_camera": "Reset camera",
+    "change_camera": "Change camera",
+    "move_camera": "Move camera",
     "zoom": "Zoom"
   },
   "ui": {
-    "select": "Seleccionar",
-    "character_selection": "Selección de Personaje",
-    "environment_selection": "Selección de Entorno",
-    "choose_character": "Elige tu personaje",
-    "choose_environment": "Elige el entorno",
-    "start_game": "Iniciar Juego",
-    "ready": "Listo",
-    "waiting": "Esperando..."
+    "select": "Select",
+    "character_selection": "Character Selection",
+    "environment_selection": "Environment Selection",
+    "choose_character": "Choose your character",
+    "choose_environment": "Choose the environment",
+    "start_game": "Start Game",
+    "ready": "Ready",
+    "waiting": "Waiting..."
   },
   "environments": {
-    "city": "Ciudad",
-    "galaxy": "Galaxia",
-    "cielo": "Cielo"
+    "city": "City",
+    "galaxy": "Galaxy",
+    "cielo": "Sky"
   },
   "characters": {
-    "fish": "Pez",
-    "clownfish": "Pez Payaso", 
-    "cow": "Vaca",
-    "tuna": "Atún"
+    "fish": "Fish",
+    "clownfish": "Clownfish", 
+    "cow": "Cow",
+    "tuna": "Tuna"
   },
   "language": {
-    "select_language": "Seleccionar idioma",
-    "current_language": "Idioma actual",
-    "change_language": "Cambiar idioma"
+    "select_language": "Select language",
+    "current_language": "Current language",
+    "change_language": "Change language"
+  },
+  "languages": {
+    "spanish": "Español",
+    "english": "English",
+    "french": "Français",
+    "portuguese": "Português",
+    "german": "Deutsch"
   }
 }

@@ -49,9 +49,28 @@ const client = new OAuth2Client(
 	GOOGLE_CALLBACK_URL
 );
 
-// Reemplazar la configuración CORS actual con esta:
 fastify.register(require('@fastify/cors'), {
-	origin: [FRONTEND_URL, 'https://lh3.googleusercontent.com', 'https://lh4.googleusercontent.com', 'https://lh5.googleusercontent.com', 'https://lh6.googleusercontent.com'],
+	origin: (origin, cb) => {
+		const hostname = new URL(origin || 'http://localhost:8080').hostname;
+
+		// Lista de dominios permitidos
+		const allowedDomains = [
+			'localhost',
+			'127.0.0.1',
+			'lh3.googleusercontent.com',
+			'lh4.googleusercontent.com',
+			'lh5.googleusercontent.com',
+			'lh6.googleusercontent.com',
+			'ui-avatars.com'
+		];
+
+		// Permitir si no hay origin (requests del mismo servidor) o si está en la lista
+		if (!origin || allowedDomains.includes(hostname)) {
+			cb(null, true);
+		} else {
+			cb(new Error('Not allowed by CORS'));
+		}
+	},
 	credentials: true,
 	methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
 	allowedHeaders: [
@@ -61,19 +80,10 @@ fastify.register(require('@fastify/cors'), {
 		'Origin',
 		'X-Requested-With',
 		'Cache-Control',
-		'Pragma',
-		'Access-Control-Allow-Origin', // Añadir este
-		'Access-Control-Allow-Credentials' // Y este
+		'Pragma'
 	],
-	exposedHeaders: [
-		'Content-Disposition',
-		'Set-Cookie',
-		'Access-Control-Allow-Origin', // Exponer estos headers
-		'Access-Control-Allow-Credentials'
-	],
-	optionsSuccessStatus: 200, // Firefox necesita esto explícito
-	preflightContinue: false,
-	credentials: true
+	optionsSuccessStatus: 200,
+	preflightContinue: false
 });
 
 // Registrar plugin para archivos estáticos (añade esta línea)
@@ -210,33 +220,43 @@ fastify.post('/pong/scores', async (req, reply) => {
 fastify.get('/pong/leaderboard', async (req, reply) => {
 	try {
 		const rows = await new Promise((resolve, reject) => {
-			// Updated query to use user_picture instead of picture
+			// Consulta simplificada y más robusta
 			db.all(`
-        SELECT ps.*, 
-		u1.user_name as user_name, 
-		CASE WHEN ps.p2_id = '0' THEN 'CPU' ELSE COALESCE(u2.user_name, 'Unknown') END as opponent_name,
-		COALESCE(u1.user_picture, 'https://ui-avatars.com/api/?name=' || u1.user_name || '&background=random&color=fff') as user_picture,
-		CASE 
-			WHEN ps.p2_id = '0' THEN 'https://ui-avatars.com/api/?name=CPU&background=random&color=fff'
-			ELSE COALESCE(u2.user_picture, 'https://ui-avatars.com/api/?name=' || COALESCE(u2.user_name, 'Unknown') || '&background=random&color=fff')
-		END as opponent_picture
-		FROM pong_scores ps
-		JOIN (
-		    SELECT p1_id, MAX(p1score) as max_score
-		    FROM pong_scores
-		    GROUP BY p1_id
-		) top ON ps.p1_id = top.p1_id AND ps.p1score = top.max_score
-		LEFT JOIN users u1 ON ps.p1_id = u1.google_id  -- Cambio aquí
-		LEFT JOIN users u2 ON ps.p2_id = u2.google_id AND ps.p2_id != '0'  -- Cambio aquí
-		ORDER BY ps.p1score DESC
-		LIMIT 10;
-      `, [], (err, rows) => {
+				SELECT 
+					ps.*,
+					COALESCE(u1.user_name, 'Usuario Desconocido') as user_name,
+					CASE 
+						WHEN ps.p2_id = '0' OR ps.p2_id IS NULL THEN 'CPU' 
+						ELSE COALESCE(u2.user_name, 'Oponente Desconocido') 
+					END as opponent_name,
+					u1.user_picture as user_picture,
+					CASE 
+						WHEN ps.p2_id = '0' OR ps.p2_id IS NULL THEN NULL
+						ELSE u2.user_picture
+					END as opponent_picture
+				FROM pong_scores ps
+				LEFT JOIN users u1 ON ps.p1_id = u1.google_id
+				LEFT JOIN users u2 ON ps.p2_id = u2.google_id AND ps.p2_id != '0'
+				WHERE ps.p1score IS NOT NULL AND ps.p2score IS NOT NULL
+				ORDER BY 
+					ps.p1score DESC,
+					ps.fecha DESC
+				LIMIT 10
+			`, [], (err, rows) => {
 				if (err) {
 					console.error("❌ Error al obtener mejores puntuaciones:", err);
 					reject(err);
 				} else {
 					console.log(`✅ ${rows.length} mejores puntuaciones obtenidas`);
-					resolve(rows);
+
+					// Procesar las filas para asegurar URLs de imagen válidas
+					const processedRows = rows.map(row => ({
+						...row,
+						user_picture: row.user_picture || null,
+						opponent_picture: row.opponent_picture || null
+					}));
+
+					resolve(processedRows);
 				}
 			});
 		});
