@@ -1,0 +1,106 @@
+{
+  "common": {
+    "loading": "Wird geladen...",
+    "error": "Fehler",
+    "success": "Erfolg",
+    "cancel": "Abbrechen",
+    "confirm": "Bestätigen",
+    "close": "Schließen",
+    "save": "Speichern",
+    "delete": "Löschen",
+    "edit": "Bearbeiten",
+    "back": "Zurück",
+    "next": "Weiter",
+    "previous": "Vorherige",
+    "yes": "Ja",
+    "no": "Nein",
+    "logout": "Abmelden"
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "return_to_dashboard": "Zurück zum Dashboard",
+    "game": "Spiel",
+    "settings": "Einstellungen",
+    "scores": "Punkte"
+  },
+  "dashboard": {
+    "title": "Dashboard - Transcendence",
+    "welcome": "Willkommen bei Transcendence",
+    "play_pong": "🏓 Pong spielen",
+    "play_vs_ai": "🤖 Gegen KI spielen",
+    "my_scores": "Meine Pong-Punkte",
+    "loading_scores": "Punkte werden geladen...",
+    "global_scores": "Globale Bestpunkte",
+    "no_scores": "Keine Punkte verfügbar",
+    "warning_js_not_loaded": "⚠️ Warnung: dashboard.js wurde nicht korrekt geladen."
+  },
+  "game": {
+    "score": "Punkte",
+    "game_over": "Spiel beendet!",
+    "your_score": "Deine Punkte",
+    "final_score": "Endpunkte",
+    "play_again": "Nochmal spielen",
+    "save_score": "Punkte speichern",
+    "player": "Spieler",
+    "player_1": "Spieler 1",
+    "player_2": "Spieler 2",
+    "player_3": "Spieler 3", 
+    "player_4": "Spieler 4",
+    "vs_ai": "vs KI",
+    "point_for_player_1": "Punkt für Spieler 1!",
+    "point_for_player_2": "Punkt für Spieler 2!",
+    "goal_for_player_1": "Tor für Spieler 1!",
+    "goal_for_player_2": "Tor für Spieler 2!",
+    "goal_for_player_3": "Tor für Spieler 3!",
+    "goal_for_player_4": "Tor für Spieler 4!",
+    "player_1_won_blue": "Spieler 1 hat gewonnen, Blau!",
+    "player_2_won_red": "Spieler 2 hat gewonnen, Rot!",
+    "player_3_won_green": "Spieler 3 hat gewonnen, Grün!",
+    "player_4_won_purple": "Spieler 4 hat gewonnen, Lila!",
+    "tie_game": "Unentschieden!",
+    "score_saved": "Punktzahl erfolgreich gespeichert!",
+    "saved": "Gespeichert!",
+    "choose_character_and_environment": "Wählen Sie Ihren Charakter und die Umgebung\nDrücken Sie LEERTASTE zum Starten",
+    "blue": "Blau",
+    "red": "Rot",
+    "green": "Grün",
+    "purple": "Lila",
+    "player_1_eliminated": "Spieler 1 (Oben) eliminiert!",
+    "player_2_eliminated": "Spieler 2 (Rechts) eliminiert!",
+    "player_3_eliminated": "Spieler 3 (Unten) eliminiert!",
+    "player_4_eliminated": "Spieler 4 (Links) eliminiert!"
+  },
+  "controls": {
+    "camera": "Kamera",
+    "reset_camera": "Kamera zurücksetzen",
+    "change_camera": "Kamera wechseln",
+    "move_camera": "Kamera bewegen",
+    "zoom": "Zoom"
+  },
+  "ui": {
+    "select": "Auswählen",
+    "character_selection": "Charakterauswahl",
+    "environment_selection": "Umgebungsauswahl",
+    "choose_character": "Wähle deinen Charakter",
+    "choose_environment": "Wähle die Umgebung",
+    "start_game": "Spiel starten",
+    "ready": "Bereit",
+    "waiting": "Warte..."
+  },
+  "environments": {
+    "city": "Stadt",
+    "galaxy": "Galaxie",
+    "cielo": "Himmel"
+  },
+  "characters": {
+    "fish": "Fisch",
+    "clownfish": "Clownfisch",
+    "cow": "Kuh",
+    "tuna": "Thunfisch"
+  },
+  "language": {
+    "select_language": "Sprache auswählen",
+    "current_language": "Aktuelle Sprache",
+    "change_language": "Sprache ändern"
+  }
+}

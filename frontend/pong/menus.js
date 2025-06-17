@@ -305,7 +305,7 @@ export function createUI(advancedTextureParam, scene, personajes, personajesCont
 	advancedTexture.addControl(puntoTexto);
 
 	mensajeInicio = new BABYLON.GUI.TextBlock("mensajeInicio");
-	mensajeInicio.text = "Elige tu personaje y entorno\nPresiona ESPACIO para iniciar";
+	mensajeInicio.text = (window.t && window.i18n && window.i18n.translations) ? window.t('game.choose_character_and_environment') : "Elige tu personaje y entorno\nPresiona ESPACIO para iniciar";
 	mensajeInicio.color = "#FFFFFF";
 	mensajeInicio.fontSize = 48;
 	mensajeInicio.fontStyle = "bold";
@@ -316,6 +316,11 @@ export function createUI(advancedTextureParam, scene, personajes, personajesCont
 	mensajeInicio.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
 	mensajeInicio.alpha = 1;
 	mensajeInicio.top = "-50px"; // Ajusta la posición vertical
+	mensajeInicio.isHitTestVisible = false;
+	mensajeInicio.zIndex = 1002; // Z-index más alto que los botones
+	
+	// Exponer globalmente para i18n
+	window.mensajeInicio = mensajeInicio;
 	mensajeInicio.isHitTestVisible = false;
 	mensajeInicio.zIndex = 1002; // Z-index más alto que los botones
 	advancedTexture.addControl(mensajeInicio);
@@ -524,7 +529,7 @@ export function createUI4P(advancedTexture, scene, personajes, personajesContene
 	advancedTexture.addControl(puntoTexto);
 
 	mensajeInicio = new BABYLON.GUI.TextBlock("mensajeInicio");
-	mensajeInicio.text = "Elige tu personaje y entorno\nPresiona ESPACIO para iniciar";
+	mensajeInicio.text = (window.t && window.i18n && window.i18n.translations) ? window.t('game.choose_character_and_environment') : "Elige tu personaje y entorno\nPresiona ESPACIO para iniciar";
 	mensajeInicio.color = "#FFFFFF";
 	mensajeInicio.fontSize = 48;
 	mensajeInicio.fontStyle = "bold";
@@ -535,6 +540,10 @@ export function createUI4P(advancedTexture, scene, personajes, personajesContene
 	mensajeInicio.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
 	mensajeInicio.alpha = 1;
 	mensajeInicio.top = "-150px"; // Ajusta la posición vertical
+	mensajeInicio.isHitTestVisible = false;
+	
+	// Exponer globalmente para i18n
+	window.mensajeInicio = mensajeInicio;
 	mensajeInicio.isHitTestVisible = false;
 	advancedTexture.addControl(mensajeInicio);
 }

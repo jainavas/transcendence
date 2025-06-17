@@ -27,23 +27,28 @@ function gameOver(message, bola, pala2, pala1, tableTop, scene) {
 	// Actualizar puntuaciones
 	if (message.includes("jugador 1")) {
 		changeScore1();
-		anunciarPunto(puntoTexto, "¡Punto para el jugador 1!", scene);
+		anunciarPunto(puntoTexto, window.t ? window.t('game.point_for_player_1') : "¡Punto para el jugador 1!", scene);
 	} else if (message.includes("jugador 2")) {
 		changeScore2();
-		anunciarPunto(puntoTexto, "¡Punto para el jugador 2!", scene);
+		anunciarPunto(puntoTexto, window.t ? window.t('game.point_for_player_2') : "¡Punto para el jugador 2!", scene);
 	}
 
 	// Stop ball movement immediately
 	bola.physicsImpostor.setLinearVelocity(BABYLON.Vector3.Zero());
 	bola.physicsImpostor.setAngularVelocity(BABYLON.Vector3.Zero());
 
-	// Actualizar marcador
-	document.getElementById('score').textContent = `${scoreP1} - ${scoreP2}`;
+	// Las puntuaciones ya se actualizan automáticamente en changeScore1() y changeScore2()
 
 	// Mostrar Game Over final si llega al límite
 	if (scoreP1 >= maxScore || scoreP2 >= maxScore) {
-		document.getElementById('gameOver').style.display = 'block';
-		document.getElementById('finalScore').textContent = `${scoreP1} - ${scoreP2}`;
+		const gameOverElement = document.getElementById('gameOver');
+		const finalScoreElement = document.getElementById('finalScore');
+		if (gameOverElement) {
+			gameOverElement.style.display = 'block';
+		}
+		if (finalScoreElement) {
+			finalScoreElement.textContent = `${scoreP1} - ${scoreP2}`;
+		}
 		return false;
 	}
 
@@ -89,16 +94,16 @@ function gameOver4P(message, bola, pala2, pala1, pala3, pala4, tableTop, scene) 
 	if (!gameActive) return true;
 	if (message.includes("Jugador 1")) {
 		changeScore1();
-		anunciarPunto(puntoTexto, "¡Gol al Jugador 1!", scene);
+		anunciarPunto(puntoTexto, window.t ? window.t('game.goal_for_player_1') : "¡Gol al Jugador 1!", scene);
 	} else if (message.includes("Jugador 2")) {
 		changeScore2();
-		anunciarPunto(puntoTexto, "¡Gol al Jugador 2!", scene);
+		anunciarPunto(puntoTexto, window.t ? window.t('game.goal_for_player_2') : "¡Gol al Jugador 2!", scene);
 	} else if (message.includes("Jugador 3")) {
 		changeScore3();
-		anunciarPunto(puntoTexto, "¡Gol al Jugador 3!", scene);
+		anunciarPunto(puntoTexto, window.t ? window.t('game.goal_for_player_3') : "¡Gol al Jugador 3!", scene);
 	} else if (message.includes("Jugador 4")) {
 		changeScore4();
-		anunciarPunto(puntoTexto, "¡Gol al Jugador 4!", scene);
+		anunciarPunto(puntoTexto, window.t ? window.t('game.goal_for_player_4') : "¡Gol al Jugador 4!", scene);
 	}
 	setGameActive(false);
 	// Obtener dirección actual de la bola
@@ -112,30 +117,42 @@ function gameOver4P(message, bola, pala2, pala1, pala3, pala4, tableTop, scene) 
 		Math.random()
 	));
 
-	// Actualizar marcador
-	document.getElementById('score').textContent = `Azul:${scoreP1} - Rojo:${scoreP2} - Verde:${scoreP3} - Púrpura:${scoreP4}`;
+	// Las puntuaciones ya se actualizan automáticamente en changeScore1(), changeScore2(), etc.
 
 	// Mostrar Game Over final si llega al límite2
 	if (scoreP1 >= maxScore || scoreP2 >= maxScore || scoreP3 >= maxScore || scoreP4 >= maxScore) {
-		document.getElementById('gameOver').style.display = 'block';
-		let winner = Math.min(scoreP1, scoreP2, scoreP3, scoreP4);
-		switch (winner) {
-			case scoreP1:
-				document.getElementById('finalScore').textContent = `¡Ganó el Jugador 1, Azul! Azul:${scoreP1} - Rojo:${scoreP2} - Verde:${scoreP3} - Púrpura:${scoreP4}`;
-				return false;
-			case scoreP2:
-				document.getElementById('finalScore').textContent = `¡Ganó el Jugador 2, Rojo! Azul:${scoreP1} - Rojo:${scoreP2} - Verde:${scoreP3} - Púrpura:${scoreP4}`;
-				return false;
-			case scoreP3:
-				document.getElementById('finalScore').textContent = `¡Ganó el Jugador 3, Verde! Azul:${scoreP1} - Rojo:${scoreP2} - Verde:${scoreP3} - Púrpura:${scoreP4}`;
-				return false;
-			case scoreP4:
-				document.getElementById('finalScore').textContent = `¡Ganó el Jugador 4, Púrpura! Azul:${scoreP1} - Rojo:${scoreP2} - Verde:${scoreP3} - Púrpura:${scoreP4}`;
-				return false;
-			default:
-				document.getElementById('finalScore').textContent = `¡Empate! Azul:${scoreP1} - Rojo:${scoreP2} - Verde:${scoreP3} - Púrpura:${scoreP4}`;
-				return false;
+		const gameOverElement = document.getElementById('gameOver');
+		if (gameOverElement) {
+			gameOverElement.style.display = 'block';
 		}
+		
+		let winner = Math.min(scoreP1, scoreP2, scoreP3, scoreP4);
+		const finalScoreElement = document.getElementById('finalScore');
+		if (finalScoreElement) {
+			const blueText = (window.t && window.i18n && window.i18n.translations) ? window.t('game.blue') : 'Azul';
+			const redText = (window.t && window.i18n && window.i18n.translations) ? window.t('game.red') : 'Rojo';
+			const greenText = (window.t && window.i18n && window.i18n.translations) ? window.t('game.green') : 'Verde';
+			const purpleText = (window.t && window.i18n && window.i18n.translations) ? window.t('game.purple') : 'Púrpura';
+			
+			switch (winner) {
+				case scoreP1:
+					finalScoreElement.textContent = `${(window.t && window.i18n && window.i18n.translations) ? window.t('game.player_1_won_blue') : '¡Ganó el Jugador 1, Azul!'} ${blueText}:${scoreP1} - ${redText}:${scoreP2} - ${greenText}:${scoreP3} - ${purpleText}:${scoreP4}`;
+					break;
+				case scoreP2:
+					finalScoreElement.textContent = `${(window.t && window.i18n && window.i18n.translations) ? window.t('game.player_2_won_red') : '¡Ganó el Jugador 2, Rojo!'} ${blueText}:${scoreP1} - ${redText}:${scoreP2} - ${greenText}:${scoreP3} - ${purpleText}:${scoreP4}`;
+					break;
+				case scoreP3:
+					finalScoreElement.textContent = `${(window.t && window.i18n && window.i18n.translations) ? window.t('game.player_3_won_green') : '¡Ganó el Jugador 3, Verde!'} ${blueText}:${scoreP1} - ${redText}:${scoreP2} - ${greenText}:${scoreP3} - ${purpleText}:${scoreP4}`;
+					break;
+				case scoreP4:
+					finalScoreElement.textContent = `${(window.t && window.i18n && window.i18n.translations) ? window.t('game.player_4_won_purple') : '¡Ganó el Jugador 4, Púrpura!'} ${blueText}:${scoreP1} - ${redText}:${scoreP2} - ${greenText}:${scoreP3} - ${purpleText}:${scoreP4}`;
+					break;
+				default:
+					finalScoreElement.textContent = `${window.t ? window.t('game.tie_game') : '¡Empate!'} ${blueText}:${scoreP1} - ${redText}:${scoreP2} - ${greenText}:${scoreP3} - ${purpleText}:${scoreP4}`;
+					break;
+			}
+		}
+		return false;
 	}
 	// Reiniciar tras 1 segundo
 	setTimeout(() => {
@@ -575,14 +592,14 @@ export function createPhysics(scene, engine, camera, tableTop, materiales, glow)
 			if (bolaPos.x > 1.1 && Math.abs(ballVelForGoals.x) > 0.1) {
 				console.log("Goal detected for player 1 at position:", bolaPos.x);
 				lastGoalTime = currentTime;
-				if (!gameOver("¡Punto para el jugador 1!", bola, pala2, pala1, tableTop, scene))
+				if (!gameOver(window.t ? window.t('game.point_for_player_1') : "¡Punto para el jugador 1!", bola, pala2, pala1, tableTop, scene))
 					return;
 			} 
 			// Goal for player 2 (ball goes past left edge - pala1 missed)
 			else if (bolaPos.x < -1.1 && Math.abs(ballVelForGoals.x) > 0.1) {
 				console.log("Goal detected for player 2 at position:", bolaPos.x);
 				lastGoalTime = currentTime;
-				if (!gameOver("¡Punto para el jugador 2!", bola, pala2, pala1, tableTop, scene))
+				if (!gameOver(window.t ? window.t('game.point_for_player_2') : "¡Punto para el jugador 2!", bola, pala2, pala1, tableTop, scene))
 					return;
 			}
 		}
@@ -959,10 +976,10 @@ export function createPhysics4P(scene, engine, camera, tableTop, materiales, glo
 		const margin = 1.5;
 		if (Math.abs(bolaPos.x) > margin || Math.abs(bolaPos.z) > margin) {
 			let ganador = "";
-			if (bolaPos.z > margin) ganador = "¡Jugador 1 (Arriba) eliminado!";
-			else if (bolaPos.x > margin) ganador = "¡Jugador 2 (Derecha) eliminado!";
-			else if (bolaPos.z < -margin) ganador = "¡Jugador 3 (Abajo) eliminado!";
-			else if (bolaPos.x < -margin) ganador = "¡Jugador 4 (Izquierda) eliminado!";
+			if (bolaPos.z > margin) ganador = window.t ? window.t('game.player_1_eliminated') : "¡Jugador 1 (Arriba) eliminado!";
+			else if (bolaPos.x > margin) ganador = window.t ? window.t('game.player_2_eliminated') : "¡Jugador 2 (Derecha) eliminado!";
+			else if (bolaPos.z < -margin) ganador = window.t ? window.t('game.player_3_eliminated') : "¡Jugador 3 (Abajo) eliminado!";
+			else if (bolaPos.x < -margin) ganador = window.t ? window.t('game.player_4_eliminated') : "¡Jugador 4 (Izquierda) eliminado!";
 
 			if (!gameOver4P(ganador, bola, pala2, pala1, pala3, pala4, tableTop, scene))
 				return;

@@ -1,7 +1,31 @@
 import { Playground, setGameActive } from "./scene.js";
 
 export var canvas = document.getElementById("renderCanvas");
-export var engine = new BABYLON.Engine(canvas, true);
+
+// Configurar opciones del engine para mayor compatibilidad
+const engineOptions = {
+	antialias: true,
+	stencil: true,
+	preserveDrawingBuffer: false,
+	powerPreference: "high-performance"
+};
+
+// Crear engine con manejo de errores
+export var engine;
+try {
+	engine = new BABYLON.Engine(canvas, true, engineOptions);
+	console.log("✅ Babylon.js engine inicializado correctamente");
+} catch (error) {
+	console.error("❌ Error al inicializar Babylon.js engine:", error);
+	// Fallback sin opciones avanzadas
+	try {
+		engine = new BABYLON.Engine(canvas, true);
+		console.log("✅ Babylon.js engine inicializado con configuración básica");
+	} catch (fallbackError) {
+		console.error("❌ Error crítico al inicializar Babylon.js:", fallbackError);
+		throw fallbackError;
+	}
+}
 export var scene;
 export var scoreP1 = 0;
 export var scoreP2 = 0;
@@ -9,17 +33,162 @@ export var scoreP3 = 0;
 export var scoreP4 = 0;
 export var maxScore = 5;
 
+// Función para actualizar el marcador en pantalla (MODO IA - SOLO 2 JUGADORES)
+function updateScoreDisplay() {
+    console.log('🤖 updateScoreDisplay IA llamada (SOLO 2 JUGADORES):', {
+        scoreP1, scoreP2
+    });
+    
+    const scoreElement = document.getElementById('score');
+    if (!scoreElement) {
+        console.warn('⚠️ Elemento score no encontrado en pong-ia');
+        
+        // Verificar específicamente el scoreDisplay y su contenido
+        const scoreDisplayElement = document.getElementById('scoreDisplay');
+        if (scoreDisplayElement) {
+            console.log('✅ scoreDisplay encontrado en IA, contenido:', scoreDisplayElement.innerHTML);
+            
+            // Intentar buscar el span directamente
+            const spanElement = scoreDisplayElement.querySelector('span');
+            if (spanElement) {
+                console.log('✅ Span encontrado en IA sin ID, asignando ID "score":', spanElement.textContent);
+                spanElement.id = 'score';
+                updateScoreDisplay(); // Reintentar ahora que tenemos el ID
+                return;
+            } else {
+                console.log('❌ No se encontró span dentro de scoreDisplay en IA');
+                // Crear el span si no existe
+                const newSpan = document.createElement('span');
+                newSpan.id = 'score';
+                newSpan.textContent = '0 - 0';
+                scoreDisplayElement.appendChild(newSpan);
+                updateScoreDisplay();
+                return;
+            }
+        }
+        
+        // Reintento simple
+        setTimeout(function() {
+            const retryElement = document.getElementById('score');
+            if (retryElement) {
+                updateScoreDisplay();
+            } else {
+                console.error('❌ Elemento score no encontrado en pong-ia después de reintento');
+            }
+        }, 1000);
+        return;
+    }
+    
+    // FORZAR MODO 2 JUGADORES SIEMPRE - Ignorar scoreP3 y scoreP4 
+    const displayText = `${scoreP1} - ${scoreP2}`;
+    scoreElement.textContent = displayText;
+    console.log('📊 Marcador IA actualizado (MODO 2 JUGADORES):', displayText);
+}
+
+// Exponer variables y funciones globalmente para i18n
+window.scoreP1 = scoreP1;
+window.scoreP2 = scoreP2;
+window.scoreP3 = scoreP3;
+window.scoreP4 = scoreP4;
+
+// IMPORTANTE: Prevenir que main.js sobrescriba nuestra función
+window.addEventListener('DOMContentLoaded', function() {
+    console.log('🤖 IA mode: Sobrescribiendo window.updateScoreDisplay definitivamente');
+    
+    // Función específica para modo IA que NUNCA mostrará 4 jugadores
+    window.updateScoreDisplay = function() {
+        console.log('🤖🔥 FUNCIÓN IA GLOBAL EJECUTÁNDOSE - SOLO 2 JUGADORES');
+        const scoreElement = document.getElementById('score');
+        if (scoreElement) {
+            const displayText = `${window.scoreP1 || 0} - ${window.scoreP2 || 0}`;
+            scoreElement.textContent = displayText;
+            console.log('🤖✅ Marcador IA forzado a 2 jugadores:', displayText);
+        } else {
+            console.log('🤖❌ Elemento score no encontrado en función IA global');
+        }
+    };
+    
+    // Llamar inmediatamente
+    window.updateScoreDisplay();
+});
+
+// IMPORTANTE: Sobrescribir completamente la función updateScoreDisplay para modo IA
+window.updateScoreDisplay = function() {
+    console.log('🤖🔥 FUNCIÓN IA EJECUTÁNDOSE - Forzando modo 2 jugadores');
+    const scoreElement = document.getElementById('score');
+    if (scoreElement) {
+        const displayText = `${window.scoreP1 || 0} - ${window.scoreP2 || 0}`;
+        scoreElement.textContent = displayText;
+        console.log('🤖✅ Marcador IA forzado a 2 jugadores:', displayText);
+    } else {
+        console.log('🤖❌ Elemento score no encontrado en función IA global');
+    }
+};
+
+// También mantener la función local para llamadas directas
+updateScoreDisplay = window.updateScoreDisplay;
+
+console.log('🤖 Puntuaciones IA inicializadas:', {
+	scoreP1: window.scoreP1,
+	scoreP2: window.scoreP2,
+	scoreP3: window.scoreP3,
+	scoreP4: window.scoreP4
+});
+
+// Inicializar el marcador en pantalla cuando el DOM esté listo (IA)
+function initializeScoreDisplayIA() {
+	console.log('🚀 Inicializando marcador IA, DOM state:', document.readyState);
+	
+	const scoreElement = document.getElementById('score');
+	if (scoreElement) {
+		console.log('✅ Elemento score encontrado durante inicialización IA');
+		updateScoreDisplay();
+	} else {
+		console.log('⚠️ Elemento score no encontrado durante inicialización IA, esperando...');
+		setTimeout(function() {
+			const retryElement = document.getElementById('score');
+			if (retryElement) {
+				console.log('✅ Elemento score encontrado en reintento IA');
+				updateScoreDisplay();
+			} else {
+				console.log('❌ Elemento score aún no disponible después de esperar (IA)');
+			}
+		}, 1000);
+	}
+}
+
+// Esperar a que el DOM esté completamente listo (IA)
+if (document.readyState === 'loading') {
+	document.addEventListener('DOMContentLoaded', initializeScoreDisplayIA);
+} else if (document.readyState === 'interactive') {
+	setTimeout(initializeScoreDisplayIA, 100);
+} else {
+	initializeScoreDisplayIA();
+}
+
 export function changeScore1() {
     scoreP1++;
+    window.scoreP1 = scoreP1; // Sincronizar con variable global
+    console.log('🤖 Score P1 actualizado (IA):', scoreP1);
+    updateScoreDisplay();
 }
 export function changeScore2() {
     scoreP2++;
+    window.scoreP2 = scoreP2; // Sincronizar con variable global
+    console.log('🤖 Score P2 actualizado (IA):', scoreP2);
+    updateScoreDisplay();
 }
 export function changeScore3() {
     scoreP3++;
+    window.scoreP3 = scoreP3; // Sincronizar con variable global
+    console.log('🤖 Score P3 actualizado (IA):', scoreP3);
+    updateScoreDisplay();
 }
 export function changeScore4() {
     scoreP4++;
+    window.scoreP4 = scoreP4; // Sincronizar con variable global
+    console.log('🤖 Score P4 actualizado (IA):', scoreP4);
+    updateScoreDisplay();
 }
 
 var startRenderLoop = function (sceneToRender) {
@@ -138,8 +307,8 @@ window.addEventListener("DOMContentLoaded", () => {
         })
         .then(data => {
             console.log('Puntuación guardada exitosamente', data);
-            alert('¡Puntuación guardada exitosamente!');
-            this.textContent = "¡Guardado!";
+            alert(window.t ? window.t('game.score_saved') : '¡Puntuación guardada exitosamente!');
+            this.textContent = window.t ? window.t('game.saved') : "¡Guardado!";
             // Opcional: redirigir al dashboard después de un breve retraso
             setTimeout(() => {
                 window.location.href = '/dashboard';
