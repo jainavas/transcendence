@@ -90,96 +90,130 @@ function gameOver(message, bola, pala2, pala1, tableTop, scene) {
 }
 
 function gameOver4P(message, bola, pala2, pala1, pala3, pala4, tableTop, scene) {
-	// Actualizar puntuaciones
-	if (!gameActive) return true;
-	if (message.includes("Jugador 1")) {
-		changeScore1();
-		anunciarPunto(puntoTexto, window.t ? window.t('game.goal_for_player_1') : "¡Gol al Jugador 1!", scene);
-	} else if (message.includes("Jugador 2")) {
-		changeScore2();
-		anunciarPunto(puntoTexto, window.t ? window.t('game.goal_for_player_2') : "¡Gol al Jugador 2!", scene);
-	} else if (message.includes("Jugador 3")) {
-		changeScore3();
-		anunciarPunto(puntoTexto, window.t ? window.t('game.goal_for_player_3') : "¡Gol al Jugador 3!", scene);
-	} else if (message.includes("Jugador 4")) {
-		changeScore4();
-		anunciarPunto(puntoTexto, window.t ? window.t('game.goal_for_player_4') : "¡Gol al Jugador 4!", scene);
-	}
-	setGameActive(false);
-	// Obtener dirección actual de la bola
-	const currentVelocity = bola.physicsImpostor.getLinearVelocity();
-	bola.physicsImpostor.setLinearVelocity(currentVelocity.y = -1);
+    // Prevent multiple simultaneous goal triggers
+    if (!gameActive) {
+        console.log("⚠️ Goal ignored - game already inactive");
+        return true;
+    }
 
-	// Añadir una rotación para que ruede un poco al caer
-	bola.physicsImpostor.setAngularVelocity(new BABYLON.Vector3(
-		Math.random() * 2,
-		Math.random() * 2,
-		Math.random()
-	));
+    console.log("🥅 Processing goal 4P:", message, "- gameActive:", gameActive);
+    
+    // Set game inactive IMMEDIATELY to prevent multiple triggers
+    setGameActive(false);
 
-	// Las puntuaciones ya se actualizan automáticamente en changeScore1(), changeScore2(), etc.
+    // IMPORTANT: Clear all pressed keys to prevent paddles from moving during inactive state
+    const keysPressed = scene.metadata?.physics?.keysPressed;
+    if (keysPressed) {
+        // Clear all 4P controls
+        keysPressed["q"] = false;
+        keysPressed["e"] = false;
+        keysPressed["ArrowLeft"] = false;
+        keysPressed["ArrowRight"] = false;
+        keysPressed["i"] = false;
+        keysPressed["p"] = false;
+        keysPressed["c"] = false;
+        keysPressed["b"] = false;
+        console.log("All 4P keys cleared on goal");
+    }
 
-	// Mostrar Game Over final si llega al límite2
-	if (scoreP1 >= maxScore || scoreP2 >= maxScore || scoreP3 >= maxScore || scoreP4 >= maxScore) {
-		const gameOverElement = document.getElementById('gameOver');
-		if (gameOverElement) {
-			gameOverElement.style.display = 'block';
-		}
-		
-		let winner = Math.min(scoreP1, scoreP2, scoreP3, scoreP4);
-		const finalScoreElement = document.getElementById('finalScore');
-		if (finalScoreElement) {
-			const blueText = (window.t && window.i18n && window.i18n.translations) ? window.t('game.blue') : 'Azul';
-			const redText = (window.t && window.i18n && window.i18n.translations) ? window.t('game.red') : 'Rojo';
-			const greenText = (window.t && window.i18n && window.i18n.translations) ? window.t('game.green') : 'Verde';
-			const purpleText = (window.t && window.i18n && window.i18n.translations) ? window.t('game.purple') : 'Púrpura';
-			
-			switch (winner) {
-				case scoreP1:
-					finalScoreElement.textContent = `${(window.t && window.i18n && window.i18n.translations) ? window.t('game.player_1_won_blue') : '¡Ganó el Jugador 1, Azul!'} ${blueText}:${scoreP1} - ${redText}:${scoreP2} - ${greenText}:${scoreP3} - ${purpleText}:${scoreP4}`;
-					break;
-				case scoreP2:
-					finalScoreElement.textContent = `${(window.t && window.i18n && window.i18n.translations) ? window.t('game.player_2_won_red') : '¡Ganó el Jugador 2, Rojo!'} ${blueText}:${scoreP1} - ${redText}:${scoreP2} - ${greenText}:${scoreP3} - ${purpleText}:${scoreP4}`;
-					break;
-				case scoreP3:
-					finalScoreElement.textContent = `${(window.t && window.i18n && window.i18n.translations) ? window.t('game.player_3_won_green') : '¡Ganó el Jugador 3, Verde!'} ${blueText}:${scoreP1} - ${redText}:${scoreP2} - ${greenText}:${scoreP3} - ${purpleText}:${scoreP4}`;
-					break;
-				case scoreP4:
-					finalScoreElement.textContent = `${(window.t && window.i18n && window.i18n.translations) ? window.t('game.player_4_won_purple') : '¡Ganó el Jugador 4, Púrpura!'} ${blueText}:${scoreP1} - ${redText}:${scoreP2} - ${greenText}:${scoreP3} - ${purpleText}:${scoreP4}`;
-					break;
-				default:
-					finalScoreElement.textContent = `${window.t ? window.t('game.tie_game') : '¡Empate!'} ${blueText}:${scoreP1} - ${redText}:${scoreP2} - ${greenText}:${scoreP3} - ${purpleText}:${scoreP4}`;
-					break;
-			}
-		}
-		return false;
-	}
-	// Reiniciar tras 1 segundo
-	setTimeout(() => {
-		// Reiniciar posiciones
-		bola.physicsImpostor.setLinearVelocity(BABYLON.Vector3.Zero());
-		bola.physicsImpostor.setAngularVelocity(BABYLON.Vector3.Zero());
+    // Actualizar puntuaciones
+    if (message.includes("Jugador 1")) {
+        changeScore1();
+        anunciarPunto(puntoTexto, window.t ? window.t('game.goal_for_player_1') : "¡Gol al Jugador 1!", scene);
+    } else if (message.includes("Jugador 2")) {
+        changeScore2();
+        anunciarPunto(puntoTexto, window.t ? window.t('game.goal_for_player_2') : "¡Gol al Jugador 2!", scene);
+    } else if (message.includes("Jugador 3")) {
+        changeScore3();
+        anunciarPunto(puntoTexto, window.t ? window.t('game.goal_for_player_3') : "¡Gol al Jugador 3!", scene);
+    } else if (message.includes("Jugador 4")) {
+        changeScore4();
+        anunciarPunto(puntoTexto, window.t ? window.t('game.goal_for_player_4') : "¡Gol al Jugador 4!", scene);
+    }
 
-		const y = tableTop.position.y + 0.05 + tableTop.getBoundingInfo().boundingBox.extendSize.y;
-		bola.position = new BABYLON.Vector3(0, y, 0);
-		bola.physicsImpostor.setDeltaPosition(bola.position); // importante
+    // Stop ball movement immediately
+    bola.physicsImpostor.setLinearVelocity(BABYLON.Vector3.Zero());
+    bola.physicsImpostor.setAngularVelocity(BABYLON.Vector3.Zero());
 
-		pala2.position = new BABYLON.Vector3(0, y, 1.15);
-		pala1.position = new BABYLON.Vector3(1.15, y, 0);
-		pala3.position = new BABYLON.Vector3(0, y, -1.15);
-		pala4.position = new BABYLON.Vector3(-1.15, y, 0);
-		pala2.physicsImpostor.setDeltaPosition(pala2.position);
-		pala1.physicsImpostor.setDeltaPosition(pala1.position);
-		pala3.physicsImpostor.setDeltaPosition(pala3.position);
-		pala4.physicsImpostor.setDeltaPosition(pala4.position);
+    // Mostrar Game Over final si llega al límite
+    if (scoreP1 >= maxScore || scoreP2 >= maxScore || scoreP3 >= maxScore || scoreP4 >= maxScore) {
+        const gameOverElement = document.getElementById('gameOver');
+        const finalScoreElement = document.getElementById('finalScore');
+        if (gameOverElement) {
+            gameOverElement.style.display = 'block';
+        }
+        if (finalScoreElement) {
+            const blueText = (window.t && window.i18n && window.i18n.translations) ? window.t('game.blue') : 'Azul';
+            const redText = (window.t && window.i18n && window.i18n.translations) ? window.t('game.red') : 'Rojo';
+            const greenText = (window.t && window.i18n && window.i18n.translations) ? window.t('game.green') : 'Verde';
+            const purpleText = (window.t && window.i18n && window.i18n.translations) ? window.t('game.purple') : 'Púrpura';
+            
+            // Find winner (lowest score in elimination mode)
+            let winner = Math.min(scoreP1, scoreP2, scoreP3, scoreP4);
+            switch (winner) {
+                case scoreP1:
+                    finalScoreElement.textContent = `${(window.t && window.i18n && window.i18n.translations) ? window.t('game.player_1_won_blue') : '¡Ganó el Jugador 1, Azul!'} ${blueText}:${scoreP1} - ${redText}:${scoreP2} - ${greenText}:${scoreP3} - ${purpleText}:${scoreP4}`;
+                    break;
+                case scoreP2:
+                    finalScoreElement.textContent = `${(window.t && window.i18n && window.i18n.translations) ? window.t('game.player_2_won_red') : '¡Ganó el Jugador 2, Rojo!'} ${blueText}:${scoreP1} - ${redText}:${scoreP2} - ${greenText}:${scoreP3} - ${purpleText}:${scoreP4}`;
+                    break;
+                case scoreP3:
+                    finalScoreElement.textContent = `${(window.t && window.i18n && window.i18n.translations) ? window.t('game.player_3_won_green') : '¡Ganó el Jugador 3, Verde!'} ${blueText}:${scoreP1} - ${redText}:${scoreP2} - ${greenText}:${scoreP3} - ${purpleText}:${scoreP4}`;
+                    break;
+                case scoreP4:
+                    finalScoreElement.textContent = `${(window.t && window.i18n && window.i18n.translations) ? window.t('game.player_4_won_purple') : '¡Ganó el Jugador 4, Púrpura!'} ${blueText}:${scoreP1} - ${redText}:${scoreP2} - ${greenText}:${scoreP3} - ${purpleText}:${scoreP4}`;
+                    break;
+                default:
+                    finalScoreElement.textContent = `${window.t ? window.t('game.tie_game') : '¡Empate!'} ${blueText}:${scoreP1} - ${redText}:${scoreP2} - ${greenText}:${scoreP3} - ${purpleText}:${scoreP4}`;
+                    break;
+            }
+        }
+        return false;
+    }
 
-		// NO establecer velocidad inicial automáticamente en modo 4P - esperar entrada del jugador
-		// const randomDir = directions[Math.floor(Math.random() * directions.length)];
-		// bola.physicsImpostor.setLinearVelocity(randomDir);
+    // Reiniciar tras 1.5 segundos (más tiempo para evitar triggers accidentales)
+    setTimeout(() => {
+        // Ensure ball and paddles are visible and properly positioned
+        const y = tableTop.position.y + 0.05 + tableTop.getBoundingInfo().boundingBox.extendSize.y;
+        
+        // Reset ball position and physics completely
+        bola.position.set(0, y, 0);
+        bola.physicsImpostor.setLinearVelocity(BABYLON.Vector3.Zero());
+        bola.physicsImpostor.setAngularVelocity(BABYLON.Vector3.Zero());
+        
+        // Reset paddle positions for 4P mode
+        pala2.position.set(0, y, 1.15);        // Top paddle
+        pala1.position.set(1.15, y, 0);        // Right paddle
+        pala3.position.set(0, y, -1.15);       // Bottom paddle
+        pala4.position.set(-1.15, y, 0);       // Left paddle
+        
+        // Update physics positions
+        pala2.physicsImpostor.setDeltaPosition(pala2.position);
+        pala1.physicsImpostor.setDeltaPosition(pala1.position);
+        pala3.physicsImpostor.setDeltaPosition(pala3.position);
+        pala4.physicsImpostor.setDeltaPosition(pala4.position);
+        
+        // Ensure ball is visible
+        bola.setEnabled(true);
+        bola.visibility = 1.0;
 
-		setGameActive(true);
-	}, 1500);
-	return true;
+        // Clear any stuck keys again
+        if (keysPressed) {
+            Object.keys(keysPressed).forEach(key => {
+                keysPressed[key] = false;
+            });
+        }
+
+        // Show start message for next round
+        if (mensajeInicio) {
+            mensajeInicio.alpha = 1;
+        }
+
+        // IMPORTANT: Do NOT set game active here - wait for spacebar
+        // This prevents automatic goal triggers during reset
+        console.log("4P Round reset complete - waiting for spacebar");
+    }, 1500);
+    return true;
 }
 
 
@@ -794,8 +828,6 @@ export function createPhysics4P(scene, engine, camera, tableTop, materiales, glo
 				];
 				const randomDir = directions[Math.floor(Math.random() * directions.length)];
 				bola.physicsImpostor.setLinearVelocity(randomDir);
-
-				window.removeEventListener("keydown", window.currentSpaceHandler);
 			}
 		};
 
@@ -811,18 +843,18 @@ export function createPhysics4P(scene, engine, camera, tableTop, materiales, glo
 
 	// CONTROLES DE TECLADO
 	window.addEventListener("keydown", (e) => {
-		// Jugador 1 (Arriba): A/D
-		// Jugador 2 (Derecha): ↑/↓  
-		// Jugador 3 (Abajo): J/L
-		// Jugador 4 (Izquierda): W/S
-		if (["a", "d", "ArrowRight", "ArrowLeft", "j", "l", "w", "s"].includes(e.key)) {
+		// Jugador 1 (Arriba): Q/E
+		// Jugador 2 (Derecha): <-/-> (izquierda/derecha)
+		// Jugador 3 (Abajo): I/P
+		// Jugador 4 (Izquierda): C/B
+		if (["q", "e", "ArrowRight", "ArrowLeft", "i", "p", "c", "b"].includes(e.key)) {
 			keysPressed[e.key] = true;
 			e.preventDefault();
 		}
 	});
 
 	window.addEventListener("keyup", (e) => {
-		if (["a", "d", "ArrowRight", "ArrowLeft", "j", "l", "w", "s"].includes(e.key)) {
+		if (["q", "e", "ArrowRight", "ArrowLeft", "i", "p", "c", "b"].includes(e.key)) {
 			keysPressed[e.key] = false;
 		}
 	});
@@ -836,14 +868,14 @@ export function createPhysics4P(scene, engine, camera, tableTop, materiales, glo
 
 		// MOVIMIENTO DE PALAS
 		// Pala 1 (Arriba) - A/D (movimiento horizontal)
-		if (keysPressed["a"]) {
+		if (keysPressed["q"]) {
 			const newX = Math.max(pala2.position.x - paddleSpeed, -areaSize + 0.1);
 			pala2.position.x = newX;
 			if (pala2.physicsImpostor) {
 				pala2.physicsImpostor.setDeltaPosition(pala2.position);
 			}
 		}
-		if (keysPressed["d"]) {
+		if (keysPressed["e"]) {
 			const newX = Math.min(pala2.position.x + paddleSpeed, areaSize - 0.1);
 			pala2.position.x = newX;
 			if (pala2.physicsImpostor) {
@@ -868,14 +900,14 @@ export function createPhysics4P(scene, engine, camera, tableTop, materiales, glo
 		}
 
 		// Pala 3 (Abajo) - J/L (movimiento horizontal)
-		if (keysPressed["j"]) {
+		if (keysPressed["i"]) {
 			const newX = Math.max(pala3.position.x - paddleSpeed, -areaSize + 0.1);
 			pala3.position.x = newX;
 			if (pala3.physicsImpostor) {
 				pala3.physicsImpostor.setDeltaPosition(pala3.position);
 			}
 		}
-		if (keysPressed["l"]) {
+		if (keysPressed["p"]) {
 			const newX = Math.min(pala3.position.x + paddleSpeed, areaSize - 0.1);
 			pala3.position.x = newX;
 			if (pala3.physicsImpostor) {
@@ -884,14 +916,14 @@ export function createPhysics4P(scene, engine, camera, tableTop, materiales, glo
 		}
 
 		// Pala 4 (Izquierda) - W/S (movimiento vertical)
-		if (keysPressed["w"]) {
+		if (keysPressed["c"]) {
 			const newZ = Math.min(pala4.position.z + paddleSpeed, areaSize - 0.1);
 			pala4.position.z = newZ;
 			if (pala4.physicsImpostor) {
 				pala4.physicsImpostor.setDeltaPosition(pala4.position);
 			}
 		}
-		if (keysPressed["s"]) {
+		if (keysPressed["b"]) {
 			const newZ = Math.max(pala4.position.z - paddleSpeed, -areaSize + 0.1);
 			pala4.position.z = newZ;
 			if (pala4.physicsImpostor) {

@@ -194,20 +194,35 @@
 
 			<!-- Tarjeta de bienvenida y juego -->
 			<div class="bg-white rounded-lg shadow-md p-6">
-				<div id="welcomeMessage" class="text-center mb-6">Bienvenido a
-					Transcendence</div>
-				<div class="text-center">
+				<div id="welcomeMessage" class="text-center mb-6">Bienvenido a Transcendence</div>
+
+				<div class="grid grid-cols-2 gap-4 mt-12 w-full">
+					<!-- Botón 1: Jugar Pong -->
 					<a href="/pong.html" id="playPongButton"
-						class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg text-lg font-bold inline-block transition-transform hover:scale-105"
+						class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg text-lg font-bold text-center transition-transform hover:scale-105"
 						data-i18n="dashboard.play_pong">
-						🏓 Jugar Pong
+						🏓 Pong 1vs1
 					</a>
-				</div>
-				<div class="text-center mt-4">
+
+					<!-- Botón 2: Jugar contra IA -->
 					<a href="/pong-ia.html" id="playPongButtonIA"
-						class="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg text-lg font-bold inline-block transition-transform hover:scale-105"
+						class="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg text-lg font-bold text-center transition-transform hover:scale-105"
 						data-i18n="dashboard.play_vs_ai">
 						🤖 Jugar contra IA
+					</a>
+
+					<!-- Botón 3: Nuevo -->
+					<a href="/pong-4p.html" id="multiplayerButton"
+						class="bg-purple-500 hover:bg-purple-600 text-white px-6 py-3 rounded-lg text-lg font-bold text-center transition-transform hover:scale-105"
+						data-i18n="dashboard.play4_players">
+						👥 Pong 4 players
+					</a>
+
+					<!-- Botón 4: Nuevo -->
+					<a href="/tournament.html" id="settingsButton"
+						class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-lg text-lg font-bold text-center transition-transform hover:scale-105"
+						data-i18n="dashboard.tournament">
+						🏆 Torneo
 					</a>
 				</div>
 			</div>

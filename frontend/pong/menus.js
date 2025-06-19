@@ -503,7 +503,7 @@ export function createUI4P(advancedTexture, scene, personajes, personajesContene
 	});
 
 	cargarPersonajeEnLado({
-		personajeConfig: personajes[3],
+		personajeConfig: personajes[2],
 		lado: "arriba",
 		escena: scene,
 		personajesContenedores: personajesContenedores,
@@ -529,7 +529,7 @@ export function createUI4P(advancedTexture, scene, personajes, personajesContene
 	advancedTexture.addControl(puntoTexto);
 
 	mensajeInicio = new BABYLON.GUI.TextBlock("mensajeInicio");
-	mensajeInicio.text = (window.t && window.i18n && window.i18n.translations) ? window.t('game.choose_character_and_environment') : "Elige tu personaje y entorno\nPresiona ESPACIO para iniciar";
+	mensajeInicio.text = (window.t && window.i18n && window.i18n.translations) ? window.t('game.choose_character_and_environment_4p') : "Elige tu personaje y entorno\nPresiona ESPACIO para iniciar\nControles: Q y E AZUL, I y P VERDE, Flecha derecha e izquierda ROJO, C y B MORADO";
 	mensajeInicio.color = "#FFFFFF";
 	mensajeInicio.fontSize = 48;
 	mensajeInicio.fontStyle = "bold";

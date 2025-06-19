@@ -1,5 +1,5 @@
 import { createMaterials } from "./materials.js";
-import { advancedTexture, createUI, createUI4P } from "./menus.js";
+import { advancedTexture, cambiarEntorno, createUI, createUI4P } from "./menus.js";
 import { createPhysics, createPhysics4P } from "./physics.js";
 
 
@@ -213,17 +213,6 @@ export class Playground {
 				escala: new BABYLON.Vector3(0.5, 0.5, 0.5),
 				rotacion: new BABYLON.Vector3(0, Math.PI / 2, Math.PI)
 			},
-/*			TIBURON PESADO DE PELOTAS HASTA LUEGO
-			{
-				nombre: "Tiburon",
-				ruta: "textures/tiburon/",
-				miniatura: "minitibu.png",
-				archivo: "scene.gltf",
-				posicion: new BABYLON.Vector3(1.8, 0.75, 0),
-				escala: new BABYLON.Vector3(0.004, 0.004, 0.004),
-				rotacion: new BABYLON.Vector3(0, Math.PI / 2, Math.PI)
-			},
-*/
 			{
 				nombre: "Pez Payaso",
 				ruta: "textures/pezpayaso/",
@@ -314,6 +303,8 @@ export class Playground {
 		
 		// Crear la física inmediatamente para que esté disponible
 		// pero sin activar el juego (gameActive permanece false)
+		cambiarEntorno("galaxia", scene, entornos, skyboxActual);
+
 		createPhysics(
 			scene,
 			engine,
@@ -392,12 +383,13 @@ export class Playground {
 
 		return scene;
 	}
+
 	static CreateScene4P(engine, canvas) {
 		var scene = new BABYLON.Scene(engine);
 		// Cámara orbital cenital
 		const camerapov = new BABYLON.FreeCamera(
 			"playerCamera",
-			new BABYLON.Vector3(2.5, 2, 0), // Posición: lado derecho (jugador 1)
+			new BABYLON.Vector3(0, 2, -2.5), // Posición: lado derecho (jugador 1)
 			scene
 		);
 		camerapov.setTarget(new BABYLON.Vector3(0, 0.4, 0));
@@ -596,15 +588,6 @@ export class Playground {
 				rotacion: new BABYLON.Vector3(0, Math.PI / 2, Math.PI)
 			},
 			{
-				nombre: "Tiburon",
-				ruta: "textures/tiburon/",
-				miniatura: "minitibu.png",
-				archivo: "scene.gltf",
-				posicion: new BABYLON.Vector3(2.0, 0.75, 0),
-				escala: new BABYLON.Vector3(0.004, 0.004, 0.004),
-				rotacion: new BABYLON.Vector3(0, Math.PI / 2, Math.PI)
-			},
-			{
 				nombre: "Pez Payaso",
 				ruta: "textures/pezpayaso/",
 				miniatura: "minipezpayaso.png",
@@ -688,6 +671,7 @@ export class Playground {
 		scene.onBeforeRenderObservable.clear(); // Elimina observadores existentes
 
 		gameActive = false; // Inicializar como inactivo para mostrar selectores
+		cambiarEntorno("galaxia", scene, entornos, skyboxActual);
 		createPhysics4P(
 			scene,
 			engine,
