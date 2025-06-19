@@ -33,7 +33,7 @@
 			container.innerHTML = '<div style="background: rgba(30,30,30,0.95); color: white; padding: 10px 15px; border-radius: 8px; font-size: 14px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); backdrop-filter: blur(10px);">' +
 				'🌍 <select id="working-lang-selector" style="padding: 6px 10px; border-radius: 5px; margin-left: 8px; background: white; color: black; border: none; cursor: pointer;">' +
 				'<option value="es">🇪🇸 Español</option>' +
-				'<option value="en">🇺🇸 English</option>' +
+				'<option value="en">🇬🇧 English</option>' +
 				'<option value="fr">🇫🇷 Français</option>' +
 				'<option value="de">🇩🇪 Deutsch</option>' +
 				'<option value="pt">🇵🇹 Português</option>' +
@@ -117,7 +117,10 @@
 				<div class="flex items-center">
 					<h1 class="text-xl font-bold">Transcender Pong</h1>
 				</div>
-				<div id="userProfileNav"></div>
+				<div class="flex items-center">
+					<div id="language-selector-container" class="mr-4"></div>
+					<!-- <div id="userProfileNav"></div> -->
+				</div>
 			</div>
 		</div>
 	</nav>
@@ -218,13 +221,6 @@
 						<p class="text-gray-500 mt-2" data-i18n="dashboard.loading_scores">Cargando puntuaciones...</p>
 					</div>
 				</div>
-			</div>
-		</div>
-
-		<!-- Selector de idioma -->
-		<div class="fixed top-4 right-4 z-50">
-			<div id="language-selector-container"
-				style="min-height: 40px; min-width: 120px; background: rgba(255,0,0,0.1); border: 1px dashed red; padding: 4px;">
 			</div>
 		</div>
 

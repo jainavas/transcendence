@@ -213,17 +213,17 @@ window.addEventListener("DOMContentLoaded", () => {
         const aiIndicator = document.createElement('div');
         aiIndicator.id = 'aiIndicator';
         aiIndicator.style.position = 'fixed';
-        aiIndicator.style.top = '20px';
-        aiIndicator.style.right = '20px';
+        aiIndicator.style.top = '10px';
+        aiIndicator.style.right = '190px';
         aiIndicator.style.backgroundColor = '#00ff00';
         aiIndicator.style.color = '#000';
         aiIndicator.style.padding = '10px';
         aiIndicator.style.borderRadius = '5px';
         aiIndicator.style.fontFamily = 'Arial, sans-serif';
         aiIndicator.style.fontWeight = 'bold';
-        aiIndicator.style.fontSize = '14px';
-        aiIndicator.style.zIndex = '1000';
-        aiIndicator.textContent = 'AI: ON (Press T to toggle)';
+        aiIndicator.style.fontSize = '13px';
+        aiIndicator.style.zIndex = '900';
+        aiIndicator.textContent = 'AI: ON  (Press T to toggle)';
         document.body.appendChild(aiIndicator);
 
         // Listen for AI toggle events

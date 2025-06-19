@@ -5,8 +5,8 @@ PROJECT_NAME=transcender
 
 all up start:
 	@echo "Iniciando contenedores..."
-	COMPOSE_BAKE=true sudo docker compose build --no-cache
-	sudo docker compose up --force-recreate
+	COMPOSE_BAKE=true docker compose build --no-cache
+	docker compose up --force-recreate
 
 # Comando predeterminado al ejecutar 'make' sin argumentos
 help:
@@ -24,29 +24,29 @@ help:
 # Detener todos los contenedores
 down stop:
 	@echo "Deteniendo contenedores..."
-	sudo docker compose down
+	docker compose down
 
 # Levantar solo el frontend
 frontend:
 	@echo "Iniciando contenedor frontend..."
-	sudo docker compose up -d frontend
+	docker compose up -d frontend
 	@echo "Frontend disponible en: http://localhost:8080"
 
 # Levantar solo el backend
 backend:
 	@echo "Iniciando contenedor backend..."
-	sudo docker compose up -d backend
+	docker compose up -d backend
 	@echo "Backend disponible en: http://localhost:3000"
 
 # Ver logs
 logs:
-	sudo docker compose logs -f
+	docker compose logs -f
 
 # Limpiar recursos
 clean:
 	@echo "Deteniendo contenedores y limpiando recursos..."
-	sudo docker compose down --rmi all --volumes --remove-orphans
-	sudo docker system prune -a --volumes
+	docker compose down --rmi all --volumes --remove-orphans
+	docker system prune -a --volumes
 	@echo "Limpieza completada."
 
 # Reconstruir imágenes y reiniciar contenedores
@@ -54,7 +54,7 @@ re:
 	@echo "Deteniendo contenedores..."
 	make down
 	@echo "Reconstruyendo imágenes..."
-	COMPOSE_BAKE=true sudo docker compose build --no-cache
+	COMPOSE_BAKE=true docker compose build --no-cache
 	@echo "Reiniciando contenedores..."
-	sudo docker compose up -d
+	docker compose up -d
 	@echo "Reconstrucción completada."
