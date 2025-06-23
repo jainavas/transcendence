@@ -62,7 +62,7 @@
         if (buttonElement && buttonElement.innerHTML.includes('Cargando')) {
           console.warn("El script principal puede no haberse cargado correctamente");
           buttonElement.innerHTML = `
-            <a href="http://localhost:3000/auth/google" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+            <a href="${window.env?.BACKEND_URL || 'http://localhost:3000'}/auth/google" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
               Iniciar sesión con Google (Flujo OAuth)
             </a>
           `;

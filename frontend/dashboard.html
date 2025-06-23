@@ -331,7 +331,7 @@
 		function cargarDatosUsuario() {
 			console.log("🔄 Iniciando carga de emergencia");
 
-			fetch('http://localhost:3000/user/me', {
+			fetch(`${window.env?.BACKEND_URL || 'http://localhost:3000'}/user/me`, {
 				credentials: 'include'
 			})
 				.then(response => {
@@ -359,7 +359,7 @@
 							this.textContent = 'Cerrando sesión...';
 							this.disabled = true;
 
-							fetch('http://localhost:3000/auth/logout', {
+							fetch(`${window.env?.BACKEND_URL || 'http://localhost:3000'}/auth/logout`, {
 								method: 'POST',
 								headers: { 'Content-Type': 'application/json' },
 								credentials: 'include',

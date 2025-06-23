@@ -33,56 +33,48 @@ export var scoreP3 = 0;
 export var scoreP4 = 0;
 export var maxScore = 5;
 
-// Función para actualizar el marcador en pantalla (MODO IA - SOLO 2 JUGADORES)
+// Refactor updateScoreDisplay to ensure proper synchronization and functionality in IA mode
 function updateScoreDisplay() {
-    console.log('🤖 updateScoreDisplay IA llamada (SOLO 2 JUGADORES):', {
+    console.log('🤖 updateScoreDisplay IA called (2 Players Only):', {
         scoreP1, scoreP2
     });
-    
+
     const scoreElement = document.getElementById('score');
     if (!scoreElement) {
-        console.warn('⚠️ Elemento score no encontrado en pong-ia');
-        
-        // Verificar específicamente el scoreDisplay y su contenido
+        console.warn('⚠️ Score element not found in pong-ia');
+
+        // Attempt to find or create the score display
         const scoreDisplayElement = document.getElementById('scoreDisplay');
         if (scoreDisplayElement) {
-            console.log('✅ scoreDisplay encontrado en IA, contenido:', scoreDisplayElement.innerHTML);
-            
-            // Intentar buscar el span directamente
-            const spanElement = scoreDisplayElement.querySelector('span');
-            if (spanElement) {
-                console.log('✅ Span encontrado en IA sin ID, asignando ID "score":', spanElement.textContent);
+            let spanElement = scoreDisplayElement.querySelector('span');
+            if (!spanElement) {
+                spanElement = document.createElement('span');
                 spanElement.id = 'score';
-                updateScoreDisplay(); // Reintentar ahora que tenemos el ID
-                return;
+                spanElement.textContent = '0 - 0';
+                scoreDisplayElement.appendChild(spanElement);
             } else {
-                console.log('❌ No se encontró span dentro de scoreDisplay en IA');
-                // Crear el span si no existe
-                const newSpan = document.createElement('span');
-                newSpan.id = 'score';
-                newSpan.textContent = '0 - 0';
-                scoreDisplayElement.appendChild(newSpan);
-                updateScoreDisplay();
-                return;
+                spanElement.id = 'score';
             }
+            updateScoreDisplay(); // Retry now that the element exists
+            return;
         }
-        
-        // Reintento simple
-        setTimeout(function() {
+
+        // Retry after a delay if the element is still not found
+        setTimeout(() => {
             const retryElement = document.getElementById('score');
             if (retryElement) {
                 updateScoreDisplay();
             } else {
-                console.error('❌ Elemento score no encontrado en pong-ia después de reintento');
+                console.error('❌ Score element not found in pong-ia after retry');
             }
         }, 1000);
         return;
     }
-    
-    // FORZAR MODO 2 JUGADORES SIEMPRE - Ignorar scoreP3 y scoreP4 
+
+    // Update the score display for 2 players only
     const displayText = `${scoreP1} - ${scoreP2}`;
     scoreElement.textContent = displayText;
-    console.log('📊 Marcador IA actualizado (MODO 2 JUGADORES):', displayText);
+    console.log('📊 IA Score updated (2 Players Only):', displayText);
 }
 
 // Exponer variables y funciones globalmente para i18n
@@ -285,7 +277,7 @@ window.addEventListener("DOMContentLoaded", () => {
         this.disabled = true;
         this.textContent = "Guardando...";
 
-        fetch('http://localhost:3000/pong/scores', {
+        fetch(`${window.env?.BACKEND_URL || 'http://localhost:3000'}/pong/scores`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
