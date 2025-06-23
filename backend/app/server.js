@@ -67,9 +67,12 @@ fastify.register(require('@fastify/cors'), {
 
 		// Permitir cualquier IP local 10.x.x.x o 192.168.x.x para mayor flexibilidad
 		const isLocalNetwork = /^(10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/.test(hostname);
+		
+		// Permitir dominios nip.io
+		const isNipIo = hostname.endsWith('.nip.io');
 
-		// Permitir si no hay origin (requests del mismo servidor), está en la lista, o es red local
-		if (!origin || allowedDomains.includes(hostname) || isLocalNetwork) {
+		// Permitir si no hay origin (requests del mismo servidor), está en la lista, es red local, o es nip.io
+		if (!origin || allowedDomains.includes(hostname) || isLocalNetwork || isNipIo) {
 			cb(null, true);
 		} else {
 			cb(new Error('Not allowed by CORS'));
@@ -887,93 +890,103 @@ fastify.get('/pong/', async (req, reply) => {
 	return reply.code(403).send('🚫 Acceso no permitido'), reply.type('text/html').sendFile('pong.html');
 });
 
-// Función para detectar la URL correcta del frontend basada en el origen de la petición
+// === FUNCIONES MODIFICADAS PARA NIP.IO ===
+
+// Función para detectar la IP del host desde Docker
+function getHostIP() {
+	const os = require('os');
+	const interfaces = os.networkInterfaces();
+	
+	// Buscar IP en el rango de 42
+	for (const name of Object.keys(interfaces)) {
+		for (const interface of interfaces[name]) {
+			if (interface.address.startsWith('10.11.') && !interface.internal) {
+				return interface.address;
+			}
+		}
+	}
+	
+	// Fallback para localhost
+	return '127.0.0.1';
+}
+
+// Función mejorada para frontend con nip.io
 function getFrontendUrlFromRequest(request) {
 	const referer = request.headers.referer;
 	const origin = request.headers.origin;
-	const host = request.headers.host;
 	
 	console.log("🔍 Detectando URL del frontend:", {
 		referer,
 		origin,
-		host,
-		userAgent: request.headers['user-agent']
+		host: request.headers.host
 	});
 	
-	// Si hay referer, extraer la base URL
-	if (referer) {
+	// Si viene de nip.io, mantener el formato
+	if (referer && referer.includes('.nip.io')) {
 		try {
 			const url = new URL(referer);
 			const frontendUrl = `${url.protocol}//${url.host}`;
-			console.log("✅ URL del frontend detectada desde referer:", frontendUrl);
+			console.log("✅ URL del frontend detectada desde referer nip.io:", frontendUrl);
 			return frontendUrl;
 		} catch (error) {
-			console.warn("⚠️ Error al parsear referer:", error);
+			console.warn("⚠️ Error al parsear referer nip.io:", error);
 		}
 	}
 	
-	// Si hay origin, usarlo
-	if (origin) {
-		console.log("✅ URL del frontend detectada desde origin:", origin);
+	if (origin && origin.includes('.nip.io')) {
+		console.log("✅ URL del frontend detectada desde origin nip.io:", origin);
 		return origin;
 	}
 	
-	// Fallback: usar la IP si el host no es localhost
-	if (host && !host.includes('localhost') && !host.includes('127.0.0.1')) {
-		const frontendUrl = `http://${host.replace(':3000', ':8080')}`;
-		console.log("✅ URL del frontend construida desde host:", frontendUrl);
-		return frontendUrl;
-	}
+	// Detectar IP y crear dominio nip.io
+	const hostIP = getHostIP();
+	const frontendUrl = `http://${hostIP}.nip.io:8080`;
 	
-	// Fallback final: usar la configuración por defecto
-	console.log("⚠️ Usando URL del frontend por defecto:", FRONTEND_URL);
-	return FRONTEND_URL;
+	console.log("✅ URL del frontend construida con nip.io:", frontendUrl);
+	return frontendUrl;
 }
 
-// Función para obtener la URL de callback correcta basada en la petición
+// Función mejorada para callback con nip.io
 function getCallbackUrlFromRequest(request) {
-	const host = request.headers.host;
 	const origin = request.headers.origin;
 	const referer = request.headers.referer;
+	const host = request.headers.host;
 	
 	console.log("🔍 Detectando URL de callback:", {
-		host,
 		origin,
-		referer
+		referer,
+		host
 	});
 	
-	// Si viene de origin, extraer el host
-	if (origin) {
+	// Si viene de nip.io, adaptar para backend
+	if (origin && origin.includes('.nip.io')) {
 		try {
 			const url = new URL(origin);
-			const callbackUrl = `http://${url.host.replace(':8080', ':3000')}/auth/callback`;
-			console.log("✅ URL de callback detectada desde origin:", callbackUrl);
+			const ip = url.hostname.split('.')[0]; // Extraer IP del dominio nip.io
+			const callbackUrl = `http://${ip}.nip.io:3000/auth/callback`;
+			console.log("✅ URL de callback detectada desde origin nip.io:", callbackUrl);
 			return callbackUrl;
 		} catch (error) {
-			console.warn("⚠️ Error al parsear origin:", error);
+			console.warn("⚠️ Error al parsear origin nip.io:", error);
 		}
 	}
 	
-	// Si viene de referer, extraer el host
-	if (referer) {
+	if (referer && referer.includes('.nip.io')) {
 		try {
 			const url = new URL(referer);
-			const callbackUrl = `http://${url.host.replace(':8080', ':3000')}/auth/callback`;
-			console.log("✅ URL de callback detectada desde referer:", callbackUrl);
+			const ip = url.hostname.split('.')[0];
+			const callbackUrl = `http://${ip}.nip.io:3000/auth/callback`;
+			console.log("✅ URL de callback detectada desde referer nip.io:", callbackUrl);
 			return callbackUrl;
 		} catch (error) {
-			console.warn("⚠️ Error al parsear referer:", error);
+			console.warn("⚠️ Error al parsear referer nip.io:", error);
 		}
 	}
 	
-	// Si el host no es localhost, construir URL con la IP
-	if (host && !host.includes('localhost') && !host.includes('127.0.0.1')) {
-		const callbackUrl = `http://${host}/auth/callback`;
-		console.log("✅ URL de callback construida desde host:", callbackUrl);
-		return callbackUrl;
-	}
+	// Fallback: detectar IP y crear dominio nip.io
+	const hostIP = getHostIP();
+	const callbackUrl = `http://${hostIP}.nip.io:3000/auth/callback`;
 	
-	// Fallback: usar la configuración por defecto
-	console.log("⚠️ Usando URL de callback por defecto:", GOOGLE_CALLBACK_URL);
-	return GOOGLE_CALLBACK_URL;
+	console.log("✅ URL de callback construida con nip.io:", callbackUrl);
+	return callbackUrl;
 }
