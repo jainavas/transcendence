@@ -2,7 +2,7 @@ services:
   backend:
     build: ./backend
     ports:
-      - "3000:3000"
+      - "0.0.0.0:3000:3000"
     volumes:
       - ./data:/usr/src/app/data
       - ./backend/app:/usr/src/app/app
@@ -11,11 +11,6 @@ services:
       - .env
     environment:
       - NODE_ENV=${NODE_ENV:-development}
-    # Añadir acceso a la red del host para detectar IP real
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    # Permitir acceso a interfaces de red del host
-    network_mode: "host"
     logging:
       driver: "json-file"
       options:
@@ -25,7 +20,7 @@ services:
   frontend:
     build: ./frontend
     ports:
-      - "8080:8080"
+      - "0.0.0.0:8080:8080"
     volumes:
       # Montar archivos específicos
       - ./frontend/index.html:/app/index.html
@@ -54,11 +49,6 @@ services:
     environment:
       - NODE_ENV=${NODE_ENV:-development}
       - CHOKIDAR_USEPOLLING=true
-    # Añadir acceso a la red del host
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    # Permitir acceso a interfaces de red del host
-    network_mode: "host"
     command: >
       sh -c "npm install -g http-server nodemon &&
              nodemon --watch /app/dashboard --watch /app/pong --watch /app/pong.html --ext js,ts,html,css,json,png,jpg,hdr,gltf --exec 'http-server . -p 8080 --cors -c-1'"

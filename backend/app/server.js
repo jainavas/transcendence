@@ -3,6 +3,7 @@ const fetch = require('node-fetch');
 const db = require('./db');
 const { OAuth2Client } = require('google-auth-library');
 const path = require('path');
+const { request } = require('http');
 
 // Cargar variables de entorno
 const PORT = process.env.PORT || 3000;
@@ -57,7 +58,7 @@ fastify.register(require('@fastify/cors'), {
 		const allowedDomains = [
 			'localhost',
 			'127.0.0.1',
-			'10.11.12.5', // IP local específica
+			detectHostIP(),
 			'lh3.googleusercontent.com',
 			'lh4.googleusercontent.com',
 			'lh5.googleusercontent.com',
@@ -689,26 +690,15 @@ fastify.post('/auth/logout', async (req, reply) => {
 	}
 });
 
-// Ruta GET para inicializar el flujo de OAuth
+// Ruta GET para inicializar el flujo de OAuth - ACTUALIZADA
 fastify.get('/auth/google', async (req, reply) => {
-	// Detectar la URL de callback correcta basada en la petición
-	const dynamicCallbackUrl = getCallbackUrlFromRequest(req);
-	
-	// Generar URL de autenticación de Google OAuth2
-	const authUrl = client.generateAuthUrl({
-		access_type: 'offline',
-		scope: [
-			'https://www.googleapis.com/auth/userinfo.profile',
-			'https://www.googleapis.com/auth/userinfo.email'
-		],
-		redirect_uri: dynamicCallbackUrl
-	});
+    // Usar la nueva función de mapeo dual
+    const authUrl = generateDualMappedAuthUrl(req);
 
-	console.log("🔄 Redirigiendo a:", authUrl);
-	console.log("🔗 URL de callback dinámica:", dynamicCallbackUrl);
+    console.log("🔄 Redirigiendo a OAuth con estrategia dual:", authUrl);
 
-	// Redirigir al usuario a la URL de autenticación de Google
-	return reply.redirect(authUrl);
+    // Redirigir al usuario a la URL de autenticación de Google
+    return reply.redirect(authUrl);
 });
 
 // Modifica el manejo de errores de sesión
@@ -890,103 +880,249 @@ fastify.get('/pong/', async (req, reply) => {
 	return reply.code(403).send('🚫 Acceso no permitido'), reply.type('text/html').sendFile('pong.html');
 });
 
-// === FUNCIONES MODIFICADAS PARA NIP.IO ===
+fastify.get('/api/current-ip', async (req, reply) => {
+    const realIP = getHostIPFromRequest(req);
+    
+    console.log('📍 Frontend pidiendo IP actual:', realIP);
+    
+    return {
+        ip: realIP,
+        mapped: mapToRegisteredIP(realIP),
+        headers: {
+            host: req.headers.host,
+            origin: req.headers.origin,
+            referer: req.headers.referer
+        }
+    };
+});
 
-// Función para detectar la IP del host desde Docker
-function getHostIP() {
-	const os = require('os');
-	const interfaces = os.networkInterfaces();
-	
-	// Buscar IP en el rango de 42
-	for (const name of Object.keys(interfaces)) {
-		for (const interface of interfaces[name]) {
-			if (interface.address.startsWith('10.11.') && !interface.internal) {
-				return interface.address;
-			}
-		}
-	}
-	
-	// Fallback para localhost
-	return '127.0.0.1';
+// Debug OAuth - ACTUALIZADO para mostrar estrategia dual
+fastify.get('/debug/oauth', async (req, reply) => {
+    const realIP = getHostIPFromRequest(req);
+    const mappedIP = mapToRegisteredIP(realIP);
+    
+    // Callback siempre a IP real
+    const callbackUrl = realIP === '127.0.0.1'
+        ? 'http://localhost:3000/auth/callback'
+        : `http://${realIP}.nip.io:3000/auth/callback`;
+    
+    const authUrl = generateDualMappedAuthUrl(req);
+    
+    return {
+        strategy: "DUAL_MAPPING",
+        headers: req.headers,
+        detected_real_ip: realIP,
+        mapped_ip_for_oauth: mappedIP,
+        callback_url_to_real_server: callbackUrl,
+        frontend_url: `http://${realIP}.nip.io:8080`,
+        google_auth_url: authUrl,
+        client_id: GOOGLE_CLIENT_ID,
+        explanation: {
+            oauth_sees: `${mappedIP}.nip.io (registered in Google)`,
+            callback_goes_to: `${realIP}.nip.io (actual server)`,
+            why: "Google accepts mapped IP, but callback works because real server exists"
+        }
+    };
+});
+
+// === FUNCIONES MODIFICADAS PARA NIP.IO CON MAPEO ===
+
+// Función que mapea cualquier IP de 42 a una de las 3 registradas
+function mapToRegisteredIP(realIP) {
+    // Si no es del rango de 42, usar localhost
+    if (!realIP.startsWith('10.11.')) {
+        return '127.0.0.1';
+    }
+    
+    // Mapear a una de las 3 IPs registradas usando hash simple
+    const lastOctet = parseInt(realIP.split('.')[3]);
+    const mappedIPs = ['10.11.1.1', '10.11.1.2', '10.11.1.3'];
+    
+    // Distribuir usando módulo para balancear
+    const index = lastOctet % 3;
+    
+    console.log(`🔄 Mapeando ${realIP} → ${mappedIPs[index]}`);
+    return mappedIPs[index];
 }
 
-// Función mejorada para frontend con nip.io
+// Función para detectar la IP desde la petición HTTP
+function getHostIPFromRequest(request) {
+    const host = request.headers.host;
+    const origin = request.headers.origin;
+    const referer = request.headers.referer;
+    
+    console.log("🔍 Headers recibidos:", { host, origin, referer });
+    
+    // NUEVO: Detectar IP desde el header 'host' (acceso directo por IP)
+    if (host) {
+        const hostIP = host.split(':')[0]; // Quitar puerto
+        if (hostIP.match(/^10\.11\.\d+\.\d+$/)) {
+            console.log(`✅ IP detectada desde host header: ${hostIP}`);
+            return hostIP;
+        }
+    }
+    
+    // Intentar extraer IP de los headers
+    if (origin) {
+        try {
+            const url = new URL(origin);
+            const hostname = url.hostname;
+            // Si es una IP en el rango de 42, usarla
+            if (hostname.match(/^10\.11\.\d+\.\d+$/)) {
+                console.log(`✅ IP detectada desde origin: ${hostname}`);
+                return hostname;
+            }
+        } catch (e) {}
+    }
+    
+    if (referer) {
+        try {
+            const url = new URL(referer);
+            const hostname = url.hostname;
+            if (hostname.match(/^10\.11\.\d+\.\d+$/)) {
+                console.log(`✅ IP detectada desde referer: ${hostname}`);
+                return hostname;
+            }
+        } catch (e) {}
+    }
+    
+    // Fallback: usar variable de entorno o localhost
+    const fallbackIP = process.env.HOST_IP || detectHostIP() || '127.0.0.1';
+    console.log(`⚠️ Usando IP fallback: ${fallbackIP}`);
+    return fallbackIP;
+}
+
+// Función para detectar IP cuando no hay headers disponibles
+function detectHostIP() {
+    try {
+        const os = require('os');
+        const interfaces = os.networkInterfaces();
+        
+        // Buscar IP en rango de 42
+        for (const name of Object.keys(interfaces)) {
+            for (const iface of interfaces[name]) {
+                if (iface.address.startsWith('10.11.') && !iface.internal) {
+                    console.log(`✅ IP detectada automáticamente: ${iface.address}`);
+                    return iface.address;
+                }
+            }
+        }
+        
+        console.log("⚠️ No se encontró IP en rango 10.11.x.x");
+    } catch (error) {
+        console.log("⚠️ Error detectando IP:", error.message);
+    }
+    
+    return null;
+}
+
+// Función mejorada para frontend con mapeo
 function getFrontendUrlFromRequest(request) {
-	const referer = request.headers.referer;
-	const origin = request.headers.origin;
-	
-	console.log("🔍 Detectando URL del frontend:", {
-		referer,
-		origin,
-		host: request.headers.host
-	});
-	
-	// Si viene de nip.io, mantener el formato
-	if (referer && referer.includes('.nip.io')) {
-		try {
-			const url = new URL(referer);
-			const frontendUrl = `${url.protocol}//${url.host}`;
-			console.log("✅ URL del frontend detectada desde referer nip.io:", frontendUrl);
-			return frontendUrl;
-		} catch (error) {
-			console.warn("⚠️ Error al parsear referer nip.io:", error);
-		}
-	}
-	
-	if (origin && origin.includes('.nip.io')) {
-		console.log("✅ URL del frontend detectada desde origin nip.io:", origin);
-		return origin;
-	}
-	
-	// Detectar IP y crear dominio nip.io
-	const hostIP = getHostIP();
-	const frontendUrl = `http://${hostIP}.nip.io:8080`;
-	
-	console.log("✅ URL del frontend construida con nip.io:", frontendUrl);
-	return frontendUrl;
+    const referer = request.headers.referer;
+    const origin = request.headers.origin;
+    
+    console.log("🔍 Detectando URL del frontend:", {
+        referer,
+        origin,
+        host: request.headers.host
+    });
+    
+    // Si viene de nip.io, mantener el formato
+    if (referer && referer.includes('.nip.io')) {
+        try {
+            const url = new URL(referer);
+            const frontendUrl = `${url.protocol}//${url.host}`;
+            console.log("✅ URL del frontend detectada desde referer nip.io:", frontendUrl);
+            return frontendUrl;
+        } catch (error) {
+            console.warn("⚠️ Error al parsear referer nip.io:", error);
+        }
+    }
+    
+    if (origin && origin.includes('.nip.io')) {
+        console.log("✅ URL del frontend detectada desde origin nip.io:", origin);
+        return origin;
+    }
+    
+    // Para construcción nueva, usar IP mapeada
+    const realIP = getHostIPFromRequest(request);
+    const mappedIP = mapToRegisteredIP(realIP);
+    const frontendUrl = mappedIP === '127.0.0.1' 
+        ? 'http://localhost:8080'
+        : `http://${mappedIP}.nip.io:8080`;
+    
+    console.log("✅ URL del frontend mapeada:", frontendUrl);
+    return frontendUrl;
 }
 
-// Función mejorada para callback con nip.io
+// Función mejorada para callback con proxy bidireccional
 function getCallbackUrlFromRequest(request) {
-	const origin = request.headers.origin;
-	const referer = request.headers.referer;
-	const host = request.headers.host;
-	
-	console.log("🔍 Detectando URL de callback:", {
-		origin,
-		referer,
-		host
-	});
-	
-	// Si viene de nip.io, adaptar para backend
-	if (origin && origin.includes('.nip.io')) {
-		try {
-			const url = new URL(origin);
-			const ip = url.hostname.split('.')[0]; // Extraer IP del dominio nip.io
-			const callbackUrl = `http://${ip}.nip.io:3000/auth/callback`;
-			console.log("✅ URL de callback detectada desde origin nip.io:", callbackUrl);
-			return callbackUrl;
-		} catch (error) {
-			console.warn("⚠️ Error al parsear origin nip.io:", error);
-		}
-	}
-	
-	if (referer && referer.includes('.nip.io')) {
-		try {
-			const url = new URL(referer);
-			const ip = url.hostname.split('.')[0];
-			const callbackUrl = `http://${ip}.nip.io:3000/auth/callback`;
-			console.log("✅ URL de callback detectada desde referer nip.io:", callbackUrl);
-			return callbackUrl;
-		} catch (error) {
-			console.warn("⚠️ Error al parsear referer nip.io:", error);
-		}
-	}
-	
-	// Fallback: detectar IP y crear dominio nip.io
-	const hostIP = getHostIP();
-	const callbackUrl = `http://${hostIP}.nip.io:3000/auth/callback`;
-	
-	console.log("✅ URL de callback construida con nip.io:", callbackUrl);
-	return callbackUrl;
+    const origin = request.headers.origin;
+    const referer = request.headers.referer;
+    const host = request.headers.host;
+    
+    console.log("🔍 Detectando URL de callback:", {
+        origin,
+        referer,
+        host
+    });
+    
+    // Si viene de nip.io, adaptar para backend
+    if (origin && origin.includes('.nip.io')) {
+        try {
+            const url = new URL(origin);
+            const ip = url.hostname.split('.')[0]; // Extraer IP del dominio nip.io
+            const callbackUrl = `http://${ip}.nip.io:3000/auth/callback`;
+            console.log("✅ URL de callback detectada desde origin nip.io:", callbackUrl);
+            return callbackUrl;
+        } catch (error) {
+            console.warn("⚠️ Error al parsear origin nip.io:", error);
+        }
+    }
+    
+    if (referer && referer.includes('.nip.io')) {
+        try {
+            const url = new URL(referer);
+            const ip = url.hostname.split('.')[0];
+            const callbackUrl = `http://${ip}.nip.io:3000/auth/callback`;
+            console.log("✅ URL de callback detectada desde referer nip.io:", callbackUrl);
+            return callbackUrl;
+        } catch (error) {
+            console.warn("⚠️ Error al parsear referer nip.io:", error);
+        }
+    }
+    
+    // PROXY BIDIRECCIONAL: usar IP REAL para callback (no mapeada)
+    const realIP = getHostIPFromRequest(request);
+    const callbackUrl = realIP === '127.0.0.1'
+        ? 'http://localhost:3000/auth/callback'
+        : `http://${realIP}.nip.io:3000/auth/callback`;  // IP REAL donde está el servidor
+    
+    console.log("✅ URL de callback con IP REAL:", callbackUrl);
+    return callbackUrl;
+}
+
+// Nueva función para generar URL de autorización con mapeo dual
+function generateDualMappedAuthUrl(request) {
+    const realIP = getHostIPFromRequest(request);
+    const mappedIP = mapToRegisteredIP(realIP);
+    
+    // CALLBACK usa IP real (donde está el servidor)
+    const callbackUrl = realIP === '127.0.0.1'
+        ? 'http://localhost:3000/auth/callback'
+        : `http://${realIP}.nip.io:3000/auth/callback`;
+    
+    console.log(`🔄 Estrategia proxy: OAuth con IP mapeada ${mappedIP}, callback a IP real ${realIP}`);
+    
+    // Generar URL de autorización
+    const authUrl = client.generateAuthUrl({
+        access_type: 'offline',
+        scope: [
+            'https://www.googleapis.com/auth/userinfo.profile',
+            'https://www.googleapis.com/auth/userinfo.email'
+        ],
+        redirect_uri: callbackUrl  // Callback a IP real
+    });
+    
+    return authUrl;
 }
