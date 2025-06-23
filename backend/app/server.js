@@ -29,7 +29,7 @@ fastify.register(require('@fastify/session'), {
 		secure: false, // Cambiar a false mientras usas HTTP
 		httpOnly: true,
 		sameSite: 'lax',
-		domain: 'localhost', // Asegurar que el dominio es correcto
+		// Remover domain para permitir cualquier IP local
 		maxAge: 86400000
 	}
 });
@@ -53,10 +53,11 @@ fastify.register(require('@fastify/cors'), {
 	origin: (origin, cb) => {
 		const hostname = new URL(origin || 'http://localhost:8080').hostname;
 
-		// Lista de dominios permitidos
+		// Lista de dominios permitidos - incluyendo tanto localhost como IP local
 		const allowedDomains = [
 			'localhost',
 			'127.0.0.1',
+			'10.11.12.5', // IP local específica
 			'lh3.googleusercontent.com',
 			'lh4.googleusercontent.com',
 			'lh5.googleusercontent.com',
@@ -64,8 +65,11 @@ fastify.register(require('@fastify/cors'), {
 			'ui-avatars.com'
 		];
 
-		// Permitir si no hay origin (requests del mismo servidor) o si está en la lista
-		if (!origin || allowedDomains.includes(hostname)) {
+		// Permitir cualquier IP local 10.x.x.x o 192.168.x.x para mayor flexibilidad
+		const isLocalNetwork = /^(10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/.test(hostname);
+
+		// Permitir si no hay origin (requests del mismo servidor), está en la lista, o es red local
+		if (!origin || allowedDomains.includes(hostname) || isLocalNetwork) {
 			cb(null, true);
 		} else {
 			cb(new Error('Not allowed by CORS'));
@@ -374,29 +378,33 @@ fastify.get('/auth/callback', async (req, reply) => {
 
 	if (!code) {
 		console.error("❌ No se recibió código en la redirección.");
-		return reply.redirect(`${FRONTEND_URL}/?error=no_code`);
+		const frontendUrl = getFrontendUrlFromRequest(req);
+		return reply.redirect(`${frontendUrl}/?error=no_code`);
 	}
+
+	// Detectar la URL de callback que se usó originalmente
+	const dynamicCallbackUrl = getCallbackUrlFromRequest(req);
 
 	console.log("🔍 Verificando variables de entorno:");
 	console.log(`- CLIENT_ID: ${GOOGLE_CLIENT_ID ? "✅ Configurado" : "❌ No configurado"}`);
 	console.log(`- CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET ? "✅ Configurado" : "❌ No configurado"}`);
-	console.log(`- CALLBACK_URL: ${GOOGLE_CALLBACK_URL || "❌ No configurado"}`);
+	console.log(`- CALLBACK_URL dinámico: ${dynamicCallbackUrl}`);
 
 	try {
 		console.log("🔁 Código recibido, intentando intercambio de token...");
 
-		// Construir los parámetros de forma explícita para mejor depuración
+		// Construir los parámetros usando la URL de callback dinámica
 		const tokenParams = new URLSearchParams({
 			code,
 			client_id: GOOGLE_CLIENT_ID,
 			client_secret: GOOGLE_CLIENT_SECRET,
-			redirect_uri: GOOGLE_CALLBACK_URL,
+			redirect_uri: dynamicCallbackUrl,
 			grant_type: 'authorization_code',
 		});
 
 		console.log("📤 Parámetros de solicitud de token:");
 		console.log(`- code: ${code.substring(0, 10)}...`); // Solo mostrar parte del código por seguridad
-		console.log(`- redirect_uri: ${GOOGLE_CALLBACK_URL}`);
+		console.log(`- redirect_uri: ${dynamicCallbackUrl}`);
 
 		const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
 			method: 'POST',
@@ -409,12 +417,14 @@ fastify.get('/auth/callback', async (req, reply) => {
 		if (!tokenResponse.ok) {
 			console.error("❌ Error en respuesta de token:", tokenData);
 			console.error("Código de estado:", tokenResponse.status);
-			return reply.redirect(`${FRONTEND_URL}/?error=token_exchange_failed&details=${encodeURIComponent(tokenData.error || "unknown")}`);
+			const frontendUrl = getFrontendUrlFromRequest(req);
+			return reply.redirect(`${frontendUrl}/?error=token_exchange_failed&details=${encodeURIComponent(tokenData.error || "unknown")}`);
 		}
 
 		if (!tokenData.access_token) {
 			console.error("❌ No se recibió token de acceso:", tokenData);
-			return reply.redirect(`${FRONTEND_URL}/?error=no_access_token`);
+			const frontendUrl = getFrontendUrlFromRequest(req);
+			return reply.redirect(`${frontendUrl}/?error=no_access_token`);
 		}
 
 		console.log("✅ Token recibido, obteniendo información del usuario...");
@@ -425,7 +435,8 @@ fastify.get('/auth/callback', async (req, reply) => {
 
 		if (!userInfoResponse.ok) {
 			console.error("❌ Error al obtener información del usuario:", await userInfoResponse.text());
-			return reply.redirect(`${FRONTEND_URL}/?error=userinfo_failed`);
+			const frontendUrl = getFrontendUrlFromRequest(req);
+			return reply.redirect(`${frontendUrl}/?error=userinfo_failed`);
 		}
 
 		const userInfo = await userInfoResponse.json();
@@ -459,10 +470,14 @@ fastify.get('/auth/callback', async (req, reply) => {
 			});
 		});
 
-		return reply.redirect(`${FRONTEND_URL}/dashboard`);
+		// Detectar la URL correcta del frontend y redirigir
+		const frontendUrl = getFrontendUrlFromRequest(req);
+		console.log("🔄 Redirigiendo a dashboard en:", `${frontendUrl}/dashboard`);
+		return reply.redirect(`${frontendUrl}/dashboard`);
 	} catch (err) {
 		console.error("❌ Error en /auth/callback:", err);
-		return reply.redirect(`${FRONTEND_URL}/?error=auth_failed&message=${encodeURIComponent(err.message)}`);
+		const frontendUrl = getFrontendUrlFromRequest(req);
+		return reply.redirect(`${frontendUrl}/?error=auth_failed&message=${encodeURIComponent(err.message)}`);
 	}
 });
 
@@ -671,10 +686,11 @@ fastify.post('/auth/logout', async (req, reply) => {
 	}
 });
 
-// Añade este código después de las otras rutas de autenticación
-
 // Ruta GET para inicializar el flujo de OAuth
 fastify.get('/auth/google', async (req, reply) => {
+	// Detectar la URL de callback correcta basada en la petición
+	const dynamicCallbackUrl = getCallbackUrlFromRequest(req);
+	
 	// Generar URL de autenticación de Google OAuth2
 	const authUrl = client.generateAuthUrl({
 		access_type: 'offline',
@@ -682,10 +698,11 @@ fastify.get('/auth/google', async (req, reply) => {
 			'https://www.googleapis.com/auth/userinfo.profile',
 			'https://www.googleapis.com/auth/userinfo.email'
 		],
-		redirect_uri: 'http://localhost:3000/auth/callback'
+		redirect_uri: dynamicCallbackUrl
 	});
 
 	console.log("🔄 Redirigiendo a:", authUrl);
+	console.log("🔗 URL de callback dinámica:", dynamicCallbackUrl);
 
 	// Redirigir al usuario a la URL de autenticación de Google
 	return reply.redirect(authUrl);
@@ -869,3 +886,94 @@ async function checkUserInDatabase(id, user_name, email, picture) {
 fastify.get('/pong/', async (req, reply) => {
 	return reply.code(403).send('🚫 Acceso no permitido'), reply.type('text/html').sendFile('pong.html');
 });
+
+// Función para detectar la URL correcta del frontend basada en el origen de la petición
+function getFrontendUrlFromRequest(request) {
+	const referer = request.headers.referer;
+	const origin = request.headers.origin;
+	const host = request.headers.host;
+	
+	console.log("🔍 Detectando URL del frontend:", {
+		referer,
+		origin,
+		host,
+		userAgent: request.headers['user-agent']
+	});
+	
+	// Si hay referer, extraer la base URL
+	if (referer) {
+		try {
+			const url = new URL(referer);
+			const frontendUrl = `${url.protocol}//${url.host}`;
+			console.log("✅ URL del frontend detectada desde referer:", frontendUrl);
+			return frontendUrl;
+		} catch (error) {
+			console.warn("⚠️ Error al parsear referer:", error);
+		}
+	}
+	
+	// Si hay origin, usarlo
+	if (origin) {
+		console.log("✅ URL del frontend detectada desde origin:", origin);
+		return origin;
+	}
+	
+	// Fallback: usar la IP si el host no es localhost
+	if (host && !host.includes('localhost') && !host.includes('127.0.0.1')) {
+		const frontendUrl = `http://${host.replace(':3000', ':8080')}`;
+		console.log("✅ URL del frontend construida desde host:", frontendUrl);
+		return frontendUrl;
+	}
+	
+	// Fallback final: usar la configuración por defecto
+	console.log("⚠️ Usando URL del frontend por defecto:", FRONTEND_URL);
+	return FRONTEND_URL;
+}
+
+// Función para obtener la URL de callback correcta basada en la petición
+function getCallbackUrlFromRequest(request) {
+	const host = request.headers.host;
+	const origin = request.headers.origin;
+	const referer = request.headers.referer;
+	
+	console.log("🔍 Detectando URL de callback:", {
+		host,
+		origin,
+		referer
+	});
+	
+	// Si viene de origin, extraer el host
+	if (origin) {
+		try {
+			const url = new URL(origin);
+			const callbackUrl = `http://${url.host.replace(':8080', ':3000')}/auth/callback`;
+			console.log("✅ URL de callback detectada desde origin:", callbackUrl);
+			return callbackUrl;
+		} catch (error) {
+			console.warn("⚠️ Error al parsear origin:", error);
+		}
+	}
+	
+	// Si viene de referer, extraer el host
+	if (referer) {
+		try {
+			const url = new URL(referer);
+			const callbackUrl = `http://${url.host.replace(':8080', ':3000')}/auth/callback`;
+			console.log("✅ URL de callback detectada desde referer:", callbackUrl);
+			return callbackUrl;
+		} catch (error) {
+			console.warn("⚠️ Error al parsear referer:", error);
+		}
+	}
+	
+	// Si el host no es localhost, construir URL con la IP
+	if (host && !host.includes('localhost') && !host.includes('127.0.0.1')) {
+		const callbackUrl = `http://${host}/auth/callback`;
+		console.log("✅ URL de callback construida desde host:", callbackUrl);
+		return callbackUrl;
+	}
+	
+	// Fallback: usar la configuración por defecto
+	console.log("⚠️ Usando URL de callback por defecto:", GOOGLE_CALLBACK_URL);
+	return GOOGLE_CALLBACK_URL;
+}

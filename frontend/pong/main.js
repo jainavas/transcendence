@@ -308,7 +308,7 @@ function setupEventListeners() {
 			this.disabled = true;
 			this.textContent = "Guardando...";
 
-			fetch('http://localhost:3000/pong/scores', {
+			fetch(`${window.env?.BACKEND_URL || 'http://localhost:3000'}/pong/scores`, {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
