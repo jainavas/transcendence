@@ -92,8 +92,123 @@
 	<title data-i18n="tournament.title">MegaPong - Torneo</title>
 
 	<!-- Sistema de internacionalización -->
+	<script src="/language-config.js"></script>
 	<script src="/i18n.js"></script>
 	<script src="/language-selector.js"></script>
+
+	<!-- Inicialización del sistema i18n -->
+	<script>
+		console.log('🏆 DEBUG: Script del head iniciando - implementando observador de mutaciones');
+		
+		// Función para aplicar traducciones cuando todos los elementos estén disponibles
+		function applyTournamentTranslations() {
+			const elements = document.querySelectorAll('[data-i18n]');
+			console.log('🏆 DEBUG: Elementos encontrados:', elements.length);
+			
+			if (elements.length > 1) { // Más que solo el título
+				console.log('🏆 DEBUG: Suficientes elementos encontrados, mostrando lista:');
+				elements.forEach((element, index) => {
+					console.log(`🏆 DEBUG [${index}]: ${element.tagName} con data-i18n="${element.getAttribute('data-i18n')}" (texto: "${element.textContent.trim().substring(0, 30)}...")`);
+				});
+				
+				if (window.i18n && window.i18n.isReady()) {
+					console.log('🏆 DEBUG: Aplicando traducciones con todos los elementos...');
+					window.i18n.applyTranslations();
+					return true;
+				}
+			}
+			return false;
+		}
+		
+		// Observador de mutaciones para detectar cuando se agregan elementos al DOM
+		function setupMutationObserver() {
+			console.log('🏆 DEBUG: Configurando observador de mutaciones...');
+			
+			const observer = new MutationObserver((mutations) => {
+				mutations.forEach((mutation) => {
+					if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+						// Verificar si se agregaron elementos con data-i18n
+						const hasI18nElements = Array.from(mutation.addedNodes).some(node => {
+							if (node.nodeType === Node.ELEMENT_NODE) {
+								// CORREGIDO: usar casting de JavaScript, no TypeScript
+								const element = node;
+								return element.hasAttribute && element.hasAttribute('data-i18n') || 
+									   (element.querySelector && element.querySelector('[data-i18n]') !== null);
+							}
+							return false;
+						});
+						
+						if (hasI18nElements) {
+							console.log('🏆 DEBUG: Detectados nuevos elementos con data-i18n');
+							setTimeout(() => applyTournamentTranslations(), 100);
+						}
+					}
+				});
+			});
+			
+			// Observar cambios en todo el documento
+			observer.observe(document.body || document.documentElement, {
+				childList: true,
+				subtree: true
+			});
+			
+			console.log('🏆 DEBUG: Observador de mutaciones configurado');
+		}
+		
+		// Inicializar cuando el DOM esté listo
+		document.addEventListener('DOMContentLoaded', function() {
+			console.log('🏆 DEBUG: DOM cargado, configurando sistema para torneo...');
+			
+			// Configurar observador de mutaciones
+			setupMutationObserver();
+			
+			// Intentar aplicar traducciones inmediatamente (por si ya están los elementos)
+			setTimeout(() => applyTournamentTranslations(), 100);
+			setTimeout(() => applyTournamentTranslations(), 500);
+			setTimeout(() => applyTournamentTranslations(), 1000);
+			setTimeout(() => applyTournamentTranslations(), 2000);
+			
+			// Esperar a que i18n esté disponible
+			const waitForI18n = () => {
+				if (window.i18n && typeof window.i18n.init === 'function') {
+					console.log('🏆 DEBUG: Sistema i18n disponible');
+					
+					if (!window.i18n.isReady()) {
+						window.i18n.init().then(() => {
+							console.log("🌐 i18n inicializado para torneo");
+							setTimeout(() => applyTournamentTranslations(), 100);
+						}).catch(error => {
+							console.error('Error inicializando i18n:', error);
+						});
+					} else {
+						console.log('🏆 DEBUG: i18n ya estaba listo');
+						setTimeout(() => applyTournamentTranslations(), 100);
+					}
+					
+					// Registrar observador para cambios de idioma
+					if (typeof window.i18n.onLanguageChange === 'function') {
+						window.i18n.onLanguageChange(() => {
+							console.log('🏆 DEBUG: Detectado cambio de idioma en torneo');
+							setTimeout(() => applyTournamentTranslations(), 50);
+							setTimeout(() => applyTournamentTranslations(), 200);
+						});
+					}
+					
+				} else {
+					console.log('🏆 DEBUG: Esperando a que i18n esté disponible...');
+					setTimeout(waitForI18n, 100);
+				}
+			};
+			
+			waitForI18n();
+		});
+		
+		// Backup: usar window.onload
+		window.addEventListener('load', function() {
+			console.log('🏆 DEBUG: window.load disparado');
+			setTimeout(() => applyTournamentTranslations(), 100);
+		});
+	</script>
 
 	<!-- CSS para pantalla completa y UI -->
 	<style>
@@ -106,6 +221,35 @@
 			overflow: hidden;
 			font-family: Arial, sans-serif;
 			background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+		}
+
+		/* Language Selector Styles */
+		#language-selector-container {
+			position: fixed;
+			top: 20px;
+			right: 20px;
+			z-index: 1000;
+		}
+
+		.language-selector {
+			background: rgba(20, 20, 40, 0.9);
+			border: 2px solid #00ff88;
+			border-radius: 8px;
+			padding: 0.5rem;
+			color: #fff;
+			font-size: 0.9rem;
+			cursor: pointer;
+			transition: all 0.3s ease;
+		}
+
+		.language-selector:hover {
+			background: rgba(0, 255, 136, 0.2);
+			box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+		}
+
+		.language-selector:focus {
+			outline: none;
+			box-shadow: 0 0 15px rgba(0, 255, 136, 0.5);
 		}
 
 		/* Tournament Setup Screen */
@@ -509,34 +653,39 @@
 </head>
 
 <body>
+	<!-- Language Selector -->
+	<div id="language-selector-container"></div>
+
 	<!-- Tournament Setup Screen -->
 	<div id="tournamentSetup">
 		<div class="setup-container">
-			<h1 class="setup-title">🏆 Configurar Torneo</h1>
+			<h1 class="setup-title" data-i18n="tournament.setup_title">🏆 Configurar Torneo</h1>
 			
 			<div class="input-group">
-				<label>Tu Alias:</label>
-				<input type="text" id="userAlias" placeholder="Ingresa tu alias" maxlength="15" />
+				<label data-i18n="tournament.your_alias">Tu Alias:</label>
+				<input type="text" id="userAlias" data-i18n-placeholder="tournament.your_alias_placeholder" placeholder="Ingresa tu alias" maxlength="15" />
 			</div>
 
 			<div class="input-group">
-				<label>Alias del Oponente:</label>
-				<input type="text" id="playerAlias" placeholder="Alias del jugador" maxlength="15" />
-				<button type="button" id="addPlayer" class="btn-secondary" style="margin-top: 0.5rem; width: 100%;">
+				<label data-i18n="tournament.opponent_alias">Alias del Oponente:</label>
+				<input type="text" id="playerAlias" data-i18n-placeholder="tournament.opponent_placeholder" placeholder="Alias del jugador" maxlength="15" />
+				<button type="button" id="addPlayer" class="btn-secondary" style="margin-top: 0.5rem; width: 100%;" data-i18n="tournament.add_player">
 					Agregar Jugador
 				</button>
 			</div>
 
 			<div class="player-list">
-				<h3 style="color: #fff; margin-bottom: 1rem;">Jugadores añadidos (<span id="playerCount">0</span>/7):</h3>
+				<h3 style="color: #fff; margin-bottom: 1rem;">
+					<span data-i18n="tournament.players_added">Jugadores añadidos</span> (<span id="playerCount">0</span>/7):
+				</h3>
 				<div id="playersList"></div>
 			</div>
 
-			<button class="btn-primary" id="startTournament" disabled>
+			<button class="btn-primary" id="startTournament" disabled data-i18n="tournament.start_tournament">
 				Iniciar Torneo
 			</button>
 
-			<button class="btn-secondary" id="backToMenu" style="width: 100%; margin-top: 1rem;" onclick="window.location.href='dashboard.html'">
+			<button class="btn-secondary" id="backToMenu" style="width: 100%; margin-top: 1rem;" onclick="window.location.href='dashboard.html'" data-i18n="tournament.back_to_menu">
 				Volver al Menú
 			</button>
 		</div>
@@ -545,37 +694,93 @@
 	<!-- Tournament Bracket Screen -->
 	<div id="tournamentBracket">
 		<div class="bracket-container">
-			<h1 class="bracket-title">🏆 Bracket del Torneo</h1>
+			<h1 class="bracket-title" data-i18n="tournament.bracket_title">🏆 Bracket del Torneo</h1>
 			<div class="bracket-rounds" id="bracketRounds"></div>
 			<div style="text-align: center; margin-top: 2rem;">
-				<button class="btn-secondary" id="newTournamentFromBracket">Nuevo Torneo</button>
-				<button class="btn-secondary" onclick="window.location.href='dashboard.html'">Menú Principal</button>
+				<button class="btn-secondary" id="newTournamentFromBracket" data-i18n="tournament.new_tournament">Nuevo Torneo</button>
+				<button class="btn-secondary" onclick="window.location.href='dashboard.html'" data-i18n="tournament.main_menu">Menú Principal</button>
 			</div>
 		</div>
 	</div>
 
 	<!-- Match Announcement Screen -->
 	<div id="matchAnnouncement">
-		<h2 class="announcement-title" id="announcementTitle">¡Siguiente Match!</h2>
+		<h2 class="announcement-title" id="announcementTitle" data-i18n="tournament.next_match">¡Siguiente Match!</h2>
 		<div class="announcement-players" id="announcementPlayers"></div>
 		<div style="margin-top: 2rem;">
-			<button class="btn-start-game" id="startGameBtn">🏓 ¡Jugar Pong!</button>
-			<button class="btn-secondary" id="backToBracketFromAnnouncement">Volver al Bracket</button>
+			<button class="btn-start-game" id="startGameBtn" data-i18n="tournament.play_pong">🏓 ¡Jugar Pong!</button>
+			<button class="btn-secondary" id="backToBracketFromAnnouncement" data-i18n="tournament.back_to_bracket">Volver al Bracket</button>
 		</div>
 	</div>
 
 	<!-- Winner Screen -->
 	<div id="winnerScreen">
 		<div class="winner-container">
-			<h1 class="winner-title">🎉 ¡CAMPEÓN DEL TORNEO! 🎉</h1>
+			<h1 class="winner-title" data-i18n="tournament.tournament_champion">🎉 ¡CAMPEÓN DEL TORNEO! 🎉</h1>
 			<div class="winner-name" id="winnerName"></div>
-			<button class="btn-primary" id="newTournament">Nuevo Torneo</button>
-			<button class="btn-secondary" id="backToMenuFromWinner" style="margin-left: 1rem;">Menú Principal</button>
+			<button class="btn-primary" id="newTournament" data-i18n="tournament.new_tournament">Nuevo Torneo</button>
+			<button class="btn-secondary" id="backToMenuFromWinner" style="margin-left: 1rem;" data-i18n="tournament.main_menu">Menú Principal</button>
 		</div>
 	</div>
 
 	<!-- Solo el JavaScript del torneo -->
 	<script src="pong/tournament.js"></script>
+	
+	<!-- SOLUCION DEFINITIVA: Sistema i18n completo AL FINAL -->
+	<script>
+		console.log('🏆 DEBUG: Script final ejecutándose - TODOS los elementos del DOM están listos');
+		
+		// Verificar inmediatamente cuántos elementos hay
+		const allElements = document.querySelectorAll('[data-i18n]');
+		console.log('🏆 DEBUG: Elementos TOTALES disponibles:', allElements.length);
+		
+		// Mostrar TODOS los elementos
+		console.log('🏆 DEBUG: Lista COMPLETA de elementos:');
+		allElements.forEach((element, index) => {
+			console.log(`🏆 DEBUG [${index}]: ${element.tagName} con data-i18n="${element.getAttribute('data-i18n')}" (texto: "${element.textContent.trim().substring(0, 30)}...")`);
+		});
+		
+		// Función para aplicar traducciones cuando todos los elementos estén listos
+		function applyAllTranslations() {
+			console.log('🏆 DEBUG: Aplicando traducciones con TODOS los elementos disponibles');
+			
+			if (window.i18n && window.i18n.isReady()) {
+				console.log('🏆 DEBUG: i18n listo, aplicando traducciones...');
+				window.i18n.applyTranslations();
+			} else {
+				console.log('🏆 DEBUG: i18n no listo, esperando...');
+				// Esperar hasta que esté listo
+				const waitForI18n = setInterval(() => {
+					if (window.i18n && window.i18n.isReady()) {
+						clearInterval(waitForI18n);
+						console.log('🏆 DEBUG: i18n ahora listo, aplicando traducciones...');
+						window.i18n.applyTranslations();
+					}
+				}, 100);
+			}
+		}
+		
+		// Aplicar inmediatamente
+		applyAllTranslations();
+		
+		// Registrar observador para cambios de idioma
+		if (window.i18n && typeof window.i18n.onLanguageChange === 'function') {
+			window.i18n.onLanguageChange(() => {
+				console.log('🏆 DEBUG: Cambio de idioma detectado, re-aplicando...');
+				setTimeout(() => applyAllTranslations(), 50);
+			});
+		} else {
+			// Esperar a que i18n esté disponible para registrar el observador
+			const waitForI18nObserver = setInterval(() => {
+				if (window.i18n && typeof window.i18n.onLanguageChange === 'function') {
+					clearInterval(waitForI18nObserver);
+					window.i18n.onLanguageChange(() => {
+						console.log('🏆 DEBUG: Cambio de idioma detectado, re-aplicando...');
+						setTimeout(() => applyAllTranslations(), 50);
+					});
+				}
+			}, 100);
+		}
+	</script>
 </body>
-
 </html>
