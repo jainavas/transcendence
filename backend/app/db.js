@@ -16,13 +16,42 @@ CREATE TABLE IF NOT EXISTS users (
   google_id TEXT UNIQUE,
   user_name TEXT NOT NULL,
   user_email TEXT NOT NULL UNIQUE,
-  user_picture TEXT
+  user_picture TEXT,
+  totp_secret TEXT,
+  is_2fa_enabled INTEGER DEFAULT 0,
+  created_at TEXT DEFAULT (datetime('now'))
 );`, (err) => {
 		if (err) {
 			console.error("Error al crear tabla users:", err);
 			return;
 		}
 		console.log("✅ Tabla users disponible");
+		
+		// Add 2FA columns to existing users table if they don't exist
+		db.run(`ALTER TABLE users ADD COLUMN totp_secret TEXT`, (err) => {
+			if (err && !err.message.includes('duplicate column name')) {
+				console.error("Error al añadir columna totp_secret:", err);
+			}
+		});
+		
+		db.run(`ALTER TABLE users ADD COLUMN is_2fa_enabled INTEGER DEFAULT 0`, (err) => {
+			if (err && !err.message.includes('duplicate column name')) {
+				console.error("Error al añadir columna is_2fa_enabled:", err);
+			}
+		});
+		
+		db.run(`ALTER TABLE users ADD COLUMN created_at TEXT`, (err) => {
+			if (err && !err.message.includes('duplicate column name')) {
+				console.error("Error al añadir columna created_at:", err);
+			} else if (!err) {
+				// Set default value for existing rows
+				db.run(`UPDATE users SET created_at = datetime('now') WHERE created_at IS NULL`, (updateErr) => {
+					if (updateErr) {
+						console.error("Error al actualizar created_at:", updateErr);
+					}
+				});
+			}
+		});
 	});
 	db.run(`-- Tabla de sesiones (puede estar ligada a users.email si lo deseas)
 CREATE TABLE IF NOT EXISTS session_data (

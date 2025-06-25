@@ -6,11 +6,15 @@ services:
     volumes:
       - ./data:/usr/src/app/data
       - ./backend/app:/usr/src/app/app
+      # Sincronización de tiempo con el host
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
     restart: always
     env_file:
       - .env
     environment:
       - NODE_ENV=${NODE_ENV:-development}
+      - TZ=${TZ:-Europe/Madrid}
     logging:
       driver: "json-file"
       options:
@@ -27,6 +31,7 @@ services:
       - ./frontend/main.ts:/app/main.ts
       - ./frontend/dashboard.ts:/app/dashboard.ts
       - ./frontend/dashboard.html:/app/dashboard.html
+      - ./frontend/2fa.html:/app/2fa.html
       - ./frontend/styles.css:/app/styles.css
       - ./frontend/tailwind.config.js:/app/tailwind.config.js
       - ./frontend/postcss.config.js:/app/postcss.config.js
@@ -43,11 +48,15 @@ services:
       - ./frontend/language-selector.js:/app/language-selector.js
       - ./frontend/language-config.js:/app/language-config.js
       - ./frontend/locales:/app/locales
+      # Sincronización de tiempo con el host
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
     restart: always
     env_file:
       - .env
     environment:
       - NODE_ENV=${NODE_ENV:-development}
+      - TZ=${TZ:-Europe/Madrid}
       - CHOKIDAR_USEPOLLING=true
     command: >
       sh -c "npm install -g http-server nodemon &&

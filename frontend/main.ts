@@ -16,6 +16,39 @@ let googleInitAttempts = 0;
 const MAX_INIT_ATTEMPTS = 10;
 const BACKEND_URL = window.env?.BACKEND_URL || 'http://localhost:3000';
 
+// JWT Token management
+function getAuthToken(): string | null {
+  return localStorage.getItem('authToken');
+}
+
+function setAuthToken(token: string): void {
+  localStorage.setItem('authToken', token);
+}
+
+function removeAuthToken(): void {
+  localStorage.removeItem('authToken');
+}
+
+// Enhanced fetch with JWT token
+async function authenticatedFetch(url: string, options: RequestInit = {}): Promise<Response> {
+  const token = getAuthToken();
+  
+  const headers = {
+    'Content-Type': 'application/json',
+    ...options.headers
+  };
+  
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  
+  return fetch(url, {
+    ...options,
+    headers,
+    credentials: 'include'
+  });
+}
+
 // Función para actualizar la interfaz de usuario
 function updateUI(userData: any) {
   const userInfo = document.getElementById("userInfo");
@@ -57,6 +90,15 @@ async function handleLogout() {
     });
     
     isAuthenticated = false;
+    
+    // Clear JWT token
+    removeAuthToken();
+    
+    // Clear any pending 2FA data
+    localStorage.removeItem('pendingUserEmail');
+    localStorage.removeItem('pendingQrCode');
+    localStorage.removeItem('pendingSetup');
+    
     const userInfo = document.getElementById("userInfo");
     const googleButton = document.getElementById("googleSignInButton");
     
@@ -187,9 +229,36 @@ window.handleCredentialResponse = async (response: any) => {
     console.log("📡 Respuesta del backend:", data);
 
     if (res.ok) {
-      isAuthenticated = true;
-      updateUI(data);
+      if (data.status === '2fa_setup_required') {
+        // Redirect to 2FA setup page with QR code
+        console.log("🔐 2FA setup required - redirecting to setup page");
+        
+        // Store data for 2FA page
+        localStorage.setItem('pendingUserEmail', data.user.email);
+        localStorage.setItem('pendingQrCode', data.qrCode);
+        localStorage.setItem('pendingSetup', 'true');
+        
+        // Redirect to 2FA page
+        window.location.href = '/2fa?setup=true&email=' + encodeURIComponent(data.user.email);
+        return;
+      } else if (data.status === '2fa_verification_required') {
+        // Redirect to 2FA verification page
+        console.log("🔐 2FA verification required - redirecting to verification page");
+        
+        // Store data for 2FA page
+        localStorage.setItem('pendingUserEmail', data.user.email);
+        localStorage.setItem('pendingSetup', 'false');
+        
+        // Redirect to 2FA page
+        window.location.href = '/2fa?email=' + encodeURIComponent(data.user.email);
+        return;
+      } else {
+        // This should not happen with mandatory 2FA
+        console.warn("⚠️ Unexpected response status:", data.status);
+        userInfo.innerHTML = `<p class='text-yellow-500'>Unexpected response. Please try again.</p>`;
+      }
     } else {
+      console.error("❌ Authentication failed:", data);
       userInfo.innerHTML = `<p class='text-red-500'>Error: ${data.error || 'Error desconocido'}</p>`;
     }
   } catch (err) {
@@ -201,18 +270,61 @@ window.handleCredentialResponse = async (response: any) => {
 // Verificar sesión al cargar la página
 async function checkUserSession() {
   try {
-    console.log("🔍 Verificando sesión de usuario...");
-    const response = await fetch(`${BACKEND_URL}/user/me`, {
-      credentials: 'include'
-    });
+    console.log("🔍 Verificando autenticación de usuario...");
+    
+    // Try JWT authentication first
+    const token = getAuthToken();
+    let response;
+    
+    if (token) {
+      console.log("🎯 JWT token found, verifying...");
+      response = await authenticatedFetch(`${BACKEND_URL}/user/me`);
+    } else {
+      console.log("⚠️ No JWT token found, checking session...");
+      response = await fetch(`${BACKEND_URL}/user/me`, {
+        credentials: 'include'
+      });
+    }
+    
     const data = await response.json();
-    console.log('📊 Resultado de verificación de sesión:', data);
+    console.log('📊 Resultado de verificación:', data);
     
     if (data.authenticated) {
-      isAuthenticated = true;
-      // Redirigir a dashboard si ya hay sesión
-      window.location.href = '/dashboard';
+      // Check authentication method
+      if (data.authMethod === 'jwt' && !data.requires2FA) {
+        // User is fully authenticated with JWT
+        console.log("✅ Usuario autenticado con JWT válido");
+        isAuthenticated = true;
+        window.location.href = '/dashboard';
+        return;
+      } else if (data.authMethod === 'session' && data.requires2FA) {
+        // User has session but needs 2FA - MANDATORY
+        console.log("🔐 Usuario con sesión pero requiere verificación 2FA OBLIGATORIA");
+        console.log("📊 Estado del usuario:", {
+          authenticated: data.authenticated,
+          authMethod: data.authMethod,
+          requires2FA: data.requires2FA,
+          isFullyAuthenticated: data.isFullyAuthenticated,
+          userEmail: data.user?.email
+        });
+        
+        localStorage.setItem('pendingUserEmail', data.user.email);
+        localStorage.setItem('pendingSetup', 'false');
+        console.log("🚨 REDIRIGIENDO A 2FA - SIN JWT VÁLIDO");
+        window.location.href = '/2fa?email=' + encodeURIComponent(data.user.email);
+        return;
+      } else {
+        // Other case - redirect to dashboard
+        console.log("✅ Usuario autenticado, redirigiendo a dashboard");
+        isAuthenticated = true;
+        window.location.href = '/dashboard';
+        return;
+      }
     } else {
+      // Clear any stale token
+      console.log("❌ Usuario no autenticado");
+      removeAuthToken();
+      
       // Inicializar el botón de Google solo si no hay sesión activa
       initializeGoogleSignIn();
     }
