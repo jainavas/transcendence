@@ -524,12 +524,8 @@ export class ProfileManager {
 		this.setLoadingState(true);
 
 		try {
-			const response = await fetch(`${BACKEND_URL}/user/aliaspicture`, {
+			const response = await authenticatedFetch(`${BACKEND_URL}/user/aliaspicture`, {
 				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				credentials: 'include',
 				body: JSON.stringify({
 					alias: alias,
 					picture: imageUrl
@@ -713,8 +709,7 @@ async function checkUserSession(): Promise<User | null> {
 		// Guardar timestamp de verificación
 		sessionStorage.setItem('lastSessionCheck', now.toString());
 
-		const response = await fetch(`${BACKEND_URL}/user/me`, {
-			credentials: 'include',
+		const response = await authenticatedFetch(`${BACKEND_URL}/user/me`, {
 			headers: {
 				// Añadir cabeceras para evitar caché
 				'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -746,6 +741,28 @@ async function checkUserSession(): Promise<User | null> {
 
 			sessionStorage.setItem('redirectAttempts', (redirectAttempts + 1).toString());
 			window.location.href = "/";
+			return null;
+		}
+
+		// Check if user requires 2FA verification
+		if (data.requires2FA && !data.isFullyAuthenticated) {
+			console.warn("🔐 Usuario requiere verificación 2FA obligatoria");
+			console.log("📊 Estado del usuario:", {
+				authenticated: data.authenticated,
+				authMethod: data.authMethod,
+				requires2FA: data.requires2FA,
+				isFullyAuthenticated: data.isFullyAuthenticated,
+				userEmail: data.user?.email
+			});
+			
+			// Clear session storage to prevent loops
+			sessionStorage.removeItem('redirectAttempts');
+			
+			// Force redirect to 2FA page - no exceptions
+			console.log("🚨 REDIRIGIENDO A 2FA - OBLIGATORIO");
+			localStorage.setItem('pendingUserEmail', data.user.email);
+			localStorage.setItem('pendingSetup', 'false');
+			window.location.href = '/2fa?email=' + encodeURIComponent(data.user.email);
 			return null;
 		}
 
@@ -919,6 +936,9 @@ function setupLogoutButton(): void {
 					throw new Error(t('auth.logout_error', { status: response.status }));
 				}
 
+				// Clear JWT token on logout
+				removeAuthToken();
+
 				// Redirigir al login
 				window.location.href = "/?logout=true";
 			} catch (error) {
@@ -1015,8 +1035,7 @@ async function loadPongScores(): Promise<void> {
 
 	try {
 		console.log("🏓 Cargando puntuaciones... (intento: " + (scoresRetryCount + 1) + ")");
-		const response = await fetch(`${BACKEND_URL}/pong/scores`, {
-			credentials: 'include',
+		const response = await authenticatedFetch(`${BACKEND_URL}/pong/scores`, {
 			headers: {
 				'Cache-Control': 'no-cache',
 				'Pragma': 'no-cache'
@@ -1121,8 +1140,7 @@ async function loadGlobalHighScores(user: User): Promise<void> {
 
 	try {
 		console.log("🏆 Cargando mejores puntuaciones globales...");
-		const response = await fetch(`${BACKEND_URL}/pong/leaderboard`, {
-			credentials: 'include',
+		const response = await authenticatedFetch(`${BACKEND_URL}/pong/leaderboard`, {
 			headers: {
 				'Cache-Control': 'no-cache',
 				'Pragma': 'no-cache'
@@ -1296,8 +1314,7 @@ async function loadGameStatsChart(user: User): Promise<void> {
 		console.log("📊 Cargando estadísticas de partidas...");
 
 		// Fetch de las últimas partidas del usuario
-		const response = await fetch(`${BACKEND_URL}/pong/scores`, {
-			credentials: 'include',
+		const response = await authenticatedFetch(`${BACKEND_URL}/pong/scores`, {
 			headers: {
 				'Cache-Control': 'no-cache',
 				'Pragma': 'no-cache'
@@ -1697,3 +1714,32 @@ window.notifyLanguageChange = (lng: string) => {
 		changeLanguage(lng);
 	}
 };
+
+// JWT Token management for dashboard
+function getAuthToken(): string | null {
+  return localStorage.getItem('authToken');
+}
+
+function removeAuthToken(): void {
+  localStorage.removeItem('authToken');
+}
+
+// Enhanced fetch with JWT token for dashboard
+async function authenticatedFetch(url: string, options: RequestInit = {}): Promise<Response> {
+  const token = getAuthToken();
+  
+  const headers = {
+    'Content-Type': 'application/json',
+    ...options.headers
+  };
+  
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  
+  return fetch(url, {
+    ...options,
+    headers,
+    credentials: 'include'
+  });
+}

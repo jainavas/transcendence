@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Two-Factor Authentication - Transcendence</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+        
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .qr-section {
+            margin-bottom: 30px;
+        }
+        
+        .qr-image {
+            max-width: 200px;
+            height: auto;
+            margin: 20px 0;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+        }
+        
+        .instructions {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            font-size: 14px;
+            color: #333;
+            line-height: 1.5;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 16px;
+            text-align: center;
+            letter-spacing: 0.5em;
+            transition: border-color 0.3s;
+        }
+        
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .error {
+            color: #dc3545;
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+        
+        .success {
+            color: #155724;
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+        
+        .info {
+            color: #0c5460;
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+        
+        .loading {
+            display: none;
+            margin-top: 15px;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .step-indicator {
+            margin-bottom: 30px;
+        }
+        
+        .step {
+            background: #667eea;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin: 0 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🔐 Transcendence</div>
+        <div class="subtitle">Two-Factor Authentication</div>
+        
+        <div class="step-indicator">
+            <span class="step">1</span>
+            <span class="step" id="step2">2</span>
+        </div>
+        
+        <!-- Setup Phase -->
+        <div id="setupPhase" style="display: none;">
+            <div class="qr-section">
+                <h3>Setup Your Authenticator</h3>
+                <div class="instructions">
+                    1. Open your authenticator app (Google Authenticator, Authy, etc.)<br>
+                    2. Scan the QR code below<br>
+                    3. Enter the 6-digit code to complete setup
+                </div>
+                <img id="qrImage" class="qr-image" src="" alt="QR Code">
+            </div>
+        </div>
+        
+        <!-- Verification Phase -->
+        <div id="verificationPhase">
+            <h3 id="verificationTitle">Enter Authentication Code</h3>
+            <div class="instructions">
+                Open your authenticator app and enter the 6-digit code for Transcendence
+            </div>
+            
+            <form id="verifyForm" method="POST" action="#">
+                <div class="input-group">
+                    <label for="totpCode">6-Digit Code</label>
+                    <input 
+                        type="text" 
+                        id="totpCode" 
+                        name="totpCode" 
+                        maxlength="6" 
+                        pattern="[0-9]{6}" 
+                        placeholder="000000" 
+                        required
+                        autocomplete="one-time-code"
+                    >
+                </div>
+                
+                <button type="submit" class="btn" id="verifyBtn">
+                    Verify & Complete Login
+                </button>
+                
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p>Verifying...</p>
+                </div>
+                
+                <div id="message"></div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Detect backend URL automatically
+        const BACKEND_URL = window.location.protocol + '//' + window.location.hostname + ':3000';
+        
+        // Get parameters from URL or localStorage
+        const urlParams = new URLSearchParams(window.location.search);
+        const userEmail = urlParams.get('email') || localStorage.getItem('pendingUserEmail');
+        let qrCode = urlParams.get('qr') || localStorage.getItem('pendingQrCode');
+        const isSetup = urlParams.get('setup') === 'true' || localStorage.getItem('pendingSetup') === 'true';
+        
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('🔐 2FA page loading...', {
+                userEmail,
+                qrCode: qrCode ? '[PRESENTE]' : '[NO PRESENTE]',
+                isSetup,
+                urlParams: Object.fromEntries(urlParams.entries())
+            });
+            
+            // If setup is required but no QR code, request it from backend
+            if (isSetup && !qrCode && userEmail) {
+                console.log('🔄 Setup requerido pero sin QR code - solicitando al backend...');
+                await requestSetupFromBackend();
+            } else if (isSetup && qrCode) {
+                console.log('✅ Setup con QR code disponible');
+                showSetupPhase();
+            } else {
+                console.log('🔐 Modo verificación únicamente');
+                showVerificationPhase();
+            }
+            
+            // Auto-focus on the input
+            document.getElementById('totpCode').focus();
+            
+            // Auto-format input (add spaces for readability)
+            document.getElementById('totpCode').addEventListener('input', function(e) {
+                let value = e.target.value.replace(/\D/g, '');
+                if (value.length <= 6) {
+                    e.target.value = value;
+                }
+            });
+        });
+        
+        // Request setup from backend if needed
+        async function requestSetupFromBackend() {
+            try {
+                showMessage('Requesting 2FA setup...', 'info');
+                
+                const response = await fetch(BACKEND_URL + '/auth/2fa/setup', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        email: userEmail
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.qrCode) {
+                    console.log('✅ QR code recibido del backend');
+                    // Store QR code and show setup
+                    localStorage.setItem('pendingQrCode', data.qrCode);
+                    qrCode = data.qrCode;
+                    showSetupPhase();
+                    showMessage('Scan the QR code with your authenticator app', 'info');
+                } else {
+                    console.error('❌ Error obteniendo QR code:', data);
+                    showMessage(data.error || 'Failed to get setup code', 'error');
+                    showVerificationPhase(); // Fallback to verification
+                }
+            } catch (error) {
+                console.error('❌ Error solicitando setup:', error);
+                showMessage('Failed to request setup. Please try logging in again.', 'error');
+                showVerificationPhase(); // Fallback to verification
+            }
+        }
+        
+        function showSetupPhase() {
+            document.getElementById('setupPhase').style.display = 'block';
+            document.getElementById('verificationPhase').style.display = 'block';
+            document.getElementById('qrImage').src = qrCode;
+            document.getElementById('verificationTitle').textContent = 'Complete 2FA Setup';
+            document.getElementById('step2').style.background = '#ffc107';
+        }
+        
+        function showVerificationPhase() {
+            document.getElementById('setupPhase').style.display = 'none';
+            document.getElementById('verificationPhase').style.display = 'block';
+            document.getElementById('step2').style.background = '#667eea';
+        }
+        
+        // Handle form submission
+        document.getElementById('verifyForm').addEventListener('submit', async function(e) {
+            console.log('🚀 Form submit event triggered');
+            e.preventDefault();
+            
+            const totpCode = document.getElementById('totpCode').value;
+            const messageDiv = document.getElementById('message');
+            const loadingDiv = document.getElementById('loading');
+            const verifyBtn = document.getElementById('verifyBtn');
+            
+            console.log('📝 Form data:', {
+                userEmail: userEmail,
+                totpCode: totpCode,
+                totpCodeLength: totpCode.length
+            });
+            
+            if (!userEmail) {
+                console.error('❌ No user email found');
+                showMessage('Error: User email not found. Please try logging in again.', 'error');
+                return;
+            }
+            
+            if (totpCode.length !== 6) {
+                console.error('❌ Invalid TOTP code length:', totpCode.length);
+                showMessage('Please enter a 6-digit code', 'error');
+                return;
+            }
+            
+            console.log('🔄 Starting 2FA verification...');
+            
+            // Show loading state
+            verifyBtn.disabled = true;
+            loadingDiv.style.display = 'block';
+            messageDiv.innerHTML = '';
+            
+            try {
+                console.log('📡 Sending POST request to:', BACKEND_URL + '/auth/2fa/verify');
+                const response = await fetch(BACKEND_URL + '/auth/2fa/verify', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        email: userEmail,
+                        totpCode: totpCode
+                    })
+                });
+                
+                const data = await response.json();
+                
+                console.log('🔍 2FA Response:', {
+                    status: response.status,
+                    ok: response.ok,
+                    data: data
+                });
+                
+                if (response.ok && data.success) {
+                    console.log('✅ 2FA Success - redirecting to dashboard');
+                    showMessage('Authentication successful! Redirecting...', 'success');
+                    
+                    // Store JWT token
+                    if (data.token) {
+                        localStorage.setItem('authToken', data.token);
+                        console.log('✅ JWT token stored in localStorage');
+                    } else {
+                        console.warn('⚠️ No token received from backend');
+                    }
+                    
+                    // Clear pending data
+                    localStorage.removeItem('pendingUserEmail');
+                    localStorage.removeItem('pendingQrCode');
+                    localStorage.removeItem('pendingSetup');
+                    
+                    // Redirect to dashboard
+                    console.log('🔄 Redirecting to dashboard in 1.5 seconds...');
+                    setTimeout(() => {
+                        console.log('🔄 Executing redirect to /dashboard');
+                        window.location.href = '/dashboard';
+                    }, 1500);
+                    
+                    // Add manual redirect button as backup
+                    setTimeout(() => {
+                        const messageDiv = document.getElementById('message');
+                        messageDiv.innerHTML += `
+                            <div class="info" style="margin-top: 10px;">
+                                <p>If you're not redirected automatically:</p>
+                                <button onclick="window.location.href='/dashboard'" class="btn" style="margin-top: 10px;">
+                                    Go to Dashboard
+                                </button>
+                            </div>
+                        `;
+                    }, 3000);
+                } else {
+                    console.error('❌ 2FA Failed:', data);
+                    showMessage(data.error || 'Verification failed', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showMessage('Network error. Please try again.', 'error');
+            } finally {
+                // Hide loading state
+                verifyBtn.disabled = false;
+                loadingDiv.style.display = 'none';
+            }
+        });
+        
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.innerHTML = `<div class="${type}">${text}</div>`;
+        }
+        
+        // Auto-submit when 6 digits are entered
+        document.getElementById('totpCode').addEventListener('input', function(e) {
+            if (e.target.value.length === 6) {
+                console.log('🔄 Auto-submitting form with 6 digits');
+                setTimeout(() => {
+                    const form = document.getElementById('verifyForm');
+                    const submitEvent = new Event('submit', {
+                        bubbles: true,
+                        cancelable: true
+                    });
+                    form.dispatchEvent(submitEvent);
+                }, 300);
+            }
+        });
+    </script>
+</body>
+</html>

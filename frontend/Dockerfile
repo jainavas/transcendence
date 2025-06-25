@@ -1,4 +1,10 @@
 FROM node:18-alpine
+
+# Configurar zona horaria en Alpine
+RUN apk add --no-cache tzdata
+ENV TZ=Europe/Madrid
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
 WORKDIR /app
 
 # Instalar dependencias primero para aprovechar la caché
@@ -47,31 +53,13 @@ echo "✅ Archivo env-types.js creado en dist/"\n\
 \n\
 # Copiar env-types.js a la raíz para compatibilidad con importaciones\n\
 cp -f dist/env-types.js /app/\n\
-echo "✅ Archivo env-types.js copiado a la raíz"\n\
-\n\
-# Configurar variables de entorno con forma diferente\n\
-cat > /app/env-config.js << EOF\n\
-// Variables de entorno para el frontend\n\
-window.env = {\n\
-  BACKEND_URL: "$BACKEND_URL",\n\
-  FRONTEND_URL: "$FRONTEND_URL",\n\
-  GOOGLE_CLIENT_ID: "$GOOGLE_CLIENT_ID",\n\
-  NODE_ENV: "$NODE_ENV"\n\
-};\n\
-\n\
-console.log("✅ Variables de entorno cargadas:", window.env);\n\
-EOF\n\
-\n\
-echo "Entorno configurado con: BACKEND_URL=$BACKEND_URL FRONTEND_URL=$FRONTEND_URL"\n\
-\n\
-# Iniciar servidor HTTP\n\
-http-server . -p 8080 --proxy "http://localhost:8080?" --ext "" --silent\n' > /app/start.sh
+echo "✅ Archivo env-types.js copiado a la raíz"\n' > /app/build.sh
 
-# Asegurarnos de que el script tenga permisos de ejecución
-RUN chmod +x /app/start.sh
+# Asegurarnos de que el script de build tenga permisos de ejecución
+RUN chmod +x /app/build.sh
 
-# Verificar que el archivo existe y tiene permisos
-RUN ls -la /app/start.sh
+# Ejecutar el build durante la construcción de la imagen
+RUN /app/build.sh
 
 # Verificar los archivos generados
 RUN ls -la dist/
@@ -80,13 +68,12 @@ RUN echo "Contenido de dashboard.js:" && cat dist/dashboard.js || echo "⚠️ d
 RUN echo "Contenido de styles.css:" && cat dist/styles.css || echo "⚠️ styles.css no existe!"
 
 # Instalar servidor http
-RUN npm install -g http-server
+RUN npm install -g http-server nodemon
 
 # Exponer puerto
 EXPOSE 8080
 
-# Iniciar servidor con el script
-CMD ["/app/start.sh"]
+# No usamos CMD aquí - docker-compose lo maneja
 
 # Copiar carpeta de texturas desde el frontend
 COPY ./textures /app/textures
