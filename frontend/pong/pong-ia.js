@@ -33,48 +33,18 @@ export var scoreP3 = 0;
 export var scoreP4 = 0;
 export var maxScore = 5;
 
-// Refactor updateScoreDisplay to ensure proper synchronization and functionality in IA mode
+// Consolidate score update logic and ensure synchronization
 function updateScoreDisplay() {
-    console.log('🤖 updateScoreDisplay IA called (2 Players Only):', {
-        scoreP1, scoreP2
-    });
-
     const scoreElement = document.getElementById('score');
     if (!scoreElement) {
-        console.warn('⚠️ Score element not found in pong-ia');
-
-        // Attempt to find or create the score display
-        const scoreDisplayElement = document.getElementById('scoreDisplay');
-        if (scoreDisplayElement) {
-            let spanElement = scoreDisplayElement.querySelector('span');
-            if (!spanElement) {
-                spanElement = document.createElement('span');
-                spanElement.id = 'score';
-                spanElement.textContent = '0 - 0';
-                scoreDisplayElement.appendChild(spanElement);
-            } else {
-                spanElement.id = 'score';
-            }
-            updateScoreDisplay(); // Retry now that the element exists
-            return;
-        }
-
-        // Retry after a delay if the element is still not found
-        setTimeout(() => {
-            const retryElement = document.getElementById('score');
-            if (retryElement) {
-                updateScoreDisplay();
-            } else {
-                console.error('❌ Score element not found in pong-ia after retry');
-            }
-        }, 1000);
+        console.error('❌ Score element not found during update');
         return;
     }
 
     // Update the score display for 2 players only
     const displayText = `${scoreP1} - ${scoreP2}`;
     scoreElement.textContent = displayText;
-    console.log('📊 IA Score updated (2 Players Only):', displayText);
+    console.log('📊 IA Score updated:', displayText);
 }
 
 // Exponer variables y funciones globalmente para i18n
@@ -127,6 +97,49 @@ console.log('🤖 Puntuaciones IA inicializadas:', {
 	scoreP4: window.scoreP4
 });
 
+// IMPORTANT: Export score functions for physics.js to use
+export function changeScore1() {
+    scoreP1++;
+    window.scoreP1 = scoreP1;
+    console.log('🤖 Score P1 actualizado (IA):', scoreP1);
+    updateScoreDisplay();
+}
+
+export function changeScore2() {
+    scoreP2++;
+    window.scoreP2 = scoreP2;
+    console.log('🤖 Score P2 actualizado (IA):', scoreP2);
+    updateScoreDisplay();
+}
+
+export function changeScore3() {
+    scoreP3++;
+    window.scoreP3 = scoreP3;
+    console.log('🤖 Score P3 actualizado (IA):', scoreP3);
+    updateScoreDisplay();
+}
+
+export function changeScore4() {
+    scoreP4++;
+    window.scoreP4 = scoreP4;
+    console.log('🤖 Score P4 actualizado (IA):', scoreP4);
+    updateScoreDisplay();
+}
+
+// Function to reset all scores
+export function resetAllScores() {
+    scoreP1 = 0;
+    scoreP2 = 0;
+    scoreP3 = 0;
+    scoreP4 = 0;
+    window.scoreP1 = scoreP1;
+    window.scoreP2 = scoreP2;
+    window.scoreP3 = scoreP3;
+    window.scoreP4 = scoreP4;
+    console.log('🔄 IA: Todas las puntuaciones reseteadas');
+    updateScoreDisplay();
+}
+
 // Inicializar el marcador en pantalla cuando el DOM esté listo (IA)
 function initializeScoreDisplayIA() {
 	console.log('🚀 Inicializando marcador IA, DOM state:', document.readyState);
@@ -158,31 +171,6 @@ if (document.readyState === 'loading') {
 	initializeScoreDisplayIA();
 }
 
-export function changeScore1() {
-    scoreP1++;
-    window.scoreP1 = scoreP1; // Sincronizar con variable global
-    console.log('🤖 Score P1 actualizado (IA):', scoreP1);
-    updateScoreDisplay();
-}
-export function changeScore2() {
-    scoreP2++;
-    window.scoreP2 = scoreP2; // Sincronizar con variable global
-    console.log('🤖 Score P2 actualizado (IA):', scoreP2);
-    updateScoreDisplay();
-}
-export function changeScore3() {
-    scoreP3++;
-    window.scoreP3 = scoreP3; // Sincronizar con variable global
-    console.log('🤖 Score P3 actualizado (IA):', scoreP3);
-    updateScoreDisplay();
-}
-export function changeScore4() {
-    scoreP4++;
-    window.scoreP4 = scoreP4; // Sincronizar con variable global
-    console.log('🤖 Score P4 actualizado (IA):', scoreP4);
-    updateScoreDisplay();
-}
-
 var startRenderLoop = function (sceneToRender) {
     engine.runRenderLoop(function () {
         if (sceneToRender && sceneToRender.activeCamera) {
@@ -206,7 +194,7 @@ window.addEventListener("DOMContentLoaded", () => {
         aiIndicator.id = 'aiIndicator';
         aiIndicator.style.position = 'fixed';
         aiIndicator.style.top = '10px';
-        aiIndicator.style.right = '190px';
+        aiIndicator.style.right = '250px';
         aiIndicator.style.backgroundColor = '#00ff00';
         aiIndicator.style.color = '#000';
         aiIndicator.style.padding = '10px';
@@ -215,7 +203,54 @@ window.addEventListener("DOMContentLoaded", () => {
         aiIndicator.style.fontWeight = 'bold';
         aiIndicator.style.fontSize = '13px';
         aiIndicator.style.zIndex = '900';
-        aiIndicator.textContent = 'AI: ON  (Press T to toggle)';
+        
+        // Function to update AI indicator text with translation
+        const updateAIIndicatorText = (isEnabled) => {
+            console.log('🤖 Actualizando texto del indicador IA:', {
+                isEnabled,
+                hasWindowT: !!window.t,
+                hasTranslations: !!(window.translations && window.translations[window.currentLanguage]),
+                currentLang: window.currentLanguage
+            });
+            
+            let aiStatus, instruction;
+            
+            // Verificar si las traducciones están disponibles
+            if (window.t && window.translations && window.translations[window.currentLanguage]) {
+                aiStatus = isEnabled ? window.t('game.ai_on') : window.t('game.ai_off');
+                instruction = window.t('game.ai_toggle_instruction');
+                console.log('🌍 Usando traducciones:', { aiStatus, instruction });
+            } else {
+                // Fallback a español
+                aiStatus = isEnabled ? 'IA: ACTIVADA' : 'IA: DESACTIVADA';
+                instruction = '(Presiona T para alternar)';
+                console.log('⚠️ Usando fallback español:', { aiStatus, instruction });
+            }
+            
+            aiIndicator.textContent = `${aiStatus} ${instruction}`;
+            console.log('✅ Texto del indicador actualizado:', aiIndicator.textContent);
+        };
+        
+        // Función para esperar a que las traducciones estén listas
+        const waitForTranslations = () => {
+            return new Promise((resolve) => {
+                const checkTranslations = () => {
+                    if (window.t && window.translations && window.translations[window.currentLanguage]) {
+                        resolve();
+                    } else {
+                        setTimeout(checkTranslations, 100);
+                    }
+                };
+                checkTranslations();
+            });
+        };
+        
+        // Esperar a que las traducciones estén listas antes de configurar el texto inicial
+        waitForTranslations().then(() => {
+            console.log('🚀 Traducciones listas, estableciendo texto inicial del indicador IA');
+            updateAIIndicatorText(true);
+        });
+        
         document.body.appendChild(aiIndicator);
 
         // Listen for AI toggle events
@@ -225,10 +260,17 @@ window.addEventListener("DOMContentLoaded", () => {
                     // Update indicator after a short delay to ensure AI state has changed
                     if (scene && scene.metadata && scene.metadata.physics && scene.metadata.physics.aiConfig) {
                         const isEnabled = scene.metadata.physics.aiConfig.enabled;
-                        aiIndicator.textContent = `AI: ${isEnabled ? 'ON' : 'OFF'} (Press T to toggle)`;
+                        updateAIIndicatorText(isEnabled);
                         aiIndicator.style.backgroundColor = isEnabled ? '#00ff00' : '#ff0000';
                     }
                 }, 100);
+            }
+        });
+        
+        // Update AI indicator when language changes
+        window.addEventListener('languageChange', () => {
+            if (scene && scene.metadata && scene.metadata.physics && scene.metadata.physics.aiConfig) {
+                updateAIIndicatorText(scene.metadata.physics.aiConfig.enabled);
             }
         });
 
@@ -254,7 +296,12 @@ window.addEventListener("DOMContentLoaded", () => {
         scoreP2 = 0;
         scoreP3 = 0;
         scoreP4 = 0;
-        document.getElementById('score').textContent = `${scoreP1} - ${scoreP2}`;
+        // Use the global score update function instead of direct DOM manipulation
+        if (window.updateScoreDisplay) {
+            window.updateScoreDisplay();
+        } else {
+            document.getElementById('score').textContent = `${scoreP1} - ${scoreP2}`;
+        }
         document.getElementById('gameOver').style.display = 'none';
         setGameActive(false);
         engine.stopRenderLoop();
@@ -267,7 +314,7 @@ window.addEventListener("DOMContentLoaded", () => {
         const scoreData = {
             p1score: scoreP1,
             p2score: scoreP2,
-            p2_id: 0, // CPU opponent SOCORRO :( 
+            p2_id: 0, // CPU opponent
             winner: playerWon ? 1 : 0,
             game_duration: Math.floor(performance.now() / 1000)
         };
@@ -275,7 +322,7 @@ window.addEventListener("DOMContentLoaded", () => {
         console.log('Intentando guardar puntuación:', scoreData);
         
         this.disabled = true;
-        this.textContent = "Guardando...";
+        this.textContent = window.t ? window.t('common.saving') : "Guardando...";
 
         fetch(`${window.env?.BACKEND_URL || 'http://localhost:3000'}/pong/scores`, {
             method: 'POST',
@@ -289,10 +336,10 @@ window.addEventListener("DOMContentLoaded", () => {
             if (!response.ok) {
                 return response.json().then(errorData => {
                     // Extraer detalles del error del servidor si es posible
-                    throw new Error(errorData.error || 'Error al guardar la puntuación');
+                    throw new Error(errorData.error || (window.t ? window.t('pong.errors.load_scores_failed', { status: response.status }) : 'Error al guardar la puntuación'));
                 }).catch(jsonError => {
                     // Si no podemos parsear el JSON, usar el error genérico
-                    throw new Error('Error al guardar la puntuación');
+                    throw new Error(window.t ? window.t('pong.errors.load_scores_failed', { status: response.status }) : 'Error al guardar la puntuación');
                 });
             }
             return response.json();
@@ -308,14 +355,14 @@ window.addEventListener("DOMContentLoaded", () => {
         })
         .catch(error => {
             console.error('Error al guardar:', error);
-            alert('Error al guardar la puntuación: ' + error.message);
-            this.textContent = "Error al guardar";
+            alert((window.t ? window.t('common.error') : 'Error') + ': ' + error.message);
+            this.textContent = window.t ? window.t('common.error') : "Error al guardar";
         })
         .finally(() => {
             // Re-habilitar el botón después de un tiempo
             setTimeout(() => {
                 this.disabled = false;
-                this.textContent = "Guardar puntuación";
+                this.textContent = window.t ? window.t('game.save_score') : "Guardar puntuación";
             }, 2000);
         });
     });

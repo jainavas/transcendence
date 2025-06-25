@@ -305,7 +305,36 @@ export function createUI(advancedTextureParam, scene, personajes, personajesCont
 	advancedTexture.addControl(puntoTexto);
 
 	mensajeInicio = new BABYLON.GUI.TextBlock("mensajeInicio");
-	mensajeInicio.text = (window.t && window.i18n && window.i18n.translations) ? window.t('game.choose_character_and_environment') : "Elige tu personaje y entorno\nPresiona ESPACIO para iniciar";
+	
+	// Función para actualizar el texto del mensaje inicial
+	const updateStartMessage = () => {
+		console.log('🔄 Actualizando mensaje de inicio:', {
+			hasWindowT: !!window.t,
+			hasI18n: !!window.i18n,
+			i18nReady: window.i18n?.isReady(),
+			currentLang: window.i18n?.getCurrentLanguage() || window.currentLanguage,
+			hasTranslations: !!(window.translations && window.translations[window.currentLanguage])
+		});
+		
+		// Verificar disponibilidad de traducciones de manera compatible con ambos sistemas
+		const translationsReady = window.t && window.translations && window.translations[window.currentLanguage];
+		const i18nSystemReady = window.i18n ? window.i18n.isReady() : true; // Para el sistema simple del modo IA
+		
+		if (translationsReady && i18nSystemReady) {
+			const translatedText = window.t('game.choose_character_and_environment');
+			mensajeInicio.text = translatedText;
+			console.log('✅ Mensaje traducido aplicado:', translatedText);
+		} else {
+			mensajeInicio.text = "Elige tu personaje y entorno\nPresiona ESPACIO para iniciar";
+			console.log('⚠️ Usando fallback español - traducciones no listas:', {
+				translationsReady,
+				i18nSystemReady,
+				currentLang: window.currentLanguage
+			});
+		}
+	};
+	
+	// Configurar estilo del mensaje
 	mensajeInicio.color = "#FFFFFF";
 	mensajeInicio.fontSize = 48;
 	mensajeInicio.fontStyle = "bold";
@@ -315,14 +344,41 @@ export function createUI(advancedTextureParam, scene, personajes, personajesCont
 	mensajeInicio.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
 	mensajeInicio.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
 	mensajeInicio.alpha = 1;
-	mensajeInicio.top = "-50px"; // Ajusta la posición vertical
+	mensajeInicio.top = "-50px";
 	mensajeInicio.isHitTestVisible = false;
-	mensajeInicio.zIndex = 1002; // Z-index más alto que los botones
+	mensajeInicio.zIndex = 1002;
 	
-	// Exponer globalmente para i18n
+	// Exponer globalmente para que el sistema i18n pueda acceder
 	window.mensajeInicio = mensajeInicio;
-	mensajeInicio.isHitTestVisible = false;
-	mensajeInicio.zIndex = 1002; // Z-index más alto que los botones
+	
+	// Registrar con el sistema i18n para recibir actualizaciones automáticas
+	if (window.i18n) {
+		window.i18n.onLanguageChange(() => {
+			updateStartMessage();
+		});
+		
+		// Configurar mensaje inicial si i18n ya está listo
+		if (window.i18n.isReady()) {
+			updateStartMessage();
+		} else {
+			// Esperar a que i18n esté listo
+			const checkI18nReady = () => {
+				if (window.i18n && window.i18n.isReady()) {
+					updateStartMessage();
+				} else {
+					setTimeout(checkI18nReady, 100);
+				}
+			};
+			checkI18nReady();
+		}
+	} else {
+		// Fallback si i18n no está disponible
+		updateStartMessage();
+		
+		// También escuchar el evento personalizado por compatibilidad
+		window.addEventListener('languageChange', updateStartMessage);
+	}
+	
 	advancedTexture.addControl(mensajeInicio);
 	
 	console.log("🎮 UI COMPLETA CREADA:");
@@ -529,7 +585,36 @@ export function createUI4P(advancedTexture, scene, personajes, personajesContene
 	advancedTexture.addControl(puntoTexto);
 
 	mensajeInicio = new BABYLON.GUI.TextBlock("mensajeInicio");
-	mensajeInicio.text = (window.t && window.i18n && window.i18n.translations) ? window.t('game.choose_character_and_environment_4p') : "Elige tu personaje y entorno\nPresiona ESPACIO para iniciar\nControles: Q y E AZUL, I y P VERDE, Flecha derecha e izquierda ROJO, C y B MORADO";
+	
+	// Función para actualizar el texto del mensaje inicial
+	const updateStartMessage = () => {
+		console.log('🔄 Actualizando mensaje de inicio 4P:', {
+			hasWindowT: !!window.t,
+			hasI18n: !!window.i18n,
+			i18nReady: window.i18n?.isReady(),
+			currentLang: window.i18n?.getCurrentLanguage() || window.currentLanguage,
+			hasTranslations: !!(window.translations && window.translations[window.currentLanguage])
+		});
+		
+		// Verificar disponibilidad de traducciones de manera compatible con ambos sistemas
+		const translationsReady = window.t && window.translations && window.translations[window.currentLanguage];
+		const i18nSystemReady = window.i18n ? window.i18n.isReady() : true; // Para el sistema simple del modo IA
+		
+		if (translationsReady && i18nSystemReady) {
+			const translatedText = window.t('game.choose_character_and_environment_4p');
+			mensajeInicio.text = translatedText;
+			console.log('✅ Mensaje 4P traducido aplicado:', translatedText);
+		} else {
+			mensajeInicio.text = "Elige tu personaje y entorno\nPresiona ESPACIO para iniciar\nControles: Q y E AZUL, I y P VERDE, Flecha derecha e izquierda ROJO, C y B MORADO";
+			console.log('⚠️ Usando fallback español 4P - traducciones no listas:', {
+				translationsReady,
+				i18nSystemReady,
+				currentLang: window.currentLanguage
+			});
+		}
+	};
+	
+	// Configurar estilo del mensaje
 	mensajeInicio.color = "#FFFFFF";
 	mensajeInicio.fontSize = 48;
 	mensajeInicio.fontStyle = "bold";
@@ -539,11 +624,40 @@ export function createUI4P(advancedTexture, scene, personajes, personajesContene
 	mensajeInicio.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
 	mensajeInicio.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
 	mensajeInicio.alpha = 1;
-	mensajeInicio.top = "-150px"; // Ajusta la posición vertical
+	mensajeInicio.top = "-150px";
 	mensajeInicio.isHitTestVisible = false;
+	mensajeInicio.zIndex = 1002;
 	
-	// Exponer globalmente para i18n
+	// Exponer globalmente para que el sistema i18n pueda acceder
 	window.mensajeInicio = mensajeInicio;
-	mensajeInicio.isHitTestVisible = false;
+	
+	// Registrar con el sistema i18n para recibir actualizaciones automáticas
+	if (window.i18n) {
+		window.i18n.onLanguageChange(() => {
+			updateStartMessage();
+		});
+		
+		// Configurar mensaje inicial si i18n ya está listo
+		if (window.i18n.isReady()) {
+			updateStartMessage();
+		} else {
+			// Esperar a que i18n esté listo
+			const checkI18nReady = () => {
+				if (window.i18n && window.i18n.isReady()) {
+					updateStartMessage();
+				} else {
+					setTimeout(checkI18nReady, 100);
+				}
+			};
+			checkI18nReady();
+		}
+	} else {
+		// Fallback si i18n no está disponible
+		updateStartMessage();
+		
+		// También escuchar el evento personalizado por compatibilidad
+		window.addEventListener('languageChange', updateStartMessage);
+	}
+	
 	advancedTexture.addControl(mensajeInicio);
 }

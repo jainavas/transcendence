@@ -125,11 +125,22 @@ function updateScoreDisplay() {
 		
 	let newText;
 	if (is4PMode) {
-		// Modo 4 jugadores - usar fallbacks directos si las traducciones no están disponibles
-		const blueText = (window.t && window.i18n && window.i18n.translations) ? window.t('game.blue') : 'Azul';
-		const redText = (window.t && window.i18n && window.i18n.translations) ? window.t('game.red') : 'Rojo';
-		const greenText = (window.t && window.i18n && window.i18n.translations) ? window.t('game.green') : 'Verde';
-		const purpleText = (window.t && window.i18n && window.i18n.translations) ? window.t('game.purple') : 'Púrpura';
+		// Modo 4 jugadores - usar sistema de traducciones disponible
+		const blueText = (window.t && window.translations && window.currentLanguage) ? window.t('game.blue') : 'Azul';
+		const redText = (window.t && window.translations && window.currentLanguage) ? window.t('game.red') : 'Rojo';
+		const greenText = (window.t && window.translations && window.currentLanguage) ? window.t('game.green') : 'Verde';
+		const purpleText = (window.t && window.translations && window.currentLanguage) ? window.t('game.purple') : 'Púrpura';
+		
+		console.log('🎨 4P: Traduciendo colores:', {
+			currentLang: window.currentLanguage,
+			hasT: !!window.t,
+			hasTranslations: !!window.translations,
+			blue: blueText,
+			red: redText,
+			green: greenText,
+			purple: purpleText
+		});
+		
 		newText = `${blueText}:${scoreP1} - ${redText}:${scoreP2} - ${greenText}:${scoreP3} - ${purpleText}:${scoreP4}`;
 	} else {
 		// Modo 2 jugadores
@@ -352,8 +363,94 @@ function setupEventListeners() {
 	}
 }
 
-window.addEventListener("DOMContentLoaded", () => {
-	console.log('🚀 DOM Content Loaded - inicializando juego');
+window.addEventListener("DOMContentLoaded", async () => {
+	console.log('🚀 DOM Content Loaded - inicializando juego sin esperar traducciones externas');
+	
+	// NUEVO ENFOQUE: No esperar traducciones del HTML, usar sistema interno
+	// Inicializar sistema de traducciones básico interno si no existe
+	if (!window.translations || !window.currentLanguage) {
+		console.log('🌍 4P Main: Inicializando sistema de traducciones interno');
+		
+		// Sistema básico interno
+		window.translations = window.translations || {};
+		window.currentLanguage = localStorage.getItem('transcendence_language') || 'es';
+		window.translationsReady = false;
+		
+		// Cargar traducciones de forma simple
+		try {
+			console.log('🌍 4P Main: Cargando traducciones para:', window.currentLanguage);
+			
+			// Cargar español como fallback
+			if (!window.translations['es']) {
+				const esResponse = await fetch('locales/es.json');
+				if (esResponse.ok) {
+					window.translations['es'] = await esResponse.json();
+					console.log('✅ 4P Main: Español cargado');
+				}
+			}
+			
+			// Cargar idioma actual si es diferente
+			if (window.currentLanguage !== 'es' && !window.translations[window.currentLanguage]) {
+				const currentResponse = await fetch(`locales/${window.currentLanguage}.json`);
+				if (currentResponse.ok) {
+					window.translations[window.currentLanguage] = await currentResponse.json();
+					console.log('✅ 4P Main: Idioma actual cargado:', window.currentLanguage);
+				} else {
+					console.warn('⚠️ 4P Main: Fallback a español');
+					window.currentLanguage = 'es';
+				}
+			}
+			
+			// Función de traducción básica
+			if (!window.t) {
+				window.t = function(key, params = {}) {
+					const keys = key.split('.');
+					let translation = window.translations[window.currentLanguage];
+					
+					for (let i = 0; i < keys.length; i++) {
+						if (translation && translation[keys[i]] !== undefined) {
+							translation = translation[keys[i]];
+						} else {
+							// Fallback al español
+							translation = window.translations['es'];
+							if (translation) {
+								for (let j = 0; j < keys.length; j++) {
+									if (translation && translation[keys[j]] !== undefined) {
+										translation = translation[keys[j]];
+									} else {
+										return key;
+									}
+								}
+							} else {
+								return key;
+							}
+							break;
+						}
+					}
+					
+					if (typeof translation === 'string') {
+						return translation.replace(/\{\{(\w+)\}\}/g, (match, paramKey) => {
+							return params[paramKey] !== undefined ? params[paramKey] : match;
+						});
+					}
+					
+					return key;
+				};
+			}
+			
+			window.translationsReady = true;
+			console.log('✅ 4P Main: Sistema de traducciones interno listo');
+			
+		} catch (error) {
+			console.error('❌ 4P Main: Error con traducciones internas:', error);
+			window.currentLanguage = 'es';
+			window.translations = { 'es': {} };
+			window.translationsReady = false;
+		}
+	} else {
+		console.log('✅ 4P Main: Sistema de traducciones ya existe, continuando');
+		window.translationsReady = true;
+	}
 	
 	// Asegurar que el marcador se muestre inmediatamente
 	setTimeout(updateScoreDisplay, 100);

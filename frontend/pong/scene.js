@@ -224,14 +224,41 @@ export class Playground {
 			}
 		];
 
-		createUI(
-			null, // No necesitamos pasar advancedTexture porque se crea internamente
-			scene,
-			personajes,
-			personajesContenedores,
-			entornos,
-			skyboxActual
-		);
+		// Función para crear UI cuando las traducciones estén listas
+		async function createUIWhenReady() {
+			console.log('🎮 IA: Esperando a que las traducciones estén listas...');
+			
+			// Esperar a que las traducciones estén disponibles
+			let attempts = 0;
+			const maxAttempts = 100; // 10 segundos máximo
+			
+			while (attempts < maxAttempts) {
+				if (window.t && window.translations && window.translations[window.currentLanguage]) {
+					console.log('✅ IA: Traducciones listas, creando UI');
+					break;
+				}
+				
+				await new Promise(resolve => setTimeout(resolve, 100));
+				attempts++;
+			}
+			
+			if (attempts >= maxAttempts) {
+				console.warn('⚠️ IA: Timeout esperando traducciones, creando UI con fallback');
+			}
+			
+			// Crear UI
+			createUI(
+				null, // No necesitamos pasar advancedTexture porque se crea internamente
+				scene,
+				personajes,
+				personajesContenedores,
+				entornos,
+				skyboxActual
+			);
+		}
+		
+		// Llamar la función asíncrona
+		createUIWhenReady();
 		// Agregar esto cerca del inicio de CreateScene
 		scene.audioEnabled = true;
 
@@ -598,14 +625,57 @@ export class Playground {
 			}
 		];
 
-		createUI4P(
-			advancedTexture,
-			scene,
-			personajes,
-			personajesContenedores,
-			entornos,
-			skyboxActual
-		);
+		// Función para crear UI cuando las traducciones estén listas (4P)
+		async function createUI4PWhenReady() {
+			console.log('🎮 4P: Iniciando creación de UI con sistema robusto');
+			
+			// Esperar un momento para que el módulo 4p-main.js termine de inicializar
+			let attempts = 0;
+			const maxAttempts = 50; // 5 segundos máximo
+			
+			while (attempts < maxAttempts) {
+				// Verificar si el sistema de traducciones está listo (interno o externo)
+				const hasTranslations = window.translations && Object.keys(window.translations).length > 0;
+				const hasCurrentLang = window.currentLanguage && window.currentLanguage !== 'undefined';
+				const hasWindowT = typeof window.t === 'function';
+				const isReady = window.translationsReady === true;
+				
+				console.log(`🔍 4P: Verificando sistema - Intento ${attempts + 1}:`, {
+					hasTranslations,
+					hasCurrentLang,
+					hasWindowT,
+					isReady,
+					currentLang: window.currentLanguage,
+					availableTranslations: Object.keys(window.translations || {})
+				});
+				
+				// Si tenemos al menos las funciones básicas, continuar
+				if (hasWindowT && hasCurrentLang && (hasTranslations || isReady)) {
+					console.log('✅ 4P: Sistema básico listo, creando UI');
+					break;
+				}
+				
+				await new Promise(resolve => setTimeout(resolve, 100));
+				attempts++;
+			}
+			
+			if (attempts >= maxAttempts) {
+				console.warn('⚠️ 4P: Timeout, creando UI con sistema básico disponible');
+			}
+			
+			// Crear UI 4P con cualquier sistema disponible
+			createUI4P(
+				advancedTexture,
+				scene,
+				personajes,
+				personajesContenedores,
+				entornos,
+				skyboxActual
+			);
+		}
+		
+		// Llamar la función asíncrona para 4P
+		createUI4PWhenReady();
 		// Agregar esto cerca del inicio de CreateScene
 		scene.audioEnabled = true;
 

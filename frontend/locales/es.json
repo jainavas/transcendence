@@ -72,8 +72,16 @@
 		"play4_players": "👥 Pong 4p",
 		"tournament": "🏆 Torneo",
 		"my_scores": "Mis puntuaciones de Pong",
+		"loading_scores": "Cargando puntuaciones...",
 		"global_scores": "🏆 Mejores Puntuaciones Globales",
-		"game_stats": "📊 Estadísticas de Partidas"
+		"no_scores": "No hay puntuaciones disponibles",
+		"warning_js_not_loaded": "⚠️ Advertencia: dashboard.js no se cargó correctamente.",
+		"game_stats": "📊 Estadísticas de Partidas",
+		"summary": "📈 Resumen",
+		"games_played": "Partidas jugadas:",
+		"victories": "Victorias:",
+		"best_score": "Mejor puntuación:",
+		"avg_score": "Puntos promedio:"
 	},
 	"pong": {
 		"loading_scores": "Cargando puntuaciones...",
@@ -141,6 +149,9 @@
 		"player_3": "Jugador 3",
 		"player_4": "Jugador 4",
 		"vs_ai": "vs IA",
+		"ai_on": "IA: ACTIVADA",
+		"ai_off": "IA: DESACTIVADA",
+		"ai_toggle_instruction": "(Presiona T para alternar)",
 		"point_for_player_1": "¡Punto para el jugador 1!",
 		"point_for_player_2": "¡Punto para el jugador 2!",
 		"goal_for_player_1": "¡Gol al Jugador 1!",

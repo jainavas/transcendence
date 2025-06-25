@@ -7,9 +7,147 @@
     <link rel="icon" href="/textures/capybara.ico" />
 	<title data-i18n="game.title">MegaPong</title>
 
-	<!-- Sistema de internacionalización -->
-	<script src="/i18n.js"></script>
-	<script src="/language-selector.js"></script>
+	<!-- Script de inicialización de i18n BLOQUEANTE -->
+	<script>
+		// Sistema de traducción simplificado y directo
+		window.translations = {};
+		window.currentLanguage = localStorage.getItem('transcendence_language') || 'es';
+		
+		// Función de traducción global
+		window.t = function(key, params = {}) {
+			const keys = key.split('.');
+			let translation = window.translations[window.currentLanguage];
+			
+			for (let i = 0; i < keys.length; i++) {
+				if (translation && translation[keys[i]] !== undefined) {
+					translation = translation[keys[i]];
+				} else {
+					// Fallback al español si no existe la traducción
+					translation = window.translations['es'];
+					if (translation) {
+						for (let j = 0; j < keys.length; j++) {
+							if (translation && translation[keys[j]] !== undefined) {
+								translation = translation[keys[j]];
+							} else {
+								return key; // Devolver la clave si no se encuentra
+							}
+						}
+					} else {
+						return key;
+					}
+					break;
+				}
+			}
+			
+			if (typeof translation === 'string') {
+				// Reemplazar parámetros
+				return translation.replace(/\{\{(\w+)\}\}/g, (match, paramKey) => {
+					return params[paramKey] !== undefined ? params[paramKey] : match;
+				});
+			}
+			
+			return key;
+		};
+		
+		// Función para aplicar traducciones
+		window.applyTranslations = function() {
+			console.log('🌍 Aplicando traducciones para:', window.currentLanguage);
+			
+			// Traducir elementos con data-i18n
+			document.querySelectorAll('[data-i18n]').forEach(element => {
+				const key = element.getAttribute('data-i18n');
+				const translation = window.t(key);
+				if (translation !== key) {
+					element.textContent = translation;
+				}
+			});
+			
+			// Actualizar título
+			const titleKey = document.querySelector('title').getAttribute('data-i18n');
+			if (titleKey) {
+				document.title = window.t(titleKey);
+			}
+			
+			// Actualizar idioma del documento
+			document.documentElement.lang = window.currentLanguage;
+			
+			console.log('✅ Traducciones aplicadas');
+		};
+		
+		// Función para cambiar idioma
+		window.changeLanguage = async function(newLang) {
+			console.log('🌍 Cambiando idioma a:', newLang);
+			
+			try {
+				// Cargar traducciones si no están cargadas
+				if (!window.translations[newLang]) {
+					const response = await fetch(`locales/${newLang}.json`);
+					if (response.ok) {
+						window.translations[newLang] = await response.json();
+					} else {
+						throw new Error(`No se pudo cargar ${newLang}`);
+					}
+				}
+				
+				window.currentLanguage = newLang;
+				localStorage.setItem('transcendence_language', newLang);
+				
+				window.applyTranslations();
+				
+				// Actualizar marcador del juego si existe
+				if (window.updateScoreDisplay) {
+					window.updateScoreDisplay();
+				}
+				
+				// Disparar evento de cambio de idioma para que otros elementos se actualicen
+				window.dispatchEvent(new CustomEvent('languageChange', { 
+					detail: { language: newLang } 
+				}));
+				
+				console.log('✅ Idioma cambiado exitosamente a:', newLang);
+				return true;
+			} catch (error) {
+				console.error('❌ Error cambiando idioma:', error);
+				return false;
+			}
+		};
+		
+		// Cargar traducciones inicial de forma síncrona
+		async function loadInitialTranslations() {
+			try {
+				console.log('🌍 Cargando traducciones iniciales...');
+				
+				// Cargar español (fallback)
+				const esResponse = await fetch('locales/es.json');
+				if (esResponse.ok) {
+					window.translations['es'] = await esResponse.json();
+				}
+				
+				// Cargar idioma actual si es diferente
+				if (window.currentLanguage !== 'es') {
+					const currentResponse = await fetch(`locales/${window.currentLanguage}.json`);
+					if (currentResponse.ok) {
+						window.translations[window.currentLanguage] = await currentResponse.json();
+					} else {
+						window.currentLanguage = 'es'; // Fallback
+					}
+				}
+				
+				console.log('✅ Traducciones cargadas:', Object.keys(window.translations));
+				return true;
+			} catch (error) {
+				console.error('❌ Error cargando traducciones:', error);
+				window.currentLanguage = 'es';
+				return false;
+			}
+		}
+		
+		// Inicializar cuando el DOM esté listo
+		document.addEventListener('DOMContentLoaded', async function() {
+			await loadInitialTranslations();
+			window.applyTranslations();
+		});
+	</script>
 
 	<!-- Babylon.js y dependencias -->
 	<script src="https://cdn.babylonjs.com/babylon.js"></script>

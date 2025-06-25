@@ -1,8 +1,95 @@
-import { maxScore, scoreP1, scoreP2, scoreP3, scoreP4, changeScore1, changeScore2, changeScore3, changeScore4 } from "./main.js";
+// Dynamic imports based on game mode - detect which file is loaded
+let scoreModule;
+let changeScore1, changeScore2, changeScore3, changeScore4;
+let maxScore, scoreP1, scoreP2, scoreP3, scoreP4;
+
+// Check if we're in IA mode by checking the URL or DOM
+const isIAMode = window.location.pathname.includes('pong-ia') || 
+                 document.querySelector('script[src*="pong-ia.js"]') !== null;
+
+// Simplified score update functions that work directly with global variables
+function updateScore1() {
+    console.log("🎯 Updating score 1 - before:", window.scoreP1);
+    window.scoreP1 = (window.scoreP1 || 0) + 1;
+    console.log("🎯 Updating score 1 - after:", window.scoreP1);
+    if (window.updateScoreDisplay) {
+        window.updateScoreDisplay();
+    }
+}
+
+function updateScore2() {
+    console.log("🎯 Updating score 2 - before:", window.scoreP2);
+    window.scoreP2 = (window.scoreP2 || 0) + 1;
+    console.log("🎯 Updating score 2 - after:", window.scoreP2);
+    if (window.updateScoreDisplay) {
+        window.updateScoreDisplay();
+    }
+}
+
+function updateScore3() {
+    console.log("🎯 Updating score 3 - before:", window.scoreP3);
+    window.scoreP3 = (window.scoreP3 || 0) + 1;
+    console.log("🎯 Updating score 3 - after:", window.scoreP3);
+    if (window.updateScoreDisplay) {
+        window.updateScoreDisplay();
+    }
+}
+
+function updateScore4() {
+    console.log("🎯 Updating score 4 - before:", window.scoreP4);
+    window.scoreP4 = (window.scoreP4 || 0) + 1;
+    console.log("🎯 Updating score 4 - after:", window.scoreP4);
+    if (window.updateScoreDisplay) {
+        window.updateScoreDisplay();
+    }
+}
+
+// Function to initialize score functions
+async function initializeScoreFunctions() {
+    try {
+        if (isIAMode) {
+            console.log("🤖 Physics: Detectado modo IA - importando desde pong-ia.js");
+            scoreModule = await import('./pong-ia.js');
+        } else {
+            console.log("🏓 Physics: Detectado modo normal - importando desde main.js");
+            scoreModule = await import('./main.js');
+        }
+        
+        // Extract functions and variables from the module
+        ({ maxScore, scoreP1, scoreP2, scoreP3, scoreP4, changeScore1, changeScore2, changeScore3, changeScore4 } = scoreModule);
+        
+        console.log("✅ Physics: Funciones de puntuación importadas correctamente");
+        console.log("📊 Physics: Scores iniciales:", { scoreP1, scoreP2, scoreP3, scoreP4, maxScore });
+        return true;
+    } catch (error) {
+        console.error("❌ Physics: Error importando funciones:", error);
+        console.log("🔄 Physics: Usando funciones de fallback");
+        
+        // Use fallback functions that work directly with global variables
+        changeScore1 = updateScore1;
+        changeScore2 = updateScore2;
+        changeScore3 = updateScore3;
+        changeScore4 = updateScore4;
+        
+        // Use global variables as fallback
+        maxScore = window.maxScore || 5;
+        scoreP1 = window.scoreP1 || 0;
+        scoreP2 = window.scoreP2 || 0;
+        scoreP3 = window.scoreP3 || 0;
+        scoreP4 = window.scoreP4 || 0;
+        
+        console.log("📊 Physics: Usando scores globales:", { scoreP1, scoreP2, scoreP3, scoreP4, maxScore });
+        return false;
+    }
+}
+
+// Initialize immediately
+const scoreInitPromise = initializeScoreFunctions();
+
 import { setGameActive, gameActive } from "./scene.js";
 import { puntoTexto, anunciarPunto, mensajeInicio } from "./menus.js";
 
-function gameOver(message, bola, pala2, pala1, tableTop, scene) {
+async function gameOver(message, bola, pala2, pala1, tableTop, scene) {
 	// Prevent multiple simultaneous goal triggers
 	if (!gameActive) {
 		console.log("⚠️ Goal ignored - game already inactive");
@@ -24,12 +111,29 @@ function gameOver(message, bola, pala2, pala1, tableTop, scene) {
 		console.log("All keys cleared on goal");
 	}
 
-	// Actualizar puntuaciones
-	if (message.includes("jugador 1")) {
-		changeScore1();
+	// Wait for score functions to be initialized if needed
+	await scoreInitPromise;
+
+	// Actualizar puntuaciones - USAR CLAVES DE IDENTIFICACIÓN en lugar de buscar texto
+	if (message.includes("PLAYER1_GOAL") || message.includes("jugador 1") || message.includes("player 1")) {
+		console.log("🎯 Goal for player 1 detected");
+		if (changeScore1) {
+			console.log("🎯 Calling changeScore1 function");
+			changeScore1();
+		} else {
+			console.log("🎯 changeScore1 not available, using direct update");
+			updateScore1();
+		}
 		anunciarPunto(puntoTexto, window.t ? window.t('game.point_for_player_1') : "¡Punto para el jugador 1!", scene);
-	} else if (message.includes("jugador 2")) {
-		changeScore2();
+	} else if (message.includes("PLAYER2_GOAL") || message.includes("jugador 2") || message.includes("player 2")) {
+		console.log("🎯 Goal for player 2 detected");
+		if (changeScore2) {
+			console.log("🎯 Calling changeScore2 function");
+			changeScore2();
+		} else {
+			console.log("🎯 changeScore2 not available, using direct update");
+			updateScore2();
+		}
 		anunciarPunto(puntoTexto, window.t ? window.t('game.point_for_player_2') : "¡Punto para el jugador 2!", scene);
 	}
 
@@ -37,55 +141,70 @@ function gameOver(message, bola, pala2, pala1, tableTop, scene) {
 	bola.physicsImpostor.setLinearVelocity(BABYLON.Vector3.Zero());
 	bola.physicsImpostor.setAngularVelocity(BABYLON.Vector3.Zero());
 
-	// Las puntuaciones ya se actualizan automáticamente en changeScore1() y changeScore2()
+	// Get current scores - SIMPLIFICADO para usar siempre las variables globales
+	const getCurrentScores = () => {
+		const currentScoreP1 = window.scoreP1 || 0;
+		const currentScoreP2 = window.scoreP2 || 0;
+		const currentMaxScore = window.maxScore || 5;
+		
+		console.log("📊 Current scores (from global vars):", { currentScoreP1, currentScoreP2, currentMaxScore });
+		return { currentScoreP1, currentScoreP2, currentMaxScore };
+	};
 
-	// Mostrar Game Over final si llega al límite
-	if (scoreP1 >= maxScore || scoreP2 >= maxScore) {
-		const gameOverElement = document.getElementById('gameOver');
-		const finalScoreElement = document.getElementById('finalScore');
-		if (gameOverElement) {
-			gameOverElement.style.display = 'block';
-		}
-		if (finalScoreElement) {
-			finalScoreElement.textContent = `${scoreP1} - ${scoreP2}`;
-		}
-		return false;
-	}
-
-	// Reiniciar tras 1.5 segundos (más tiempo para evitar triggers accidentales)
+	// Wait a bit for score to update, then check game over
 	setTimeout(() => {
-		// Ensure ball and paddles are visible and properly positioned
-		const y = tableTop.position.y + 0.05 + tableTop.getBoundingInfo().boundingBox.extendSize.y;
+		const { currentScoreP1, currentScoreP2, currentMaxScore } = getCurrentScores();
 
-		// Reset ball position and physics completely
-		bola.position.set(0, y, 0);
-		bola.physicsImpostor.setLinearVelocity(BABYLON.Vector3.Zero());
-		bola.physicsImpostor.setAngularVelocity(BABYLON.Vector3.Zero());
-
-		// Reset paddle positions
-		pala2.position.set(0.95, y, 0);
-		pala1.position.set(-0.95, y, 0);
-
-		// Ensure ball is visible
-		bola.setEnabled(true);
-		bola.visibility = 1.0;
-
-		// Clear any stuck keys again
-		if (keysPressed) {
-			Object.keys(keysPressed).forEach(key => {
-				keysPressed[key] = false;
-			});
+		// Mostrar Game Over final si llega al límite
+		if (currentScoreP1 >= currentMaxScore || currentScoreP2 >= currentMaxScore) {
+			console.log("🏁 Game Over detected:", { currentScoreP1, currentScoreP2, currentMaxScore });
+			const gameOverElement = document.getElementById('gameOver');
+			const finalScoreElement = document.getElementById('finalScore');
+			if (gameOverElement) {
+				gameOverElement.style.display = 'block';
+			}
+			if (finalScoreElement) {
+				finalScoreElement.textContent = `${currentScoreP1} - ${currentScoreP2}`;
+			}
+			return false;
 		}
 
-		// Show start message for next round
-		if (mensajeInicio) {
-			mensajeInicio.alpha = 1;
-		}
+		// Reiniciar tras 1.5 segundos (más tiempo para evitar triggers accidentales)
+		setTimeout(() => {
+			// Ensure ball and paddles are visible and properly positioned
+			const y = tableTop.position.y + 0.05 + tableTop.getBoundingInfo().boundingBox.extendSize.y;
 
-		// IMPORTANT: Do NOT set game active here - wait for spacebar
-		// This prevents automatic goal triggers during reset
-		console.log("Round reset complete - waiting for spacebar");
-	}, 1500);
+			// Reset ball position and physics completely
+			bola.position.set(0, y, 0);
+			bola.physicsImpostor.setLinearVelocity(BABYLON.Vector3.Zero());
+			bola.physicsImpostor.setAngularVelocity(BABYLON.Vector3.Zero());
+
+			// Reset paddle positions
+			pala2.position.set(0.95, y, 0);
+			pala1.position.set(-0.95, y, 0);
+
+			// Ensure ball is visible
+			bola.setEnabled(true);
+			bola.visibility = 1.0;
+
+			// Clear any stuck keys again
+			if (keysPressed) {
+				Object.keys(keysPressed).forEach(key => {
+					keysPressed[key] = false;
+				});
+			}
+
+			// Show start message for next round
+			if (mensajeInicio) {
+				mensajeInicio.alpha = 1;
+			}
+
+			// IMPORTANT: Do NOT set game active here - wait for spacebar
+			// This prevents automatic goal triggers during reset
+			console.log("Round reset complete - waiting for spacebar");
+		}, 1000);
+	}, 100); // Small delay to allow score update to complete
+
 	return true;
 }
 
@@ -654,14 +773,14 @@ export function createPhysics(scene, engine, camera, tableTop, materiales, glow)
 			if (bolaPos.x > 1.1 && Math.abs(ballVelForGoals.x) > 0.1) {
 				console.log("Goal detected for player 1 at position:", bolaPos.x);
 				lastGoalTime = currentTime;
-				if (!gameOver(window.t ? window.t('game.point_for_player_1') : "¡Punto para el jugador 1!", bola, pala2, pala1, tableTop, scene))
+				if (!gameOver("PLAYER1_GOAL", bola, pala2, pala1, tableTop, scene))
 					return;
 			}
 			// Goal for player 2 (ball goes past left edge - pala1 missed)
 			else if (bolaPos.x < -1.1 && Math.abs(ballVelForGoals.x) > 0.1) {
 				console.log("Goal detected for player 2 at position:", bolaPos.x);
 				lastGoalTime = currentTime;
-				if (!gameOver(window.t ? window.t('game.point_for_player_2') : "¡Punto para el jugador 2!", bola, pala2, pala1, tableTop, scene))
+				if (!gameOver("PLAYER2_GOAL", bola, pala2, pala1, tableTop, scene))
 					return;
 			}
 		}

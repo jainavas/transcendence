@@ -480,7 +480,8 @@ async function saveScore(player1Score, player2Score, player3Score = null, player
 				gameData.p4score = player4Score;
 			}
 
-			const response = await fetch('/pong/scores', {
+			// CORREGIDO: Usar la URL correcta del backend
+			const response = await fetch('http://localhost:3000/pong/scores', {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
