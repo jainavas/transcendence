@@ -1,3 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        /* Estilo del mensaje flotante */
+        #errorModal {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 1000;
+            font-family: sans-serif;
+        }
+
+        #errorBox {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            text-align: center;
+            max-width: 200px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        #errorIcon {
+            font-size: 60px;
+            color: #e74c3c; /* rojo intenso */
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+    </style>
+
+    <script>
+    // Mostrar mensaje simbólico y redirigir
+    function showErrorAndRedirect(redirectUrl = '/') {
+        const modal = document.createElement('div');
+        modal.id = 'errorModal';
+        modal.innerHTML = `
+            <div id="errorBox">
+                <div id="errorIcon">✖️</div>
+                <div style="margin-top: 10px; font-size: 14px; color: gray;">
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        
+        setTimeout(() => {
+            window.location.href = redirectUrl;
+        }, 50);
+    }
+
+    // Protección de sesión
+    (function() {
+        const token = localStorage.getItem('authToken');
+        if (!token) {
+            window.addEventListener('DOMContentLoaded', () => {
+                showErrorAndRedirect('/');
+            });
+            return;
+        }
+
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            const now = Date.now() / 1000;
+            if (payload.exp && payload.exp < now) {
+                localStorage.removeItem('authToken');
+                window.addEventListener('DOMContentLoaded', () => {
+                    showErrorAndRedirect('/');
+                });
+            }
+        } catch (error) {
+            localStorage.removeItem('authToken');
+            window.addEventListener('DOMContentLoaded', () => {
+                showErrorAndRedirect('/');
+            });
+        }
+    })();
+    </script>
+</head>
+
 <!doctype html>
 <html lang="es">
 
