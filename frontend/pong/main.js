@@ -111,6 +111,12 @@ function updateScoreDisplay() {
 		return; // Salir inmediatamente si estamos en modo IA
 	}
 	
+	// VERIFICAR SI ESTAMOS EN MODO 4P - Si es así, NO ejecutar esta función
+	if (window.location.pathname.includes('pong-4p') || window.location.pathname.includes('4p')) {
+		console.log('🚫 Función main.js detectó modo 4P - NO debe ejecutarse aquí');
+		return; // Salir inmediatamente si estamos en modo 4P
+	}
+
 	// Buscar el elemento score
 	const scoreElement = document.getElementById('score');
 	const scoreDisplayElement = document.getElementById('scoreDisplay');

@@ -68,9 +68,18 @@ class I18nManager {
         // 1. Verificar localStorage
         const saved = localStorage.getItem('transcendence_language');
         if (saved && this.supportedLanguages.includes(saved)) {
+            console.log('🌍 Idioma desde localStorage:', saved);
             return saved;
         }
 
+        // 2. PRIORIZAR ESPAÑOL como idioma por defecto
+        // Solo cambiar si el usuario tiene el navegador en otro idioma soportado
+        // y NO hay configuración guardada
+        console.log('🌍 No hay idioma guardado, usando español por defecto');
+        return this.fallbackLanguage; // Siempre español por defecto
+        
+        // Comentamos la detección automática del navegador para forzar español
+        /*
         // 2. Detectar del navegador
         const browserLang = navigator.language || navigator.userLanguage;
         const langCode = browserLang.substring(0, 2).toLowerCase();
@@ -81,6 +90,7 @@ class I18nManager {
 
         // 3. Fallback al idioma por defecto
         return this.fallbackLanguage;
+        */
     }
 
     /**
@@ -194,37 +204,63 @@ class I18nManager {
      * Aplica las traducciones a todos los elementos con data-i18n
      */
     applyTranslations() {
+        console.log('🔧 DEBUG: Aplicando traducciones...');
+        console.log('🔧 DEBUG: Idioma actual:', this.currentLanguage);
+        console.log('🔧 DEBUG: Traducciones disponibles:', Object.keys(this.translations));
+        
         // Traducir elementos con data-i18n
         const elements = document.querySelectorAll('[data-i18n]');
-        elements.forEach(element => {
+        console.log('🔧 DEBUG: Elementos encontrados con data-i18n:', elements.length);
+        
+        // DEBUG: Mostrar todos los elementos encontrados
+        console.log('🔧 DEBUG: Lista de elementos encontrados:');
+        elements.forEach((element, index) => {
+            console.log(`🔧 DEBUG [${index}]: ${element.tagName} con data-i18n="${element.getAttribute('data-i18n')}" (texto: "${element.textContent.trim().substring(0, 30)}...")`);
+        });
+        
+        elements.forEach((element, index) => {
             const key = element.getAttribute('data-i18n');
             const translation = this.t(key);
+            
+            console.log(`🔧 DEBUG [${index}]: ${key} -> "${translation}" (era: "${element.textContent.trim()}")`);
             
             // Decidir si es texto o atributo
             if (element.hasAttribute('data-i18n-attr')) {
                 const attr = element.getAttribute('data-i18n-attr');
                 element.setAttribute(attr, translation);
+                console.log(`🔧 DEBUG: Aplicado a atributo ${attr}`);
             } else {
                 element.textContent = translation;
+                console.log(`🔧 DEBUG: Aplicado como textContent`);
             }
         });
 
         // Traducir placeholders
         const placeholders = document.querySelectorAll('[data-i18n-placeholder]');
+        console.log('🔧 DEBUG: Placeholders encontrados:', placeholders.length);
+        
         placeholders.forEach(element => {
             const key = element.getAttribute('data-i18n-placeholder');
-            element.placeholder = this.t(key);
+            const translation = this.t(key);
+            element.placeholder = translation;
+            console.log(`🔧 DEBUG: Placeholder ${key} -> "${translation}"`);
         });
 
         // Traducir títulos
         const titles = document.querySelectorAll('[data-i18n-title]');
+        console.log('🔧 DEBUG: Títulos encontrados:', titles.length);
+        
         titles.forEach(element => {
             const key = element.getAttribute('data-i18n-title');
-            element.title = this.t(key);
+            const translation = this.t(key);
+            element.title = translation;
+            console.log(`🔧 DEBUG: Título ${key} -> "${translation}"`);
         });
         
         // Actualizar textos dinámicos del juego
         this.updateGameTexts();
+        
+        console.log('✅ DEBUG: Traducciones aplicadas completamente');
     }
 
     /**
@@ -258,7 +294,7 @@ class I18nManager {
     }
 
     /**
-     * Obtiene el idioma actual
+     * Obtiene el idioma current
      */
     getCurrentLanguage() {
         return this.currentLanguage;

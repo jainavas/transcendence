@@ -23,7 +23,12 @@
     "saving": "Saving...",
     "retry": "Retry",
     "unknown": "Unknown",
-    "unknown_date": "Unknown date"
+    "unknown_date": "Unknown date",
+    "home": "Home",
+    "login": "Login",
+    "register": "Register",
+    "profile": "Profile",
+    "settings": "Settings"
   },
   "navigation": {
     "dashboard": "Dashboard",
@@ -151,6 +156,9 @@
     "vs_ai": "vs AI",
     "ai_on": "AI: ON",
     "ai_off": "AI: OFF",
+    "ai_enabled": "AI: ON",
+    "ai_disabled": "AI: OFF",
+    "press_t_to_toggle_ai_and_123_for_difficulty": "T=Toggle AI, 1/2/3=Difficulty",
     "ai_toggle_instruction": "(Press T to toggle)",
     "point_for_player_1": "Point for player 1!",
     "point_for_player_2": "Point for player 2!",
@@ -215,5 +223,38 @@
     "french": "Français",
     "portuguese": "Português",
     "german": "Deutsch"
+  },
+  "tournament": {
+    "title": "MegaPong - Tournament",
+    "setup_title": "🏆 Setup Tournament",
+    "your_alias": "Your Alias:",
+    "your_alias_placeholder": "Enter your alias",
+    "opponent_alias": "Opponent Alias:",
+    "opponent_placeholder": "Player alias",
+    "add_player": "Add Player",
+    "players_added": "Players added",
+    "start_tournament": "Start Tournament",
+    "back_to_menu": "Back to Menu",
+    "bracket_title": "🏆 Tournament Bracket",
+    "new_tournament": "New Tournament",
+    "main_menu": "Main Menu",
+    "next_match": "Next Match!",
+    "play_pong": "🏓 Play Pong!",
+    "back_to_bracket": "Back to Bracket",
+    "tournament_champion": "🎉 TOURNAMENT CHAMPION! 🎉",
+    "rounds": {
+      "quarterfinals": "Quarterfinals",
+      "semifinals": "Semifinals",
+      "final": "Final"
+    },
+    "vs": "VS",
+    "winner": "Winner",
+    "play": "Play",
+    "errors": {
+      "need_user_alias": "Please enter your alias",
+      "need_more_players": "You need at least 2 more players for the tournament",
+      "player_already_exists": "This player is already in the list",
+      "max_players_reached": "Maximum 8 players allowed"
+    }
   }
 }

@@ -3,9 +3,13 @@ let scoreModule;
 let changeScore1, changeScore2, changeScore3, changeScore4;
 let maxScore, scoreP1, scoreP2, scoreP3, scoreP4;
 
-// Check if we're in IA mode by checking the URL or DOM
+// Check game mode by URL and DOM
 const isIAMode = window.location.pathname.includes('pong-ia') || 
                  document.querySelector('script[src*="pong-ia.js"]') !== null;
+
+const is4PMode = window.location.pathname.includes('pong-4p') || 
+                 window.location.pathname.includes('4p') ||
+                 document.querySelector('script[src*="4p-main.js"]') !== null;
 
 // Simplified score update functions that work directly with global variables
 function updateScore1() {
@@ -50,6 +54,9 @@ async function initializeScoreFunctions() {
         if (isIAMode) {
             console.log("🤖 Physics: Detectado modo IA - importando desde pong-ia.js");
             scoreModule = await import('./pong-ia.js');
+        } else if (is4PMode) {
+            console.log("🟦 Physics: Detectado modo 4P - importando desde 4p-main.js");
+            scoreModule = await import('./4p-main.js');
         } else {
             console.log("🏓 Physics: Detectado modo normal - importando desde main.js");
             scoreModule = await import('./main.js');
@@ -114,8 +121,8 @@ async function gameOver(message, bola, pala2, pala1, tableTop, scene) {
 	// Wait for score functions to be initialized if needed
 	await scoreInitPromise;
 
-	// Actualizar puntuaciones - USAR CLAVES DE IDENTIFICACIÓN en lugar de buscar texto
-	if (message.includes("PLAYER1_GOAL") || message.includes("jugador 1") || message.includes("player 1")) {
+	// Actualizar puntuaciones - USAR SOLO CLAVES DE IDENTIFICACIÓN (no texto traducido)
+	if (message.includes("PLAYER1_GOAL")) {
 		console.log("🎯 Goal for player 1 detected");
 		if (changeScore1) {
 			console.log("🎯 Calling changeScore1 function");
@@ -125,7 +132,7 @@ async function gameOver(message, bola, pala2, pala1, tableTop, scene) {
 			updateScore1();
 		}
 		anunciarPunto(puntoTexto, window.t ? window.t('game.point_for_player_1') : "¡Punto para el jugador 1!", scene);
-	} else if (message.includes("PLAYER2_GOAL") || message.includes("jugador 2") || message.includes("player 2")) {
+	} else if (message.includes("PLAYER2_GOAL")) {
 		console.log("🎯 Goal for player 2 detected");
 		if (changeScore2) {
 			console.log("🎯 Calling changeScore2 function");
@@ -235,17 +242,17 @@ function gameOver4P(message, bola, pala2, pala1, pala3, pala4, tableTop, scene) 
 		console.log("All 4P keys cleared on goal");
 	}
 
-	// Actualizar puntuaciones
-	if (message.includes("Jugador 1")) {
+	// Actualizar puntuaciones usando identificadores únicos
+	if (message.includes("PLAYER_1_ELIMINATED")) {
 		changeScore1();
 		anunciarPunto(puntoTexto, window.t ? window.t('game.goal_for_player_1') : "¡Gol al Jugador 1!", scene);
-	} else if (message.includes("Jugador 2")) {
+	} else if (message.includes("PLAYER_2_ELIMINATED")) {
 		changeScore2();
 		anunciarPunto(puntoTexto, window.t ? window.t('game.goal_for_player_2') : "¡Gol al Jugador 2!", scene);
-	} else if (message.includes("Jugador 3")) {
+	} else if (message.includes("PLAYER_3_ELIMINATED")) {
 		changeScore3();
 		anunciarPunto(puntoTexto, window.t ? window.t('game.goal_for_player_3') : "¡Gol al Jugador 3!", scene);
-	} else if (message.includes("Jugador 4")) {
+	} else if (message.includes("PLAYER_4_ELIMINATED")) {
 		changeScore4();
 		anunciarPunto(puntoTexto, window.t ? window.t('game.goal_for_player_4') : "¡Gol al Jugador 4!", scene);
 	}
@@ -254,86 +261,225 @@ function gameOver4P(message, bola, pala2, pala1, pala3, pala4, tableTop, scene) 
 	bola.physicsImpostor.setLinearVelocity(BABYLON.Vector3.Zero());
 	bola.physicsImpostor.setAngularVelocity(BABYLON.Vector3.Zero());
 
-	// Mostrar Game Over final si llega al límite
-	if (scoreP1 >= maxScore || scoreP2 >= maxScore || scoreP3 >= maxScore || scoreP4 >= maxScore) {
-		const gameOverElement = document.getElementById('gameOver');
-		const finalScoreElement = document.getElementById('finalScore');
-		if (gameOverElement) {
-			gameOverElement.style.display = 'block';
-		}
-		if (finalScoreElement) {
-			const blueText = (window.t && window.i18n && window.i18n.translations) ? window.t('game.blue') : 'Azul';
-			const redText = (window.t && window.i18n && window.i18n.translations) ? window.t('game.red') : 'Rojo';
-			const greenText = (window.t && window.i18n && window.i18n.translations) ? window.t('game.green') : 'Verde';
-			const purpleText = (window.t && window.i18n && window.i18n.translations) ? window.t('game.purple') : 'Púrpura';
-
-			// Find winner (lowest score in elimination mode)
-			let winner = Math.min(scoreP1, scoreP2, scoreP3, scoreP4);
-			switch (winner) {
-				case scoreP1:
-					finalScoreElement.textContent = `${(window.t && window.i18n && window.i18n.translations) ? window.t('game.player_1_won_blue') : '¡Ganó el Jugador 1, Azul!'} ${blueText}:${scoreP1} - ${redText}:${scoreP2} - ${greenText}:${scoreP3} - ${purpleText}:${scoreP4}`;
-					break;
-				case scoreP2:
-					finalScoreElement.textContent = `${(window.t && window.i18n && window.i18n.translations) ? window.t('game.player_2_won_red') : '¡Ganó el Jugador 2, Rojo!'} ${blueText}:${scoreP1} - ${redText}:${scoreP2} - ${greenText}:${scoreP3} - ${purpleText}:${scoreP4}`;
-					break;
-				case scoreP3:
-					finalScoreElement.textContent = `${(window.t && window.i18n && window.i18n.translations) ? window.t('game.player_3_won_green') : '¡Ganó el Jugador 3, Verde!'} ${blueText}:${scoreP1} - ${redText}:${scoreP2} - ${greenText}:${scoreP3} - ${purpleText}:${scoreP4}`;
-					break;
-				case scoreP4:
-					finalScoreElement.textContent = `${(window.t && window.i18n && window.i18n.translations) ? window.t('game.player_4_won_purple') : '¡Ganó el Jugador 4, Púrpura!'} ${blueText}:${scoreP1} - ${redText}:${scoreP2} - ${greenText}:${scoreP3} - ${purpleText}:${scoreP4}`;
-					break;
-				default:
-					finalScoreElement.textContent = `${window.t ? window.t('game.tie_game') : '¡Empate!'} ${blueText}:${scoreP1} - ${redText}:${scoreP2} - ${greenText}:${scoreP3} - ${purpleText}:${scoreP4}`;
-					break;
-			}
-		}
-		return false;
-	}
-
-	// Reiniciar tras 1.5 segundos (más tiempo para evitar triggers accidentales)
+	// Wait for score to update, then check game over using GLOBAL variables
 	setTimeout(() => {
-		// Ensure ball and paddles are visible and properly positioned
-		const y = tableTop.position.y + 0.05 + tableTop.getBoundingInfo().boundingBox.extendSize.y;
+		// Get current scores from global variables (updated values)
+		const currentScoreP1 = window.scoreP1 || 0;
+		const currentScoreP2 = window.scoreP2 || 0;
+		const currentScoreP3 = window.scoreP3 || 0;
+		const currentScoreP4 = window.scoreP4 || 0;
+		const currentMaxScore = window.maxScore || 5;
 
-		// Reset ball position and physics completely
-		bola.position.set(0, y, 0);
-		bola.physicsImpostor.setLinearVelocity(BABYLON.Vector3.Zero());
-		bola.physicsImpostor.setAngularVelocity(BABYLON.Vector3.Zero());
+		console.log("🏁 4P Checking game over with updated scores:", { 
+			currentScoreP1, currentScoreP2, currentScoreP3, currentScoreP4, currentMaxScore 
+		});
 
-		// Reset paddle positions for 4P mode
-		pala2.position.set(0, y, 1.15);        // Top paddle
-		pala1.position.set(1.15, y, 0);        // Right paddle
-		pala3.position.set(0, y, -1.15);       // Bottom paddle
-		pala4.position.set(-1.15, y, 0);       // Left paddle
-
-		// Update physics positions
-		pala2.physicsImpostor.setDeltaPosition(pala2.position);
-		pala1.physicsImpostor.setDeltaPosition(pala1.position);
-		pala3.physicsImpostor.setDeltaPosition(pala3.position);
-		pala4.physicsImpostor.setDeltaPosition(pala4.position);
-
-		// Ensure ball is visible
-		bola.setEnabled(true);
-		bola.visibility = 1.0;
-
-		// Clear any stuck keys again
-		if (keysPressed) {
-			Object.keys(keysPressed).forEach(key => {
-				keysPressed[key] = false;
+		// Mostrar Game Over final si llega al límite
+		if (currentScoreP1 >= currentMaxScore || currentScoreP2 >= currentMaxScore || 
+			currentScoreP3 >= currentMaxScore || currentScoreP4 >= currentMaxScore) {
+			
+			console.log("🏆 GAME OVER 4P detected! Final scores:", { 
+				currentScoreP1, currentScoreP2, currentScoreP3, currentScoreP4 
 			});
+			
+			const gameOverElement = document.getElementById('gameOver');
+			const finalScoreElement = document.getElementById('finalScore');
+			if (gameOverElement) {
+				gameOverElement.style.display = 'block';
+			}
+			if (finalScoreElement) {
+				const blueText = (window.t && window.i18n && window.i18n.translations) ? window.t('game.blue') : 'Azul';
+				const redText = (window.t && window.i18n && window.i18n.translations) ? window.t('game.red') : 'Rojo';
+				const greenText = (window.t && window.i18n && window.i18n.translations) ? window.t('game.green') : 'Verde';
+				const purpleText = (window.t && window.i18n && window.i18n.translations) ? window.t('game.purple') : 'Púrpura';
+
+				// Find winner (lowest score in elimination mode)
+				let winner = Math.min(currentScoreP1, currentScoreP2, currentScoreP3, currentScoreP4);
+				console.log("🏆 Winner determined by lowest score:", winner);
+				
+				switch (winner) {
+					case currentScoreP1:
+						finalScoreElement.textContent = `${(window.t && window.i18n && window.i18n.translations) ? window.t('game.player_1_won_blue') : '¡Ganó el Jugador 1, Azul!'} ${blueText}:${currentScoreP1} - ${redText}:${currentScoreP2} - ${greenText}:${currentScoreP3} - ${purpleText}:${currentScoreP4}`;
+						break;
+					case currentScoreP2:
+						finalScoreElement.textContent = `${(window.t && window.i18n && window.i18n.translations) ? window.t('game.player_2_won_red') : '¡Ganó el Jugador 2, Rojo!'} ${blueText}:${currentScoreP1} - ${redText}:${currentScoreP2} - ${greenText}:${currentScoreP3} - ${purpleText}:${currentScoreP4}`;
+						break;
+					case currentScoreP3:
+						finalScoreElement.textContent = `${(window.t && window.i18n && window.i18n.translations) ? window.t('game.player_3_won_green') : '¡Ganó el Jugador 3, Verde!'} ${blueText}:${currentScoreP1} - ${redText}:${currentScoreP2} - ${greenText}:${currentScoreP3} - ${purpleText}:${currentScoreP4}`;
+						break;
+					case currentScoreP4:
+						finalScoreElement.textContent = `${(window.t && window.i18n && window.i18n.translations) ? window.t('game.player_4_won_purple') : '¡Ganó el Jugador 4, Púrpura!'} ${blueText}:${currentScoreP1} - ${redText}:${currentScoreP2} - ${greenText}:${currentScoreP3} - ${purpleText}:${currentScoreP4}`;
+						break;
+					default:
+						finalScoreElement.textContent = `${window.t ? window.t('game.tie_game') : '¡Empate!'} ${blueText}:${currentScoreP1} - ${redText}:${currentScoreP2} - ${greenText}:${currentScoreP3} - ${purpleText}:${currentScoreP4}`;
+						break;
+				}
+			}
+			return false; // Game is over, don't continue
 		}
 
-		// Show start message for next round
-		if (mensajeInicio) {
-			mensajeInicio.alpha = 1;
-		}
+		// If game is not over, continue with round reset
+		console.log("📊 4P Round continues - scores not at limit yet");
+		
+		// Reiniciar tras 1.5 segundos (más tiempo para evitar triggers accidentales)
+		setTimeout(() => {
+			// Ensure ball and paddles are visible and properly positioned
+			const y = tableTop.position.y + 0.05 + tableTop.getBoundingInfo().boundingBox.extendSize.y;
 
-		// IMPORTANT: Do NOT set game active here - wait for spacebar
-		// This prevents automatic goal triggers during reset
-		console.log("4P Round reset complete - waiting for spacebar");
-	}, 1500);
+			// Reset ball position and physics completely
+			bola.position.set(0, y, 0);
+			bola.physicsImpostor.setLinearVelocity(BABYLON.Vector3.Zero());
+			bola.physicsImpostor.setAngularVelocity(BABYLON.Vector3.Zero());
+
+			// Reset paddle positions for 4P mode
+			pala2.position.set(0, y, 1.15);        // Top paddle
+			pala1.position.set(1.15, y, 0);        // Right paddle
+			pala3.position.set(0, y, -1.15);       // Bottom paddle
+			pala4.position.set(-1.15, y, 0);       // Left paddle
+
+			// Update physics positions
+			pala2.physicsImpostor.setDeltaPosition(pala2.position);
+			pala1.physicsImpostor.setDeltaPosition(pala1.position);
+			pala3.physicsImpostor.setDeltaPosition(pala3.position);
+			pala4.physicsImpostor.setDeltaPosition(pala4.position);
+
+			// Ensure ball is visible
+			bola.setEnabled(true);
+			bola.visibility = 1.0;
+
+			// Clear any stuck keys again
+			if (keysPressed) {
+				Object.keys(keysPressed).forEach(key => {
+					keysPressed[key] = false;
+				});
+			}
+
+			// Show start message for next round
+			if (mensajeInicio) {
+				mensajeInicio.alpha = 1;
+			}
+
+			// IMPORTANT: Do NOT set game active here - wait for spacebar
+			// This prevents automatic goal triggers during reset
+			console.log("4P Round reset complete - waiting for spacebar");
+		}, 1500);
+	}, 100); // Small delay to allow score update to complete
+	
 	return true;
 }
+
+
+// AI Difficulty System - Define difficulty levels
+const aiDifficultyLevels = {
+	easy: {
+		name: 'Fácil',
+		updateInterval: 1500, // 1.5 segundos - más lento
+		difficulty: 0.6, // 60% precisión
+		reactionSpeed: 0.4, // 40% velocidad de reacción
+		maxMovementDuration: 1200, // Máximo 1.2 segundos de movimiento
+		errorMultiplier: 0.5, // Más error en predicciones
+		description: 'IA lenta y menos precisa'
+	},
+	medium: {
+		name: 'Medio',
+		updateInterval: 1000, // 1 segundo - estándar
+		difficulty: 0.75, // 75% precisión
+		reactionSpeed: 0.6, // 60% velocidad de reacción
+		maxMovementDuration: 900, // Máximo 0.9 segundos de movimiento
+		errorMultiplier: 0.35, // Error moderado
+		description: 'IA equilibrada'
+	},
+	hard: {
+		name: 'Difícil',
+		updateInterval: 300, // 0.3 segundos - más rápido
+		difficulty: 0.9, // 90% precisión
+		reactionSpeed: 0.85, // 85% velocidad de reacción
+		maxMovementDuration: 600, // Máximo 0.6 segundos de movimiento
+		errorMultiplier: 0.2, // Menos error
+		description: 'IA rápida y precisa'
+	}
+};
+
+// Current AI difficulty - default to medium
+let currentAIDifficulty = 'medium';
+
+// Function to get current difficulty settings
+const getCurrentDifficultySettings = () => {
+	return aiDifficultyLevels[currentAIDifficulty];
+};
+
+// Function to change AI difficulty
+const changeAIDifficulty = () => {
+	const difficulties = Object.keys(aiDifficultyLevels);
+	const currentIndex = difficulties.indexOf(currentAIDifficulty);
+	const nextIndex = (currentIndex + 1) % difficulties.length;
+	currentAIDifficulty = difficulties[nextIndex];
+	
+	const newSettings = getCurrentDifficultySettings();
+	console.log(`🎯 Dificultad IA cambiada a: ${newSettings.name} - ${newSettings.description}`);
+	
+	// Update AI config with new settings
+	if (aiConfig) {
+		aiConfig.updateInterval = newSettings.updateInterval;
+		aiConfig.difficulty = newSettings.difficulty;
+		aiConfig.reactionSpeed = newSettings.reactionSpeed;
+		aiConfig.maxMovementDuration = newSettings.maxMovementDuration;
+		aiConfig.errorMultiplier = newSettings.errorMultiplier;
+		
+		// Reset AI state to apply new settings
+		aiConfig.isMoving = false;
+		aiConfig.lastUpdateTime = 0;
+		
+		console.log(`🤖 Configuración IA actualizada:`, {
+			interval: newSettings.updateInterval + 'ms',
+			precision: (newSettings.difficulty * 100) + '%',
+			speed: (newSettings.reactionSpeed * 100) + '%'
+		});
+	}
+	
+	// Update UI indicator if it exists
+	updateAIDifficultyIndicator();
+	
+	return newSettings;
+};
+
+// Function to update AI difficulty indicator in UI
+const updateAIDifficultyIndicator = () => {
+	const aiIndicator = document.getElementById('aiIndicator');
+	if (aiIndicator && isIAMode) {
+		const settings = getCurrentDifficultySettings();
+		const baseText = aiIndicator.textContent.split(' - ')[0]; // Keep the AI status part
+		aiIndicator.textContent = `${baseText} - ${settings.name}`;
+		
+		// Change color based on difficulty
+		switch(currentAIDifficulty) {
+			case 'easy':
+				aiIndicator.style.backgroundColor = '#4CAF50'; // Green
+				break;
+			case 'medium':
+				aiIndicator.style.backgroundColor = '#FF9800'; // Orange
+				break;
+			case 'hard':
+				aiIndicator.style.backgroundColor = '#F44336'; // Red
+				break;
+		}
+	}
+};
+
+// AI configuration for player 2 (pala2) - SOLO HABILITADA EN MODO IA
+const aiConfig = {
+	enabled: isIAMode, // CORREGIDO: Solo habilitar en modo IA
+	difficulty: getCurrentDifficultySettings().difficulty,
+	reactionSpeed: getCurrentDifficultySettings().reactionSpeed,
+	lastUpdateTime: 0,
+	updateInterval: getCurrentDifficultySettings().updateInterval,
+	maxMovementDuration: getCurrentDifficultySettings().maxMovementDuration,
+	errorMultiplier: getCurrentDifficultySettings().errorMultiplier,
+	targetZ: 0, // AI's target position
+	isMoving: false, // Track if AI is currently moving
+	movementDuration: 0, // How long AI should keep moving
+	movementStartTime: 0 // When current movement started
+};
 
 
 export function createPhysics(scene, engine, camera, tableTop, materiales, glow) {
@@ -354,18 +500,22 @@ export function createPhysics(scene, engine, camera, tableTop, materiales, glow)
 	const bolaRadio = 0.05;
 	const keysPressed = {};
 
-	// AI configuration for player 2 (pala2)
+	// AI configuration for player 2 (pala2) - SOLO HABILITADA EN MODO IA
 	const aiConfig = {
-		enabled: true,
-		difficulty: 0.85, // 0.0 to 1.0 - how accurately AI tracks the ball
-		reactionSpeed: 0.7, // 0.0 to 1.0 - how quickly AI reacts
+		enabled: isIAMode, // CORREGIDO: Solo habilitar en modo IA
+		difficulty: getCurrentDifficultySettings().difficulty,
+		reactionSpeed: getCurrentDifficultySettings().reactionSpeed,
 		lastUpdateTime: 0,
-		updateInterval: 1000, // milliseconds between AI updates (1 second)
+		updateInterval: getCurrentDifficultySettings().updateInterval,
+		maxMovementDuration: getCurrentDifficultySettings().maxMovementDuration,
+		errorMultiplier: getCurrentDifficultySettings().errorMultiplier,
 		targetZ: 0, // AI's target position
 		isMoving: false, // Track if AI is currently moving
 		movementDuration: 0, // How long AI should keep moving
 		movementStartTime: 0 // When current movement started
 	};
+
+	console.log(`🤖 AI Configuration - Mode: ${isIAMode ? 'IA' : 'Normal'}, AI Enabled: ${aiConfig.enabled}`);
 
 	// Crear palas
 	const pala2 = BABYLON.MeshBuilder.CreateBox("pala2", { width: 0.1, depth: 0.25, height: 0.05 }, scene);
@@ -476,7 +626,7 @@ export function createPhysics(scene, engine, camera, tableTop, materiales, glow)
 			console.log("Ball at suspicious position:", bolaPos.x, "with velocity:", currentBallVel.x, "total speed:", currentBallVel.length());
 		}
 
-		// AI for player 2 (pala2) - calculates once per second, then moves briefly
+		// AI for player 2 (pala2) - calculates based on difficulty level, then moves briefly
 		if (aiConfig.enabled && currentTime - aiConfig.lastUpdateTime > aiConfig.updateInterval) {
 			const ballVelForPrediction = bola.physicsImpostor.getLinearVelocity();
 
@@ -487,23 +637,29 @@ export function createPhysics(scene, engine, camera, tableTop, materiales, glow)
 				const timeToReach = Math.abs((pala2Pos.x - bolaPos.x) / ballVelForPrediction.x);
 				predictedZ = bolaPos.z + (ballVelForPrediction.z * timeToReach);
 
-				// Add some inaccuracy based on difficulty (lower difficulty = more error)
-				const error = (1 - aiConfig.difficulty) * (Math.random() - 0.5) * 0.3;
-				aiConfig.targetZ = predictedZ + error;
+				// Add inaccuracy based on difficulty and error multiplier
+				const baseError = (1 - aiConfig.difficulty) * (Math.random() - 0.5) * 0.4;
+				const adjustedError = baseError * aiConfig.errorMultiplier;
+				aiConfig.targetZ = predictedZ + adjustedError;
 
 				// Limit target to playable area
 				aiConfig.targetZ = Math.max(-paddleZLimit, Math.min(paddleZLimit, aiConfig.targetZ));
 
-				// Calculate movement duration based on distance and reaction speed
+				// Calculate movement duration based on distance, reaction speed, and max duration
 				const distance = Math.abs(aiConfig.targetZ - pala2Pos.z);
-				const movementTime = (distance / paddleSpeed) * (2 - aiConfig.reactionSpeed) * 16.67; // Convert to milliseconds
+				const baseMovementTime = (distance / paddleSpeed) * (2 - aiConfig.reactionSpeed) * 16.67;
+				
+				// Apply difficulty-based max movement duration
+				const maxDuration = aiConfig.maxMovementDuration || 800;
 
 				// Start movement if target is significantly different from current position
 				if (distance > paddleSpeed * 2) {
 					aiConfig.isMoving = true;
 					aiConfig.movementStartTime = currentTime;
-					aiConfig.movementDuration = Math.min(movementTime, 800); // Max 800ms movement
-					console.log(`AI deciding to move to ${aiConfig.targetZ.toFixed(2)}, duration: ${aiConfig.movementDuration}ms`);
+					aiConfig.movementDuration = Math.min(baseMovementTime, maxDuration);
+					
+					const difficultyName = getCurrentDifficultySettings().name;
+					console.log(`AI (${difficultyName}) deciding to move to ${aiConfig.targetZ.toFixed(2)}, duration: ${aiConfig.movementDuration}ms, error: ${adjustedError.toFixed(3)}`);
 				} else {
 					aiConfig.isMoving = false;
 				}
@@ -802,14 +958,55 @@ export function createPhysics(scene, engine, camera, tableTop, materiales, glow)
 
 	// Event listeners para teclado - usando referencias globales para poder limpiarlas
 	window.currentKeydownHandler = (e) => {
-		// Toggle AI with 'T' key
-		if (e.key === "t" || e.key === "T") {
+		// Toggle AI with 'T' key - SOLO EN MODO IA
+		if ((e.key === "t" || e.key === "T") && isIAMode) {
 			aiConfig.enabled = !aiConfig.enabled;
 			console.log("🤖 AI", aiConfig.enabled ? "activada" : "desactivada");
 			// Clear AI inputs when disabled
 			if (!aiConfig.enabled) {
 				keysPressed["ArrowLeft"] = false;
 				keysPressed["ArrowRight"] = false;
+			}
+			// Update AI indicator
+			updateAIDifficultyIndicator();
+			e.preventDefault();
+			return;
+		}
+
+		// Change AI Difficulty with number keys 1, 2, 3 - SOLO EN MODO IA
+		if (isIAMode && ["1", "2", "3"].includes(e.key)) {
+			let newDifficulty;
+			switch(e.key) {
+				case "1":
+					newDifficulty = 'easy';
+					break;
+				case "2":
+					newDifficulty = 'medium';
+					break;
+				case "3":
+					newDifficulty = 'hard';
+					break;
+			}
+			
+			if (newDifficulty !== currentAIDifficulty) {
+				currentAIDifficulty = newDifficulty;
+				const newSettings = getCurrentDifficultySettings();
+				
+				// Update AI config with new settings
+				if (aiConfig) {
+					aiConfig.updateInterval = newSettings.updateInterval;
+					aiConfig.difficulty = newSettings.difficulty;
+					aiConfig.reactionSpeed = newSettings.reactionSpeed;
+					aiConfig.maxMovementDuration = newSettings.maxMovementDuration;
+					aiConfig.errorMultiplier = newSettings.errorMultiplier;
+					
+					// Reset AI state to apply new settings
+					aiConfig.isMoving = false;
+					aiConfig.lastUpdateTime = 0;
+				}
+				
+				console.log(`🎯 Dificultad IA cambiada a: ${newSettings.name} con tecla ${e.key}`);
+				updateAIDifficultyIndicator();
 			}
 			e.preventDefault();
 			return;
@@ -874,6 +1071,13 @@ export function createPhysics(scene, engine, camera, tableTop, materiales, glow)
 	};
 
 	window.addEventListener("keyup", window.currentKeyupHandler);
+
+	// Expose difficulty functions globally for UI access
+	window.getCurrentDifficultySettings = getCurrentDifficultySettings;
+	window.changeAIDifficulty = changeAIDifficulty;
+	window.updateAIDifficultyIndicator = updateAIDifficultyIndicator;
+	window.aiDifficultyLevels = aiDifficultyLevels;
+	window.currentAIDifficulty = currentAIDifficulty;
 
 	return { pala2, pala1, bola, aiConfig };
 }
@@ -951,6 +1155,10 @@ export function createPhysics4P(scene, engine, camera, tableTop, materiales, glo
 		mass: 1, restitution: 0.95, friction: 0
 	}, scene);
 
+	// IMPORTANTE: Almacenar keysPressed en metadatos para acceso desde gameOver4P
+	scene.metadata = scene.metadata || {};
+	scene.metadata.physics = { keysPressed };
+
 	// Función para preparar inicio del juego
 	function prepararInicioJuego() {
 		setGameActive(false);
@@ -962,6 +1170,13 @@ export function createPhysics4P(scene, engine, camera, tableTop, materiales, glo
 		window.currentSpaceHandler = (e) => {
 			if (e.code === "Space" && !gameActive) {
 				console.log("🚀 Iniciando juego 4P...");
+				
+				// LIMPIAR TODAS LAS TECLAS ANTES DE INICIAR
+				Object.keys(keysPressed).forEach(key => {
+					keysPressed[key] = false;
+				});
+				console.log("🧹 4P: Todas las teclas limpiadas antes de iniciar");
+				
 				setGameActive(true);
 				if (mensajeInicio)
 					mensajeInicio.alpha = 0;
@@ -1154,13 +1369,16 @@ export function createPhysics4P(scene, engine, camera, tableTop, materiales, glo
 		// GAME OVER - cuando la bola sale del área
 		const margin = 1.5;
 		if (Math.abs(bolaPos.x) > margin || Math.abs(bolaPos.z) > margin) {
-			let ganador = "";
-			if (bolaPos.z > margin) ganador = window.t ? window.t('game.player_1_eliminated') : "¡Jugador 1 (Arriba) eliminado!";
-			else if (bolaPos.x > margin) ganador = window.t ? window.t('game.player_2_eliminated') : "¡Jugador 2 (Derecha) eliminado!";
-			else if (bolaPos.z < -margin) ganador = window.t ? window.t('game.player_3_eliminated') : "¡Jugador 3 (Abajo) eliminado!";
-			else if (bolaPos.x < -margin) ganador = window.t ? window.t('game.player_4_eliminated') : "¡Jugador 4 (Izquierda) eliminado!";
+			let playerEliminated = "";
+			// Usar identificadores únicos en lugar de texto traducido
+			if (bolaPos.z > margin) playerEliminated = "PLAYER_1_ELIMINATED";
+			else if (bolaPos.x > margin) playerEliminated = "PLAYER_2_ELIMINATED";
+			else if (bolaPos.z < -margin) playerEliminated = "PLAYER_3_ELIMINATED";
+			else if (bolaPos.x < -margin) playerEliminated = "PLAYER_4_ELIMINATED";
 
-			if (!gameOver4P(ganador, bola, pala2, pala1, pala3, pala4, tableTop, scene))
+			console.log('🎯 4P Goal detected:', playerEliminated, 'at position:', {x: bolaPos.x, z: bolaPos.z});
+			
+			if (!gameOver4P(playerEliminated, bola, pala2, pala1, pala3, pala4, tableTop, scene))
 				return;
 		}
 

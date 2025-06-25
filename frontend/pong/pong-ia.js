@@ -216,18 +216,61 @@ window.addEventListener("DOMContentLoaded", () => {
             let aiStatus, instruction;
             
             // Verificar si las traducciones están disponibles
-            if (window.t && window.translations && window.translations[window.currentLanguage]) {
-                aiStatus = isEnabled ? window.t('game.ai_on') : window.t('game.ai_off');
-                instruction = window.t('game.ai_toggle_instruction');
-                console.log('🌍 Usando traducciones:', { aiStatus, instruction });
-            } else {
-                // Fallback a español
-                aiStatus = isEnabled ? 'IA: ACTIVADA' : 'IA: DESACTIVADA';
-                instruction = '(Presiona T para alternar)';
-                console.log('⚠️ Usando fallback español:', { aiStatus, instruction });
+            if (window.t && typeof window.t === 'function') {
+                try {
+                    aiStatus = isEnabled ? 
+                        window.t('game.ai_enabled') : 
+                        window.t('game.ai_disabled');
+                    instruction = window.t('game.press_t_to_toggle_ai_and_123_for_difficulty');
+                    
+                    console.log('✅ Traducciones obtenidas correctamente:', { aiStatus, instruction });
+                } catch (error) {
+                    console.error('❌ Error usando window.t:', error);
+                    aiStatus = null;
+                    instruction = null;
+                }
             }
             
-            aiIndicator.textContent = `${aiStatus} ${instruction}`;
+            // Fallback si las traducciones no funcionan
+            if (!aiStatus || !instruction) {
+                console.log('⚠️ Usando fallback para traducciones');
+                const currentLang = window.currentLanguage || localStorage.getItem('transcendence_language') || 'es';
+                
+                switch(currentLang) {
+                    case 'en':
+                        aiStatus = isEnabled ? 'AI: ON' : 'AI: OFF';
+                        instruction = 'T=Toggle AI, 1/2/3=Difficulty';
+                        break;
+                    case 'fr':
+                        aiStatus = isEnabled ? 'IA: ON' : 'IA: OFF';
+                        instruction = 'T=Basculer IA, 1/2/3=Difficulté';
+                        break;
+                    case 'de':
+                        aiStatus = isEnabled ? 'KI: AN' : 'KI: AUS';
+                        instruction = 'T=KI umschalten, 1/2/3=Schwierigkeit';
+                        break;
+                    case 'pt':
+                        aiStatus = isEnabled ? 'IA: ON' : 'IA: OFF';
+                        instruction = 'T=Alternar IA, 1/2/3=Dificuldade';
+                        break;
+                    default: // 'es'
+                        aiStatus = isEnabled ? 'IA: ON' : 'IA: OFF';
+                        instruction = 'T=Toggle IA, 1/2/3=Dificultad';
+                        break;
+                }
+            }
+            
+            // Get current difficulty level from physics scene if available
+            let difficultyText = '';
+            if (window.getCurrentDifficultySettings) {
+                const difficulty = window.getCurrentDifficultySettings();
+                difficultyText = ` - ${difficulty.name}`;
+            } else {
+                // Fallback to default difficulty names
+                difficultyText = ' - Medio';
+            }
+            
+            aiIndicator.textContent = `${aiStatus}${difficultyText} ${instruction}`;
             console.log('✅ Texto del indicador actualizado:', aiIndicator.textContent);
         };
         

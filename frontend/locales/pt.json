@@ -156,6 +156,9 @@
 		"vs_ai": "vs IA",
 		"ai_on": "IA: LIGADA",
 		"ai_off": "IA: DESLIGADA",
+		"ai_enabled": "IA: ON",
+		"ai_disabled": "IA: OFF",
+		"press_t_to_toggle_ai_and_123_for_difficulty": "T=Alternar IA, 1/2/3=Dificuldade",
 		"ai_toggle_instruction": "(Pressione T para alternar)",
 		"point_for_player_1": "Ponto para o jogador 1!",
 		"point_for_player_2": "Ponto para o jogador 2!",
@@ -220,5 +223,38 @@
 		"french": "Français",
 		"portuguese": "Português",
 		"german": "Deutsch"
+	},
+	"tournament": {
+		"title": "MegaPong - Torneio",
+		"setup_title": "🏆 Configurar Torneio",
+		"your_alias": "Seu Alias:",
+		"your_alias_placeholder": "Digite seu alias",
+		"opponent_alias": "Alias do Oponente:",
+		"opponent_placeholder": "Alias do jogador",
+		"add_player": "Adicionar Jogador",
+		"players_added": "Jogadores adicionados",
+		"start_tournament": "Iniciar Torneio",
+		"back_to_menu": "Voltar ao Menu",
+		"bracket_title": "🏆 Chave do Torneio",
+		"new_tournament": "Novo Torneio",
+		"main_menu": "Menu Principal",
+		"next_match": "Próxima Partida!",
+		"play_pong": "🏓 Jogar Pong!",
+		"back_to_bracket": "Voltar à Chave",
+		"tournament_champion": "🎉 CAMPEÃO DO TORNEIO! 🎉",
+		"rounds": {
+			"quarterfinals": "Quartas de Final",
+			"semifinals": "Semifinais",
+			"final": "Final"
+		},
+		"vs": "VS",
+		"winner": "Vencedor",
+		"play": "Jogar",
+		"errors": {
+			"need_user_alias": "Por favor, digite seu alias",
+			"need_more_players": "Você precisa de pelo menos mais 2 jogadores para o torneio",
+			"player_already_exists": "Este jogador já está na lista",
+			"max_players_reached": "Máximo de 8 jogadores permitidos"
+		}
 	}
 }

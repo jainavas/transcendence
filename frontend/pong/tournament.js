@@ -24,6 +24,32 @@ function initTournament() {
 	console.log("🏆 Sistema de torneo inicializado");
 }
 
+// Función para aplicar traducciones cuando estén listas
+function applyTournamentTranslations() {
+	console.log('🏆 DEBUG: Aplicando traducciones específicas del torneo...');
+	
+	// Re-renderizar la lista de jugadores para aplicar traducciones
+	updatePlayersList();
+	
+	// Si hay un torneo activo, re-renderizar el bracket
+	if (tournament) {
+		console.log('🏆 DEBUG: Re-renderizando bracket del torneo...');
+		renderBracket();
+	}
+	
+	// Forzar actualización de elementos dinámicos
+	const playersAddedText = document.querySelector('[data-i18n="tournament.players_added"]');
+	if (playersAddedText && window.t) {
+		playersAddedText.textContent = window.t('tournament.players_added');
+		console.log('🏆 DEBUG: Texto "jugadores añadidos" actualizado');
+	}
+	
+	console.log('🏆 DEBUG: Traducciones del torneo aplicadas');
+}
+
+// Hacer disponible la función globalmente para el sistema i18n
+window.applyTournamentTranslations = applyTournamentTranslations;
+
 // Event listeners del torneo
 function setupTournamentEventListeners() {
 	// Setup screen
@@ -132,24 +158,24 @@ function addPlayer() {
 	const alias = input.value.trim();
 	
 	if (!alias) {
-		alert('Por favor ingresa un alias');
+		alert(window.getI18nText ? window.getI18nText('tournament.errors.need_user_alias') : 'Por favor ingresa un alias');
 		return;
 	}
 	
 	if (addedPlayers.length >= 7) {
-		alert('Máximo 7 jugadores');
+		alert(window.getI18nText ? window.getI18nText('tournament.errors.max_players_reached') : 'Máximo 7 jugadores');
 		return;
 	}
 	
 	if (addedPlayers.includes(alias)) {
-		alert('Este alias ya está añadido');
+		alert(window.getI18nText ? window.getI18nText('tournament.errors.player_already_exists') : 'Este alias ya está añadido');
 		return;
 	}
 
 	// Verificar que no sea igual al alias del usuario
 	const userAlias = document.getElementById('userAlias').value.trim();
 	if (userAlias && alias.toLowerCase() === userAlias.toLowerCase()) {
-		alert('No puedes usar tu mismo alias');
+		alert(window.getI18nText ? window.getI18nText('tournament.errors.player_already_exists') : 'No puedes usar tu mismo alias');
 		return;
 	}
 
@@ -176,7 +202,7 @@ function updatePlayersList() {
 		`<div class="player-item">
 			<span>${alias}</span>
 			<button class="btn-small" onclick="removePlayer('${alias}')">
-				Eliminar
+				${window.getI18nText ? window.getI18nText('common.delete') : 'Eliminar'}
 			</button>
 		</div>`
 	).join('');
@@ -194,12 +220,12 @@ function startTournament() {
 	const userAlias = document.getElementById('userAlias').value.trim();
 	
 	if (!userAlias) {
-		alert('Debes ingresar tu alias');
+		alert(window.getI18nText ? window.getI18nText('tournament.errors.need_user_alias') : 'Debes ingresar tu alias');
 		return;
 	}
 
 	if (addedPlayers.length !== 7) {
-		alert('Necesitas exactamente 7 oponentes');
+		alert(window.getI18nText ? window.getI18nText('tournament.errors.need_more_players') : 'Necesitas exactamente 7 oponentes');
 		return;
 	}
 
@@ -295,9 +321,18 @@ function generateMatches(players) {
 function renderBracket() {
 	const container = document.getElementById('bracketRounds');
 	const rounds = [
-		{ title: 'Cuartos de Final', matches: tournament.matches.filter(m => m.round === 1) },
-		{ title: 'Semifinales', matches: tournament.matches.filter(m => m.round === 2) },
-		{ title: 'Final', matches: tournament.matches.filter(m => m.round === 3) }
+		{ 
+			title: window.getI18nText ? window.getI18nText('tournament.rounds.quarterfinals') : 'Cuartos de Final', 
+			matches: tournament.matches.filter(m => m.round === 1) 
+		},
+		{ 
+			title: window.getI18nText ? window.getI18nText('tournament.rounds.semifinals') : 'Semifinales', 
+			matches: tournament.matches.filter(m => m.round === 2) 
+		},
+		{ 
+			title: window.getI18nText ? window.getI18nText('tournament.rounds.final') : 'Final', 
+			matches: tournament.matches.filter(m => m.round === 3) 
+		}
 	];
 
 	container.innerHTML = rounds.map(round => `
@@ -310,7 +345,7 @@ function renderBracket() {
 							<span>${match.player1.alias}</span>
 							${match.winner?.id === match.player1.id ? '<span>👑</span>' : ''}
 						</div>
-						<div class="vs-text">VS</div>
+						<div class="vs-text">${window.getI18nText ? window.getI18nText('tournament.vs') : 'VS'}</div>
 						<div class="player ${match.winner?.id === match.player2.id ? 'winner' : ''} ${match.player2.isUser ? 'user' : ''}">
 							<span>${match.player2.alias}</span>
 							${match.winner?.id === match.player2.id ? '<span>👑</span>' : ''}
@@ -318,7 +353,7 @@ function renderBracket() {
 					</div>
 					${canPlayMatch(match) ? `
 						<button class="btn-play" onclick="showMatchAnnouncement(${match.id})">
-							🏓 Jugar
+							🏓 ${window.getI18nText ? window.getI18nText('tournament.play') : 'Jugar'}
 						</button>
 					` : ''}
 				</div>
@@ -370,26 +405,38 @@ function showMatchAnnouncement(matchId) {
 	document.getElementById('announcementTitle').textContent = 
 		`${getRoundName(match.round)} - Match ${match.id}`;
 
+	const youText = window.getI18nText ? window.getI18nText('leaderboard.you') : '¡Eres tú!';
+	const opponentText = window.getI18nText ? window.getI18nText('leaderboard.opponent') : 'Oponente';
+
 	document.getElementById('announcementPlayers').innerHTML = `
 		<div class="announcement-player ${match.player1.isUser ? 'user' : ''}">
 			<h3>${match.player1.alias}</h3>
-			${match.player1.isUser ? '<p style="color: #00ff88;">¡Eres tú!</p>' : '<p style="color: #ccc;">Oponente</p>'}
+			${match.player1.isUser ? `<p style="color: #00ff88;">${youText}</p>` : `<p style="color: #ccc;">${opponentText}</p>`}
 		</div>
-		<div class="vs-large">VS</div>
+		<div class="vs-large">${window.getI18nText ? window.getI18nText('tournament.vs') : 'VS'}</div>
 		<div class="announcement-player ${match.player2.isUser ? 'user' : ''}">
 			<h3>${match.player2.alias}</h3>
-			${match.player2.isUser ? '<p style="color: #00ff88;">¡Eres tú!</p>' : '<p style="color: #ccc;">Oponente</p>'}
+			${match.player2.isUser ? `<p style="color: #00ff88;">${youText}</p>` : `<p style="color: #ccc;">${opponentText}</p>`}
 		</div>
 	`;
 }
 
 // Obtener nombre de ronda
 function getRoundName(round) {
-	switch(round) {
-		case 1: return 'Cuartos de Final';
-		case 2: return 'Semifinal';
-		case 3: return 'Final';
-		default: return `Ronda ${round}`;
+	if (window.getI18nText) {
+		switch(round) {
+			case 1: return window.getI18nText('tournament.rounds.quarterfinals');
+			case 2: return window.getI18nText('tournament.rounds.semifinals');
+			case 3: return window.getI18nText('tournament.rounds.final');
+			default: return `${window.getI18nText('common.round')} ${round}`;
+		}
+	} else {
+		switch(round) {
+			case 1: return 'Cuartos de Final';
+			case 2: return 'Semifinal';
+			case 3: return 'Final';
+			default: return `Ronda ${round}`;
+		}
 	}
 }
 

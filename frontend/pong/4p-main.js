@@ -125,16 +125,93 @@ function updateScoreDisplay() {
 		
 	let newText;
 	if (is4PMode) {
-		// Modo 4 jugadores - usar sistema de traducciones disponible
-		const blueText = (window.t && window.translations && window.currentLanguage) ? window.t('game.blue') : 'Azul';
-		const redText = (window.t && window.translations && window.currentLanguage) ? window.t('game.red') : 'Rojo';
-		const greenText = (window.t && window.translations && window.currentLanguage) ? window.t('game.green') : 'Verde';
-		const purpleText = (window.t && window.translations && window.currentLanguage) ? window.t('game.purple') : 'Púrpura';
+		// Modo 4 jugadores - usar sistema de traducciones con mejor detección
+		let blueText, redText, greenText, purpleText;
 		
-		console.log('🎨 4P: Traduciendo colores:', {
-			currentLang: window.currentLanguage,
-			hasT: !!window.t,
-			hasTranslations: !!window.translations,
+		// Debug detallado del estado del sistema de traducciones
+		console.log('🔍 4P Debug: Estado completo del sistema de traducciones:', {
+			'window.i18n exists': !!window.i18n,
+			'window.i18n.translations exists': !!(window.i18n && window.i18n.translations),
+			'window.i18n.currentLanguage': window.i18n ? window.i18n.currentLanguage : 'N/A',
+			'typeof window.t': typeof window.t,
+			'window.translations exists': !!window.translations,
+			'window.currentLanguage': window.currentLanguage,
+			'localStorage language': localStorage.getItem('transcendence_language')
+		});
+		
+		// Priorizar el sistema de traducciones del HTML principal
+		if (window.i18n && window.i18n.translations && window.i18n.currentLanguage && typeof window.t === 'function') {
+			// Usar sistema del HTML principal
+			try {
+				blueText = window.t('game.blue');
+				redText = window.t('game.red');
+				greenText = window.t('game.green');
+				purpleText = window.t('game.purple');
+				console.log('🎨 4P: Usando sistema HTML principal para traducciones');
+				console.log('🎨 4P: Colores obtenidos del HTML:', { blueText, redText, greenText, purpleText });
+			} catch (error) {
+				console.error('🎨 4P: Error usando sistema HTML:', error);
+				blueText = redText = greenText = purpleText = null;
+			}
+		} else if (window.translations && window.currentLanguage && window.translations[window.currentLanguage]) {
+			// Usar sistema secundario sincronizado
+			const gameTranslations = window.translations[window.currentLanguage].game;
+			if (gameTranslations) {
+				blueText = gameTranslations.blue || 'Blue';
+				redText = gameTranslations.red || 'Red';
+				greenText = gameTranslations.green || 'Green';
+				purpleText = gameTranslations.purple || 'Purple';
+				console.log('🎨 4P: Usando sistema secundario sincronizado');
+				console.log('🎨 4P: Colores obtenidos del secundario:', { blueText, redText, greenText, purpleText });
+			} else {
+				console.warn('🎨 4P: No se encontró sección game en traducciones');
+				blueText = redText = greenText = purpleText = null;
+			}
+		}
+		
+		// Si no se pudieron obtener traducciones, usar fallback
+		if (!blueText || !redText || !greenText || !purpleText) {
+			// Fallback basado en el idioma detectado
+			const currentLang = window.i18n?.currentLanguage || window.currentLanguage || localStorage.getItem('transcendence_language') || 'es';
+			console.log('🎨 4P: Usando fallback para idioma:', currentLang);
+			
+			switch(currentLang) {
+				case 'de':
+					blueText = 'Blau';
+					redText = 'Rot';
+					greenText = 'Grün';
+					purpleText = 'Lila';
+					break;
+				case 'en':
+					blueText = 'Blue';
+					redText = 'Red';
+					greenText = 'Green';
+					purpleText = 'Purple';
+					break;
+				case 'fr':
+					blueText = 'Bleu';
+					redText = 'Rouge';
+					greenText = 'Vert';
+					purpleText = 'Violet';
+					break;
+				case 'pt':
+					blueText = 'Azul';
+					redText = 'Vermelho';
+					greenText = 'Verde';
+					purpleText = 'Roxo';
+					break;
+				default: // 'es'
+					blueText = 'Azul';
+					redText = 'Rojo';
+					greenText = 'Verde';
+					purpleText = 'Púrpura';
+					break;
+			}
+			console.log('🎨 4P: Colores obtenidos del fallback:', { blueText, redText, greenText, purpleText });
+		}
+		
+		console.log('🎨 4P: Colores finales:', {
+			currentLang: window.i18n?.currentLanguage || window.currentLanguage || 'unknown',
 			blue: blueText,
 			red: redText,
 			green: greenText,
@@ -152,6 +229,28 @@ function updateScoreDisplay() {
 	console.log('🔍 Texto del marcador después:', scoreElement.textContent);
 	console.log('📊 Marcador actualizado:', newText);
 }
+
+// Función para actualizar traducciones cuando cambie el idioma
+function updateTranslationsOnLanguageChange() {
+	console.log('🌍 4P: Idioma cambiado, actualizando marcador');
+	
+	// Esperar un poco para que las traducciones se carguen
+	setTimeout(() => {
+		updateScoreDisplay();
+	}, 500);
+}
+
+// Escuchar cambios de idioma
+document.addEventListener('languageChanged', updateTranslationsOnLanguageChange);
+
+// También escuchar cambios en localStorage (por si el cambio viene del HTML)
+window.addEventListener('storage', function(e) {
+	if (e.key === 'transcendence_language') {
+		console.log('🌍 4P: Cambio de idioma detectado en localStorage:', e.newValue);
+		window.currentLanguage = e.newValue;
+		updateTranslationsOnLanguageChange();
+	}
+});
 
 // Exponer variables y funciones globalmente para i18n
 window.scoreP1 = scoreP1;
@@ -364,93 +463,107 @@ function setupEventListeners() {
 }
 
 window.addEventListener("DOMContentLoaded", async () => {
-	console.log('🚀 DOM Content Loaded - inicializando juego sin esperar traducciones externas');
+	console.log('🚀 DOM Content Loaded - inicializando sistema optimizado');
 	
-	// NUEVO ENFOQUE: No esperar traducciones del HTML, usar sistema interno
-	// Inicializar sistema de traducciones básico interno si no existe
-	if (!window.translations || !window.currentLanguage) {
-		console.log('🌍 4P Main: Inicializando sistema de traducciones interno');
+	// ENFOQUE OPTIMIZADO: Verificar rápidamente el estado actual y decidir estrategia
+	const quickCheck = () => {
+		const htmlI18nReady = window.i18n && window.i18n.translations && Object.keys(window.i18n.translations).length > 0;
+		const htmlTFunction = typeof window.t === 'function';
+		const hasBasicTranslations = window.translations && Object.keys(window.translations).length > 0;
 		
-		// Sistema básico interno
-		window.translations = window.translations || {};
-		window.currentLanguage = localStorage.getItem('transcendence_language') || 'es';
-		window.translationsReady = false;
+		return {
+			htmlSystemReady: htmlI18nReady && htmlTFunction,
+			hasBasicSystem: hasBasicTranslations,
+			shouldWait: !htmlI18nReady && !hasBasicTranslations && window.i18n // i18n existe pero aún no está cargado
+		};
+	};
+	
+	const status = quickCheck();
+	console.log('🔍 4P Main: Estado inicial del sistema:', status);
+	
+	if (status.htmlSystemReady) {
+		// Sistema HTML ya está listo
+		console.log('✅ 4P Main: Sistema HTML ya disponible, sincronizando...');
+		window.translations = window.i18n.translations;
+		window.currentLanguage = window.i18n.currentLanguage;
+		window.translationsReady = true;
+	} else if (status.hasBasicSystem) {
+		// Ya tenemos un sistema básico funcionando
+		console.log('✅ 4P Main: Sistema básico ya disponible');
+	} else if (status.shouldWait) {
+		// Solo esperar si hay evidencia de que el sistema HTML se está cargando
+		console.log('⏳ 4P Main: Esperando sistema HTML (máximo 3 segundos)...');
 		
-		// Cargar traducciones de forma simple
-		try {
-			console.log('🌍 4P Main: Cargando traducciones para:', window.currentLanguage);
+		let attempts = 0;
+		const maxAttempts = 30; // Reducido a 3 segundos máximo
+		
+		while (attempts < maxAttempts) {
+			const recheckStatus = quickCheck();
 			
-			// Cargar español como fallback
-			if (!window.translations['es']) {
-				const esResponse = await fetch('locales/es.json');
-				if (esResponse.ok) {
-					window.translations['es'] = await esResponse.json();
-					console.log('✅ 4P Main: Español cargado');
-				}
+			if (recheckStatus.htmlSystemReady) {
+				console.log('✅ 4P Main: Sistema HTML listo después de', attempts + 1, 'intentos');
+				window.translations = window.i18n.translations;
+				window.currentLanguage = window.i18n.currentLanguage;
+				window.translationsReady = true;
+				break;
 			}
 			
-			// Cargar idioma actual si es diferente
-			if (window.currentLanguage !== 'es' && !window.translations[window.currentLanguage]) {
-				const currentResponse = await fetch(`locales/${window.currentLanguage}.json`);
-				if (currentResponse.ok) {
-					window.translations[window.currentLanguage] = await currentResponse.json();
-					console.log('✅ 4P Main: Idioma actual cargado:', window.currentLanguage);
-				} else {
-					console.warn('⚠️ 4P Main: Fallback a español');
-					window.currentLanguage = 'es';
-				}
+			// Solo mostrar log cada 10 intentos para reducir spam
+			if (attempts % 10 === 0) {
+				console.log(`🔍 4P Main: Esperando HTML - Intento ${attempts + 1}/30`);
 			}
 			
-			// Función de traducción básica
-			if (!window.t) {
-				window.t = function(key, params = {}) {
-					const keys = key.split('.');
-					let translation = window.translations[window.currentLanguage];
-					
-					for (let i = 0; i < keys.length; i++) {
-						if (translation && translation[keys[i]] !== undefined) {
-							translation = translation[keys[i]];
-						} else {
-							// Fallback al español
-							translation = window.translations['es'];
-							if (translation) {
-								for (let j = 0; j < keys.length; j++) {
-									if (translation && translation[keys[j]] !== undefined) {
-										translation = translation[keys[j]];
-									} else {
-										return key;
-									}
-								}
-							} else {
-								return key;
-							}
-							break;
-						}
-					}
-					
-					if (typeof translation === 'string') {
-						return translation.replace(/\{\{(\w+)\}\}/g, (match, paramKey) => {
-							return params[paramKey] !== undefined ? params[paramKey] : match;
-						});
-					}
-					
-					return key;
-				};
-			}
-			
-			window.translationsReady = true;
-			console.log('✅ 4P Main: Sistema de traducciones interno listo');
-			
-		} catch (error) {
-			console.error('❌ 4P Main: Error con traducciones internas:', error);
-			window.currentLanguage = 'es';
-			window.translations = { 'es': {} };
-			window.translationsReady = false;
+			await new Promise(resolve => setTimeout(resolve, 100));
+			attempts++;
+		}
+		
+		if (attempts >= maxAttempts) {
+			console.log('⚠️ 4P Main: Timeout del sistema HTML (3s), usando fallback');
 		}
 	} else {
-		console.log('✅ 4P Main: Sistema de traducciones ya existe, continuando');
-		window.translationsReady = true;
+		console.log('🌍 4P Main: No hay sistema HTML detectado, usando sistema independiente');
 	}
+	
+	// Si no tenemos traducciones en este punto, cargar fallback básico
+	if (!window.translations || Object.keys(window.translations).length === 0) {
+		console.log('🛠️ 4P Main: Cargando sistema independiente como fallback');
+		
+		window.translations = {};
+		window.currentLanguage = localStorage.getItem('transcendence_language') || 'es';
+		
+		try {
+			const response = await fetch(`locales/${window.currentLanguage}.json`);
+			if (response.ok) {
+				window.translations[window.currentLanguage] = await response.json();
+				console.log('✅ 4P Main: Sistema independiente cargado para:', window.currentLanguage);
+			} else {
+				console.warn('⚠️ 4P Main: No se pudo cargar', window.currentLanguage, ', usando español por defecto');
+				// Fallback a español si el idioma actual falla
+				window.currentLanguage = 'es';
+				const esResponse = await fetch('locales/es.json');
+				if (esResponse.ok) {
+					window.translations.es = await esResponse.json();
+				}
+			}
+		} catch (error) {
+			console.error('❌ 4P Main: Error cargando sistema independiente:', error);
+			// Sistema mínimo de emergencia
+			window.translations[window.currentLanguage] = {
+				game: {
+					blue: 'Azul',
+					red: 'Rojo',
+					green: 'Verde',
+					purple: 'Púrpura'
+				}
+			};
+		}
+	}
+	
+	console.log('✅ 4P Main: Sistema de traducciones finalizado:', {
+		currentLang: window.currentLanguage,
+		hasTranslations: !!(window.translations && Object.keys(window.translations).length > 0),
+		hasGameSection: !!(window.translations?.[window.currentLanguage]?.game)
+	});
 	
 	// Asegurar que el marcador se muestre inmediatamente
 	setTimeout(updateScoreDisplay, 100);
