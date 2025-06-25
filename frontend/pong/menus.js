@@ -155,7 +155,7 @@ export function createUI(advancedTextureParam, scene, personajes, personajesCont
 	panelIzquierda.width = "120px";
 	panelIzquierda.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
 	panelIzquierda.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
-	panelIzquierda.top = "70px";
+	panelIzquierda.top = "120px";
 	panelIzquierda.left = "20px"; // Más separado del borde
 	panelIzquierda.isVisible = true;
 	panelIzquierda.cornerRadius = 10;
@@ -174,7 +174,7 @@ export function createUI(advancedTextureParam, scene, personajes, personajesCont
 	panelDerecha.width = "120px";
 	panelDerecha.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
 	panelDerecha.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
-	panelDerecha.top = "70px";
+	panelDerecha.top = "120px";
 	panelDerecha.left = "-20px";  // Más separado del borde derecho
 	panelDerecha.isVisible = true;
 	panelDerecha.cornerRadius = 10;

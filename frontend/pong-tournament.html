@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="es">
+
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="/textures/capybara.ico" />
+	<title data-i18n="tournament.title">MegaPong - Torneo</title>
+
+	<!-- Sistema de internacionalización -->
+	<script src="/i18n.js"></script>
+	<script src="/language-selector.js"></script>
+
+	<!-- CSS para pantalla completa y UI -->
+	<style>
+		html,
+		body {
+			width: 100%;
+			height: 100%;
+			margin: 0;
+			padding: 0;
+			overflow: hidden;
+			font-family: Arial, sans-serif;
+			background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+		}
+
+		/* Tournament Setup Screen */
+		#tournamentSetup {
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			z-index: 100;
+		}
+
+		.setup-container {
+			background: rgba(20, 20, 40, 0.95);
+			border-radius: 15px;
+			padding: 2rem;
+			border: 2px solid #00ff88;
+			box-shadow: 0 0 30px rgba(0, 255, 136, 0.3);
+			max-width: 500px;
+			width: 90%;
+		}
+
+		.setup-title {
+			color: #00ff88;
+			text-align: center;
+			font-size: 2rem;
+			font-weight: bold;
+			margin-bottom: 1.5rem;
+			text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+		}
+
+		.input-group {
+			margin-bottom: 1rem;
+		}
+
+		.input-group label {
+			color: #fff;
+			display: block;
+			margin-bottom: 0.5rem;
+			font-weight: bold;
+		}
+
+		.input-group input {
+			width: 100%;
+			padding: 0.75rem;
+			border: 2px solid #444;
+			border-radius: 8px;
+			background: rgba(0, 0, 0, 0.7);
+			color: #fff;
+			font-size: 1rem;
+			box-sizing: border-box;
+		}
+
+		.input-group input:focus {
+			outline: none;
+			border-color: #00ff88;
+			box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+		}
+
+		.player-list {
+			margin: 1rem 0;
+		}
+
+		.player-item {
+			background: rgba(0, 0, 0, 0.5);
+			padding: 0.5rem;
+			margin: 0.25rem 0;
+			border-radius: 5px;
+			border-left: 3px solid #00ff88;
+			color: #fff;
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+		}
+
+		.btn-primary {
+			background: linear-gradient(45deg, #00ff88, #00cc66);
+			color: #000;
+			border: none;
+			padding: 1rem 2rem;
+			border-radius: 8px;
+			font-size: 1.1rem;
+			font-weight: bold;
+			cursor: pointer;
+			width: 100%;
+			margin-top: 1rem;
+			transition: all 0.3s ease;
+		}
+
+		.btn-primary:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 5px 15px rgba(0, 255, 136, 0.4);
+		}
+
+		.btn-primary:disabled {
+			background: #666;
+			cursor: not-allowed;
+			transform: none;
+			box-shadow: none;
+		}
+
+		.btn-secondary {
+			background: #666;
+			color: #fff;
+			border: none;
+			padding: 0.75rem 1.5rem;
+			border-radius: 8px;
+			font-size: 1rem;
+			cursor: pointer;
+			margin: 0 0.5rem;
+			transition: all 0.3s ease;
+		}
+
+		.btn-secondary:hover {
+			background: #888;
+		}
+
+		.btn-small {
+			background: #ff4444;
+			color: white;
+			border: none;
+			padding: 0.25rem 0.5rem;
+			border-radius: 3px;
+			cursor: pointer;
+			font-size: 0.8rem;
+		}
+
+		.btn-small:hover {
+			background: #cc0000;
+		}
+
+		/* Tournament Bracket Screen */
+		#tournamentBracket {
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			background: rgba(0, 0, 0, 0.9);
+			display: none;
+			z-index: 100;
+			overflow-y: auto;
+		}
+
+		.bracket-container {
+			padding: 2rem;
+			max-width: 1200px;
+			margin: 0 auto;
+		}
+
+		.bracket-title {
+			color: #00ff88;
+			text-align: center;
+			font-size: 2.5rem;
+			font-weight: bold;
+			margin-bottom: 2rem;
+			text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+		}
+
+		.bracket-rounds {
+			display: flex;
+			justify-content: space-around;
+			align-items: flex-start;
+			gap: 2rem;
+			min-height: 400px;
+		}
+
+		.bracket-round {
+			flex: 1;
+			min-width: 200px;
+		}
+
+		.round-title {
+			color: #fff;
+			text-align: center;
+			font-size: 1.2rem;
+			font-weight: bold;
+			margin-bottom: 1rem;
+			padding: 0.5rem;
+			background: rgba(0, 255, 136, 0.2);
+			border-radius: 5px;
+		}
+
+		.match-item {
+			background: rgba(20, 20, 40, 0.9);
+			border: 2px solid #444;
+			border-radius: 10px;
+			margin: 1rem 0;
+			padding: 1rem;
+			transition: all 0.3s ease;
+		}
+
+		.match-item.current {
+			border-color: #ffaa00;
+			box-shadow: 0 0 20px rgba(255, 170, 0, 0.5);
+			animation: pulse 2s infinite;
+		}
+
+		.match-item.completed {
+			border-color: #00ff88;
+			background: rgba(0, 255, 136, 0.1);
+		}
+
+		@keyframes pulse {
+			0%, 100% { box-shadow: 0 0 20px rgba(255, 170, 0, 0.5); }
+			50% { box-shadow: 0 0 30px rgba(255, 170, 0, 0.8); }
+		}
+
+		.match-players {
+			margin-bottom: 1rem;
+		}
+
+		.player {
+			color: #fff;
+			padding: 0.5rem;
+			margin: 0.25rem 0;
+			background: rgba(0, 0, 0, 0.5);
+			border-radius: 5px;
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+		}
+
+		.player.winner {
+			background: rgba(0, 255, 136, 0.3);
+			font-weight: bold;
+		}
+
+		.player.user {
+			border-left: 3px solid #00ff88;
+		}
+
+		.vs-text {
+			text-align: center;
+			color: #888;
+			font-size: 0.9rem;
+			margin: 0.25rem 0;
+		}
+
+		.btn-play {
+			background: linear-gradient(45deg, #ff6b6b, #ff5252);
+			color: #fff;
+			border: none;
+			padding: 0.5rem 1rem;
+			border-radius: 5px;
+			font-size: 0.9rem;
+			font-weight: bold;
+			cursor: pointer;
+			transition: all 0.3s ease;
+			width: 100%;
+		}
+
+		.btn-play:hover {
+			transform: translateY(-1px);
+			box-shadow: 0 3px 10px rgba(255, 107, 107, 0.4);
+		}
+
+		/* Match Announcement Screen */
+		#matchAnnouncement {
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+			background: rgba(0, 0, 0, 0.95);
+			border: 3px solid #ffaa00;
+			border-radius: 15px;
+			padding: 2rem;
+			text-align: center;
+			display: none;
+			z-index: 200;
+			box-shadow: 0 0 40px rgba(255, 170, 0, 0.6);
+			min-width: 400px;
+		}
+
+		.announcement-title {
+			color: #ffaa00;
+			font-size: 2rem;
+			font-weight: bold;
+			margin-bottom: 1.5rem;
+			text-shadow: 0 0 10px rgba(255, 170, 0, 0.5);
+		}
+
+		.announcement-players {
+			display: flex;
+			justify-content: space-around;
+			align-items: center;
+			margin: 2rem 0;
+			gap: 2rem;
+		}
+
+		.announcement-player {
+			text-align: center;
+			flex: 1;
+		}
+
+		.announcement-player h3 {
+			color: #fff;
+			font-size: 1.5rem;
+			margin-bottom: 1rem;
+		}
+
+		.announcement-player.user h3 {
+			color: #00ff88;
+		}
+
+		.vs-large {
+			color: #fff;
+			font-size: 3rem;
+			font-weight: bold;
+			text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+		}
+
+		.btn-start-game {
+			background: linear-gradient(45deg, #ff6b6b, #ff5252);
+			color: #fff;
+			border: none;
+			padding: 1rem 2rem;
+			border-radius: 8px;
+			font-size: 1.2rem;
+			font-weight: bold;
+			cursor: pointer;
+			margin: 0 0.5rem;
+			transition: all 0.3s ease;
+		}
+
+		.btn-start-game:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
+		}
+
+		/* Winner Screen */
+		#winnerScreen {
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			background: rgba(0, 0, 0, 0.95);
+			display: none;
+			justify-content: center;
+			align-items: center;
+			z-index: 300;
+		}
+
+		.winner-container {
+			text-align: center;
+			animation: celebration 2s infinite alternate;
+		}
+
+		@keyframes celebration {
+			0% { transform: scale(1); }
+			100% { transform: scale(1.05); }
+		}
+
+		.winner-title {
+			color: #ffaa00;
+			font-size: 4rem;
+			font-weight: bold;
+			margin-bottom: 2rem;
+			text-shadow: 0 0 20px rgba(255, 170, 0, 0.8);
+		}
+
+		.winner-name {
+			color: #00ff88;
+			font-size: 3rem;
+			font-weight: bold;
+			margin-bottom: 2rem;
+			text-shadow: 0 0 15px rgba(0, 255, 136, 0.8);
+		}
+
+		/* Responsive */
+		@media (max-width: 768px) {
+			.bracket-rounds {
+				flex-direction: column;
+				align-items: center;
+			}
+			
+			.announcement-players {
+				flex-direction: column;
+				gap: 1rem;
+			}
+			
+			.vs-large {
+				font-size: 2rem;
+			}
+
+			.setup-container {
+				padding: 1rem;
+				margin: 1rem;
+			}
+
+			#matchAnnouncement {
+				min-width: 300px;
+				padding: 1rem;
+			}
+		}
+	</style>
+</head>
+
+<body>
+	<!-- Tournament Setup Screen -->
+	<div id="tournamentSetup">
+		<div class="setup-container">
+			<h1 class="setup-title">🏆 Configurar Torneo</h1>
+			
+			<div class="input-group">
+				<label>Tu Alias:</label>
+				<input type="text" id="userAlias" placeholder="Ingresa tu alias" maxlength="15" />
+			</div>
+
+			<div class="input-group">
+				<label>Alias del Oponente:</label>
+				<input type="text" id="playerAlias" placeholder="Alias del jugador" maxlength="15" />
+				<button type="button" id="addPlayer" class="btn-secondary" style="margin-top: 0.5rem; width: 100%;">
+					Agregar Jugador
+				</button>
+			</div>
+
+			<div class="player-list">
+				<h3 style="color: #fff; margin-bottom: 1rem;">Jugadores añadidos (<span id="playerCount">0</span>/7):</h3>
+				<div id="playersList"></div>
+			</div>
+
+			<button class="btn-primary" id="startTournament" disabled>
+				Iniciar Torneo
+			</button>
+
+			<button class="btn-secondary" id="backToMenu" style="width: 100%; margin-top: 1rem;" onclick="window.location.href='dashboard.html'">
+				Volver al Menú
+			</button>
+		</div>
+	</div>
+
+	<!-- Tournament Bracket Screen -->
+	<div id="tournamentBracket">
+		<div class="bracket-container">
+			<h1 class="bracket-title">🏆 Bracket del Torneo</h1>
+			<div class="bracket-rounds" id="bracketRounds"></div>
+			<div style="text-align: center; margin-top: 2rem;">
+				<button class="btn-secondary" id="newTournamentFromBracket">Nuevo Torneo</button>
+				<button class="btn-secondary" onclick="window.location.href='dashboard.html'">Menú Principal</button>
+			</div>
+		</div>
+	</div>
+
+	<!-- Match Announcement Screen -->
+	<div id="matchAnnouncement">
+		<h2 class="announcement-title" id="announcementTitle">¡Siguiente Match!</h2>
+		<div class="announcement-players" id="announcementPlayers"></div>
+		<div style="margin-top: 2rem;">
+			<button class="btn-start-game" id="startGameBtn">🏓 ¡Jugar Pong!</button>
+			<button class="btn-secondary" id="backToBracketFromAnnouncement">Volver al Bracket</button>
+		</div>
+	</div>
+
+	<!-- Winner Screen -->
+	<div id="winnerScreen">
+		<div class="winner-container">
+			<h1 class="winner-title">🎉 ¡CAMPEÓN DEL TORNEO! 🎉</h1>
+			<div class="winner-name" id="winnerName"></div>
+			<button class="btn-primary" id="newTournament">Nuevo Torneo</button>
+			<button class="btn-secondary" id="backToMenuFromWinner" style="margin-left: 1rem;">Menú Principal</button>
+		</div>
+	</div>
+
+	<!-- Solo el JavaScript del torneo -->
+	<script src="pong/tournament.js"></script>
+</body>
+
+</html>
