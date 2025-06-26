@@ -1,4 +1,4 @@
-const fastify = require('fastify')({ logger: true });
+const fs = require('fs');
 const fetch = require('node-fetch');
 const db = require('./db');
 const { OAuth2Client } = require('google-auth-library');
@@ -6,8 +6,28 @@ const path = require('path');
 const { authenticator } = require('otplib');
 const QRCode = require('qrcode');
 
+// Verificar certificados SSL
+const certsPath = path.join(__dirname, 'certs');
+const keyPath = path.join(certsPath, 'localhost.key');
+const certPath = path.join(certsPath, 'localhost.crt');
+const isHTTPS = fs.existsSync(keyPath) && fs.existsSync(certPath);
+
+// Configuración de Fastify con HTTPS automático
+let fastifyOptions = { logger: true };
+if (isHTTPS) {
+    console.log('🔒 Certificados SSL encontrados - Iniciando con HTTPS');
+    fastifyOptions.https = {
+        key: fs.readFileSync(keyPath),
+        cert: fs.readFileSync(certPath)
+    };
+} else {
+    console.log('📡 Certificados SSL no encontrados - Iniciando con HTTP');
+}
+
+const fastify = require('fastify')(fastifyOptions);
+
 // Cargar variables de entorno
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || (isHTTPS ? 3001 : 3000);
 const HOST = process.env.HOST || '0.0.0.0';
 const SESSION_SECRET = process.env.SESSION_SECRET;
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
@@ -15,19 +35,37 @@ const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-jwt-key-change-in-production';
 const APP_NAME = process.env.APP_NAME || 'Transcendence';
 
-// URLs fijas - mucho más simple
-const BACKEND_URL = 'http://localhost:3000';
-const FRONTEND_URL = 'http://localhost:8080';
-const CALLBACK_URL = 'http://localhost:3000/auth/callback';
+// URLs que se adaptan automáticamente a HTTP/HTTPS
+const BACKEND_URL = isHTTPS ? 'https://localhost:3001' : 'http://localhost:3000';
+const FRONTEND_URL = isHTTPS ? 'https://localhost:8443' : 'http://localhost:8080';
+const CALLBACK_URL = isHTTPS ? 'https://localhost:3001/auth/callback' : 'http://localhost:3000/auth/callback';
 
 console.log('======================================');
 console.log('INICIANDO SERVIDOR TRANSCENDER');
 console.log('Fecha y hora:', new Date().toISOString());
+console.log('Protocolo:', isHTTPS ? 'HTTPS 🔒' : 'HTTP 📡');
 console.log('URLs configuradas:');
 console.log('- Backend:', BACKEND_URL);
 console.log('- Frontend:', FRONTEND_URL);
 console.log('- Callback:', CALLBACK_URL);
 console.log('======================================');
+
+console.log('🔧 Debug configuración:');
+console.log('- Puerto configurado:', PORT);
+console.log('- Host configurado:', HOST);
+console.log('- Certificados detectados:', isHTTPS);
+console.log('- Ruta certificados:', certsPath);
+
+if (isHTTPS) {
+    try {
+        const keyContent = fs.readFileSync(keyPath);
+        const certContent = fs.readFileSync(certPath);
+        console.log('- Key size:', keyContent.length, 'bytes');
+        console.log('- Cert size:', certContent.length, 'bytes');
+    } catch (error) {
+        console.error('❌ Error leyendo certificados:', error.message);
+    }
+}
 
 // Plugins de sesión
 fastify.register(require('@fastify/cookie'));
@@ -93,11 +131,13 @@ fastify.decorate('optionalAuthenticate', async function (request, reply) {
 	}
 });
 
-// CORS simplificado
+// CORS dinámico (adapta automáticamente HTTP/HTTPS)
 fastify.register(require('@fastify/cors'), {
 	origin: (origin, cb) => {
 		const allowedOrigins = [
-			'http://localhost:8080',
+			FRONTEND_URL,                    // Se adapta automáticamente
+			FRONTEND_URL.replace('https://', 'http://'),  // Fallback HTTP
+			'http://localhost:8080',         // Desarrollo HTTP
 			'http://127.0.0.1:8080',
 			undefined // Para requests del mismo servidor
 		];

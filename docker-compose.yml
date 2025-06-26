@@ -2,10 +2,12 @@ services:
   backend:
     build: ./backend
     ports:
-      - "0.0.0.0:3000:3000"
+      - "0.0.0.0:3000:3000"   # HTTP
+      - "0.0.0.0:3001:3001"   # HTTPS
     volumes:
       - ./data:/usr/src/app/data
       - ./backend/app:/usr/src/app/app
+      - ./backend/certs:/usr/src/app/app/certs
       # Sincronización de tiempo con el host
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
@@ -24,7 +26,8 @@ services:
   frontend:
     build: ./frontend
     ports:
-      - "0.0.0.0:8080:8080"
+      - "0.0.0.0:8080:8080"   # HTTP
+      - "0.0.0.0:8443:8443"   # HTTPS
     volumes:
       # Montar archivos específicos
       - ./frontend/index.html:/app/index.html
@@ -48,6 +51,10 @@ services:
       - ./frontend/language-selector.js:/app/language-selector.js
       - ./frontend/language-config.js:/app/language-config.js
       - ./frontend/locales:/app/locales
+      # Certificados SSL
+      - ./backend/certs:/app/certs
+      # Servidor HTTPS custom
+      - ./frontend/server.js:/app/server.js
       # Sincronización de tiempo con el host
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
@@ -59,7 +66,8 @@ services:
       - TZ=${TZ:-Europe/Madrid}
       - CHOKIDAR_USEPOLLING=true
     command: >
-      sh -c "npm install -g http-server nodemon &&
-             nodemon --watch /app/dashboard --watch /app/pong --watch /app/pong.html --ext js,ts,html,css,json,png,jpg,hdr,gltf --exec 'http-server . -p 8080 --cors -c-1'"
+      sh -c "/app/build.sh && 
+             echo '🚀 Iniciando servidor HTTPS/HTTP automático' &&
+             node /app/server.js"
     depends_on:
       - backend
