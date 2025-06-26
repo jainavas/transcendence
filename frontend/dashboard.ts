@@ -344,23 +344,20 @@ class ImageCache {
 		}
 	}
 
-	private testImageLoad(url: string): Promise<boolean> {
+	private async testImageLoad(url: string): Promise<boolean> {
+		// Skip validation for Google profile pictures - trust them
+		if (url.includes('googleusercontent.com') || url.includes('lh3.googleusercontent.com')) {
+			return true;
+		}
+		
+		// For other images, test with crossOrigin attribute
 		return new Promise((resolve) => {
 			const img = new Image();
-			const timeout = setTimeout(() => {
-				resolve(false);
-			}, 3000); // 3 segundos timeout
-
-			img.onload = () => {
-				clearTimeout(timeout);
-				resolve(true);
-			};
-
-			img.onerror = () => {
-				clearTimeout(timeout);
-				resolve(false);
-			};
-
+			img.onload = () => resolve(true);
+			img.onerror = () => resolve(false);
+			
+			// Set crossOrigin for better compatibility
+			img.crossOrigin = 'anonymous';
 			img.src = url;
 		});
 	}
@@ -509,7 +506,11 @@ export class ProfileManager {
 		}
 	}
 
-	private testImageLoad(url: string): Promise<boolean> {
+	private async testImageLoad(url: string): Promise<boolean> {
+		// Skip validation for Google profile pictures
+		if (url.includes('googleusercontent.com') || url.includes('lh3.googleusercontent.com')) {
+			return true;
+		}
 		return new Promise((resolve) => {
 			const img = new Image();
 			img.onload = () => resolve(true);
@@ -572,7 +573,9 @@ export class ProfileManager {
 			if (profileContainer) {
 				profileContainer.innerHTML = `
 					<img src="${cachedUrl}" alt="${t('common.user')}"
-						 class="h-32 w-32 object-cover rounded-full border-4 border-white">
+						 class="h-32 w-32 object-cover rounded-full border-4 border-white"
+						 crossorigin="anonymous"
+						 referrerpolicy="no-referrer">
 				`;
 			}
 
@@ -594,7 +597,9 @@ export class ProfileManager {
 			if (profileContainer) {
 				profileContainer.innerHTML = `
 					<img src="${fallbackUrl}" alt="${t('common.user')}"
-						 class="h-32 w-32 object-cover rounded-full border-4 border-white">
+						 class="h-32 w-32 object-cover rounded-full border-4 border-white"
+						 crossorigin="anonymous"
+						 referrerpolicy="no-referrer">
 				`;
 			}
 		}
@@ -817,7 +822,9 @@ async function updateUserProfile(user: User): Promise<void> {
 
 			profileImage.innerHTML = `
 				<img src="${imageUrl}" alt="${user.name}"
-					 class="h-32 w-32 object-cover rounded-full border-4 border-white">
+					 class="h-32 w-32 object-cover rounded-full border-4 border-white"
+					 crossorigin="anonymous"
+					 referrerpolicy="no-referrer">
 			`;
 		} catch (error) {
 			console.error('Error al cargar imagen de perfil:', error);
@@ -825,7 +832,9 @@ async function updateUserProfile(user: User): Promise<void> {
 			const fallbackUrl = imageCache.generateFallbackImage(user.name, 128);
 			profileImage.innerHTML = `
 				<img src="${fallbackUrl}" alt="${user.name}"
-					 class="h-32 w-32 object-cover rounded-full border-4 border-white">
+					 class="h-32 w-32 object-cover rounded-full border-4 border-white"
+					 crossorigin="anonymous"
+					 referrerpolicy="no-referrer">
 			`;
 		}
 	}
@@ -865,7 +874,9 @@ async function updateNavProfile(user: User): Promise<void> {
 			if (imgContainer) {
 				imgContainer.outerHTML = `
 					<img src="${imageUrl}" alt="${t('common.avatar')}" 
-						 class="w-8 h-8 rounded-full border-2 border-white">
+						 class="w-8 h-8 rounded-full border-2 border-white"
+						 crossorigin="anonymous"
+						 referrerpolicy="no-referrer">
 				`;
 			}
 		} catch (error) {
@@ -875,7 +886,9 @@ async function updateNavProfile(user: User): Promise<void> {
 			if (imgContainer) {
 				imgContainer.outerHTML = `
 					<img src="${fallbackUrl}" alt="${t('common.avatar')}" 
-						 class="w-8 h-8 rounded-full border-2 border-white">
+						 class="w-8 h-8 rounded-full border-2 border-white"
+						 crossorigin="anonymous"
+						 referrerpolicy="no-referrer">
 				`;
 			}
 		}
@@ -1229,7 +1242,9 @@ async function loadGlobalHighScores(user: User): Promise<void> {
 						<div class="flex items-center">
 							<img src="${finalUserPicture}" 
 								 class="h-8 w-8 rounded-full mr-2" 
-								 alt="${user_name}">
+								 alt="${user_name}"
+								 crossorigin="anonymous"
+								 referrerpolicy="no-referrer">
 							<span>${user_name}</span>
 						</div>
 					</td>
@@ -1237,7 +1252,9 @@ async function loadGlobalHighScores(user: User): Promise<void> {
 						<div class="flex items-center">
 							<img src="${finalOpponentPicture}" 
 								 class="h-8 w-8 rounded-full mr-2" 
-								 alt="${score.opponent_name || t('leaderboard.opponent')}">
+								 alt="${score.opponent_name || t('leaderboard.opponent')}"
+								 crossorigin="anonymous"
+								 referrerpolicy="no-referrer">
 							<span>${score.opponent_name || t('leaderboard.unknown_opponent')}</span>
 						</div>
 					</td>
