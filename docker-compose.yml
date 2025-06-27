@@ -2,10 +2,12 @@ services:
   backend:
     build: ./backend
     ports:
-      - "0.0.0.0:3000:3000"
+      - "0.0.0.0:3000:3000"   # HTTP
+      - "0.0.0.0:3001:3001"   # HTTPS
     volumes:
       - ./data:/usr/src/app/data
       - ./backend/app:/usr/src/app/app
+      - ./backend/certs:/usr/src/app/app/certs
       # Sincronización de tiempo con el host
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
@@ -24,7 +26,8 @@ services:
   frontend:
     build: ./frontend
     ports:
-      - "0.0.0.0:8080:8080"
+      - "0.0.0.0:8080:8080"   # HTTP
+      - "0.0.0.0:8443:8443"   # HTTPS
     volumes:
       # Montar archivos específicos
       - ./frontend/index.html:/app/index.html
@@ -48,6 +51,10 @@ services:
       - ./frontend/language-selector.js:/app/language-selector.js
       - ./frontend/language-config.js:/app/language-config.js
       - ./frontend/locales:/app/locales
+      # Certificados SSL
+      - ./backend/certs:/app/certs
+      # Servidor HTTPS custom
+      - ./frontend/server.js:/app/server.js
       # Sincronización de tiempo con el host
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
@@ -59,7 +66,235 @@ services:
       - TZ=${TZ:-Europe/Madrid}
       - CHOKIDAR_USEPOLLING=true
     command: >
-      sh -c "npm install -g http-server nodemon &&
-             nodemon --watch /app/dashboard --watch /app/pong --watch /app/pong.html --ext js,ts,html,css,json,png,jpg,hdr,gltf --exec 'http-server . -p 8080 --cors -c-1'"
+      sh -c "/app/build.sh && 
+             echo '🚀 Iniciando servidor HTTPS/HTTP automático' &&
+             node /app/server.js"
     depends_on:
       - backend
+
+       # Monitoring Services
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        cat > /etc/prometheus/prometheus.yml <<'EOF'
+        global:
+          scrape_interval: 15s
+        scrape_configs:
+          - job_name: 'prometheus'
+            static_configs:
+              - targets: ['localhost:9090']
+          - job_name: 'node-exporter'
+            static_configs:
+              - targets: ['node-exporter:9010']
+          - job_name: 'backend'
+            static_configs:
+              - targets: ['backend:3001']
+            metrics_path: '/metrics'
+            scrape_interval: 10s
+            scheme: https
+            tls_config:
+              insecure_skip_verify: true
+        rule_files:
+          - "alerts.yml"
+        EOF
+        cat > /etc/prometheus/alerts.yml <<'EOF'
+        groups:
+          - name: system
+            rules:
+              - alert: HighCPUUsage
+                expr: 100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[2m])) * 100) > 80
+                for: 2m
+                labels:
+                  severity: warning
+                annotations:
+                  summary: "High CPU usage detected"
+                  description: "CPU usage is above 80% for more than 2 minutes"
+              - alert: HighMemoryUsage
+                expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 85
+                for: 2m
+                labels:
+                  severity: warning
+                annotations:
+                  summary: "High memory usage detected"
+                  description: "Memory usage is above 85% for more than 2 minutes"
+              - alert: ServiceDown
+                expr: up == 0
+                for: 1m
+                labels:
+                  severity: critical
+                annotations:
+                  summary: "Service is down"
+                  description: "Service has been down for more than 1 minute"
+        EOF
+        exec /bin/prometheus --config.file=/etc/prometheus/prometheus.yml --storage.tsdb.path=/prometheus --web.console.libraries=/etc/prometheus/console_libraries --web.console.templates=/etc/prometheus/consoles --storage.tsdb.retention.time=15d --web.enable-lifecycle
+    restart: always
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3002:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        mkdir -p /etc/grafana/provisioning/datasources
+        mkdir -p /etc/grafana/provisioning/dashboards
+        mkdir -p /var/lib/grafana/dashboards
+        cat > /etc/grafana/provisioning/datasources/datasources.yml <<EOF
+        apiVersion: 1
+        datasources:
+          - name: Prometheus
+            type: prometheus
+            access: proxy
+            url: http://prometheus:9090
+            isDefault: true
+        EOF
+        cat > /etc/grafana/provisioning/dashboards/dashboards.yml <<EOF
+        apiVersion: 1
+        providers:
+          - name: 'default'
+            orgId: 1
+            folder: ''
+            type: file
+            disableDeletion: false
+            updateIntervalSeconds: 10
+            allowUiUpdates: true
+            options:
+              path: /var/lib/grafana/dashboards
+        EOF
+        cat > /var/lib/grafana/dashboards/dashboard.json <<EOF
+        {
+          "id": null,
+          "title": "Transcendence Monitoring",
+          "tags": ["transcendence"],
+          "style": "dark",
+          "timezone": "browser",
+          "panels": [
+            {
+              "id": 1,
+              "title": "Services Status",
+              "type": "stat",
+              "targets": [
+                {
+                  "expr": "up",
+                  "legendFormat": "{{instance}} ({{job}})"
+                }
+              ],
+              "gridPos": {"h": 6, "w": 6, "x": 0, "y": 0}
+            },
+            {
+              "id": 2,
+              "title": "HTTP Requests",
+              "type": "stat",
+              "targets": [
+                {
+                  "expr": "http_requests_total",
+                  "legendFormat": "HTTP Requests"
+                }
+              ],
+              "gridPos": {"h": 6, "w": 6, "x": 6, "y": 0}
+            },
+            {
+              "id": 3,
+              "title": "HTTPS Requests",
+              "type": "stat",
+              "targets": [
+                {
+                  "expr": "https_requests_total",
+                  "legendFormat": "HTTPS Requests"
+                }
+              ],
+              "gridPos": {"h": 6, "w": 6, "x": 12, "y": 0}
+            },
+            {
+              "id": 4,
+              "title": "Games Played",
+              "type": "stat",
+              "targets": [
+                {
+                  "expr": "games_played_total",
+                  "legendFormat": "Games"
+                }
+              ],
+              "gridPos": {"h": 6, "w": 6, "x": 18, "y": 0}
+            },
+            {
+              "id": 5,
+              "title": "Total Requests Over Time",
+              "type": "graph",
+              "targets": [
+                {
+                  "expr": "rate(http_requests_total[1m])",
+                  "legendFormat": "HTTP/min"
+                },
+                {
+                  "expr": "rate(https_requests_total[1m])",
+                  "legendFormat": "HTTPS/min"
+                },
+                {
+                  "expr": "rate(total_requests_total[1m])",
+                  "legendFormat": "Total/min"
+                }
+              ],
+              "gridPos": {"h": 8, "w": 12, "x": 0, "y": 6}
+            },
+            {
+              "id": 6,
+              "title": "Active Users",
+              "type": "stat",
+              "targets": [
+                {
+                  "expr": "active_users_total",
+                  "legendFormat": "Active Users"
+                }
+              ],
+              "gridPos": {"h": 8, "w": 6, "x": 12, "y": 6}
+            },
+            {
+              "id": 7,
+              "title": "System Uptime",
+              "type": "stat",
+              "targets": [
+                {
+                  "expr": "process_uptime_seconds",
+                  "legendFormat": "Uptime (seconds)"
+                }
+              ],
+              "gridPos": {"h": 8, "w": 6, "x": 18, "y": 6}
+            }
+          ],
+          "time": {
+            "from": "now-5m",
+            "to": "now"
+          },
+          "refresh": "5s"
+        }
+        EOF
+        exec /run.sh
+    depends_on:
+      - prometheus
+    restart: always
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    ports:
+      - "9010:9010"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--web.listen-address=:9010'
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    restart: always

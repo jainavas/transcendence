@@ -459,7 +459,7 @@ function startRenderLoop(sceneToRender) {
 // Función para manejar errores de fetch con mejor información
 function handleFetchError(response) {
 	if (!response.ok) {
-		throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
+		throw new Error(`HTTPS error! status: ${response.status} - ${response.statusText}`);
 	}
 	return response;
 }
@@ -487,7 +487,7 @@ async function saveScore(player1Score, player2Score, player3Score = null, player
 			}
 
 			// CORREGIDO: Usar la URL correcta del backend
-			const response = await fetch('http://localhost:3000/pong/scores', {
+			const response = await fetch('https://localhost:3001/pong/scores', {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',

@@ -1,0 +1,173 @@
+{
+  "id": null,
+  "title": "Transcendence Monitoring",
+  "tags": ["transcendence"],
+  "style": "dark",
+  "timezone": "browser",
+  "panels": [
+    {
+      "id": 1,
+      "title": "Services Status",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "up",
+          "legendFormat": "{{instance}} ({{job}})"
+        }
+      ],
+      "gridPos": {"h": 6, "w": 8, "x": 0, "y": 0},
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"],
+          "fields": ""
+        },
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "color": "red",
+                  "index": 0,
+                  "text": "DOWN"
+                },
+                "1": {
+                  "color": "green",
+                  "index": 1,
+                  "text": "UP"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "HTTP Requests",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "http_requests_total",
+          "legendFormat": "Total Requests"
+        }
+      ],
+      "gridPos": {"h": 6, "w": 8, "x": 8, "y": 0},
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"],
+          "fields": ""
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "Games Played",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "games_played_total",
+          "legendFormat": "Games"
+        }
+      ],
+      "gridPos": {"h": 6, "w": 8, "x": 16, "y": 0},
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"],
+          "fields": ""
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "CPU Usage",
+      "type": "graph",
+      "targets": [
+        {
+          "expr": "100 - (avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[2m])) * 100)",
+          "legendFormat": "CPU Usage %"
+        }
+      ],
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 6},
+      "yAxes": [
+        {
+          "min": 0,
+          "max": 100,
+          "unit": "percent"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Memory Usage",
+      "type": "graph",
+      "targets": [
+        {
+          "expr": "(node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100",
+          "legendFormat": "Memory Usage %"
+        }
+      ],
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 6},
+      "yAxes": [
+        {
+          "min": 0,
+          "max": 100,
+          "unit": "percent"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Request Rate",
+      "type": "graph",
+      "targets": [
+        {
+          "expr": "rate(http_requests_total[1m])",
+          "legendFormat": "Requests/sec"
+        }
+      ],
+      "gridPos": {"h": 6, "w": 24, "x": 0, "y": 14},
+      "yAxes": [
+        {
+          "min": 0,
+          "unit": "reqps"
+        }
+      ]
+    }
+  ],
+  "time": {
+    "from": "now-5m",
+    "to": "now"
+  },
+  "refresh": "5s"
+}

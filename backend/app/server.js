@@ -1,4 +1,4 @@
-const fastify = require('fastify')({ logger: true });
+const fs = require('fs');
 const fetch = require('node-fetch');
 const db = require('./db');
 const { OAuth2Client } = require('google-auth-library');
@@ -6,8 +6,43 @@ const path = require('path');
 const { authenticator } = require('otplib');
 const QRCode = require('qrcode');
 
+// Métricas básicas para Prometheus
+// Sistema de monitoreo que rastrea:
+// - http_requests_total: número total de peticiones HTTP
+// - https_requests_total: número total de peticiones HTTPS
+// - active_users: usuarios activos (actualizado en sesiones)
+// - games_played: partidas jugadas (actualizado al enviar scores)
+// - uptime_start: timestamp de inicio para calcular uptime
+let metrics = {
+  http_requests_total: 0,
+  https_requests_total: 0,
+  active_users: new Set(),
+  games_played: 0,
+  uptime_start: Date.now()
+};
+
+// Verificar certificados SSL
+const certsPath = path.join(__dirname, 'certs');
+const keyPath = path.join(certsPath, 'localhost.key');
+const certPath = path.join(certsPath, 'localhost.crt');
+const isHTTPS = fs.existsSync(keyPath) && fs.existsSync(certPath);
+
+// Configuración de Fastify con HTTPS automático
+let fastifyOptions = { logger: true };
+if (isHTTPS) {
+    console.log('🔒 Certificados SSL encontrados - Iniciando con HTTPS');
+    fastifyOptions.https = {
+        key: fs.readFileSync(keyPath),
+        cert: fs.readFileSync(certPath)
+    };
+} else {
+    console.log('📡 Certificados SSL no encontrados - Iniciando con HTTP');
+}
+
+const fastify = require('fastify')(fastifyOptions);
+
 // Cargar variables de entorno
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || (isHTTPS ? 3001 : 3000);
 const HOST = process.env.HOST || '0.0.0.0';
 const SESSION_SECRET = process.env.SESSION_SECRET;
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
@@ -15,19 +50,37 @@ const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-jwt-key-change-in-production';
 const APP_NAME = process.env.APP_NAME || 'Transcendence';
 
-// URLs fijas - mucho más simple
-const BACKEND_URL = 'http://localhost:3000';
-const FRONTEND_URL = 'http://localhost:8080';
-const CALLBACK_URL = 'http://localhost:3000/auth/callback';
+// URLs que se adaptan automáticamente a HTTP/HTTPS
+const BACKEND_URL = isHTTPS ? 'https://localhost:3001' : 'http://localhost:3000';
+const FRONTEND_URL = isHTTPS ? 'https://localhost:8443' : 'http://localhost:8080';
+const CALLBACK_URL = isHTTPS ? 'https://localhost:3001/auth/callback' : 'http://localhost:3000/auth/callback';
 
 console.log('======================================');
 console.log('INICIANDO SERVIDOR TRANSCENDER');
 console.log('Fecha y hora:', new Date().toISOString());
+console.log('Protocolo:', isHTTPS ? 'HTTPS 🔒' : 'HTTP 📡');
 console.log('URLs configuradas:');
 console.log('- Backend:', BACKEND_URL);
 console.log('- Frontend:', FRONTEND_URL);
 console.log('- Callback:', CALLBACK_URL);
 console.log('======================================');
+
+console.log('🔧 Debug configuración:');
+console.log('- Puerto configurado:', PORT);
+console.log('- Host configurado:', HOST);
+console.log('- Certificados detectados:', isHTTPS);
+console.log('- Ruta certificados:', certsPath);
+
+if (isHTTPS) {
+    try {
+        const keyContent = fs.readFileSync(keyPath);
+        const certContent = fs.readFileSync(certPath);
+        console.log('- Key size:', keyContent.length, 'bytes');
+        console.log('- Cert size:', certContent.length, 'bytes');
+    } catch (error) {
+        console.error('❌ Error leyendo certificados:', error.message);
+    }
+}
 
 // Plugins de sesión
 fastify.register(require('@fastify/cookie'));
@@ -93,11 +146,13 @@ fastify.decorate('optionalAuthenticate', async function (request, reply) {
 	}
 });
 
-// CORS simplificado
+// CORS dinámico (adapta automáticamente HTTP/HTTPS)
 fastify.register(require('@fastify/cors'), {
 	origin: (origin, cb) => {
 		const allowedOrigins = [
-			'http://localhost:8080',
+			FRONTEND_URL,                    // Se adapta automáticamente
+			FRONTEND_URL.replace('https://', 'http://'),  // Fallback HTTP
+			'http://localhost:8080',         // Desarrollo HTTP
 			'http://127.0.0.1:8080',
 			undefined // Para requests del mismo servidor
 		];
@@ -137,10 +192,58 @@ fastify.get('/dashboard', (request, reply) => {
 	return reply.sendFile('dashboard.html');
 });
 
-// Middleware de logs simplificado
+// Endpoint de métricas para Prometheus
+fastify.get('/metrics', async (request, reply) => {
+	const uptime = Math.floor((Date.now() - metrics.uptime_start) / 1000);
+	const total_requests = metrics.http_requests_total + metrics.https_requests_total;
+	const metricsText = `
+# HELP http_requests_total Total number of HTTP requests
+# TYPE http_requests_total counter
+http_requests_total ${metrics.http_requests_total}
+
+# HELP https_requests_total Total number of HTTPS requests
+# TYPE https_requests_total counter
+https_requests_total ${metrics.https_requests_total}
+
+# HELP total_requests_total Total number of requests (HTTP + HTTPS)
+# TYPE total_requests_total counter
+total_requests_total ${total_requests}
+
+# HELP active_users_total Total number of active users
+# TYPE active_users_total gauge
+active_users_total ${metrics.active_users.size}
+
+# HELP games_played_total Total number of games played
+# TYPE games_played_total counter
+games_played_total ${metrics.games_played}
+
+# HELP process_uptime_seconds Process uptime in seconds
+# TYPE process_uptime_seconds gauge
+process_uptime_seconds ${uptime}
+`.trim();
+	
+	reply.type('text/plain');
+	return metricsText;
+});
+
+// Middleware de logs y métricas unificado
 fastify.addHook('preHandler', (req, reply, done) => {
-	if (req.url !== '/user/me') {
-		console.log(`📩 ${req.method} ${req.url} - Usuario: ${req.session?.user?.email || 'no auth'}`);
+	// Contar requests para métricas según protocolo
+	if (req.protocol === 'https') {
+		metrics.https_requests_total++;
+	} else {
+		metrics.http_requests_total++;
+	}
+
+	// Agregar usuarios activos
+	if (req.session?.user?.email) {
+		metrics.active_users.add(req.session.user.email);
+	}
+
+	// Log simplificado (excluir endpoints frecuentes)
+	if (req.url !== '/user/me' && req.url !== '/metrics') {
+		const protocol = req.protocol.toUpperCase();
+		console.log(`📩 ${protocol} ${req.method} ${req.url} - Usuario: ${req.session?.user?.email || 'no auth'}`);
 	}
 	done();
 });
@@ -656,6 +759,42 @@ fastify.get('/debug/session', async (request, reply) => {
 	};
 });
 
+// Función para limpiar usuarios inactivos (opcional)
+function cleanupInactiveUsers() {
+	if (metrics.active_users.size > 1000) {
+		metrics.active_users.clear();
+	}
+}
+
+// El contador de juegos jugados se actualiza cuando se guarda una puntuación exitosamente
+// (se maneja directamente en el endpoint /pong/scores)
+
+// Endpoint para incrementar contador de juegos iniciados
+fastify.post('/pong/game-started', async (req, reply) => {
+	try {
+		// Verificar si hay usuario autenticado
+		if (!req.session || !req.session.user) {
+			console.log("❌ Acceso denegado a /pong/game-started - No hay sesión de usuario");
+			return reply.code(401).send({ error: 'No autenticado' });
+		}
+
+		// Incrementar contador de juegos iniciados
+		metrics.games_played++;
+		
+		console.log(`🎮 Juego iniciado - Total de juegos: ${metrics.games_played}`);
+		
+		return { 
+			success: true, 
+			message: 'Juego iniciado registrado',
+			total_games: metrics.games_played
+		};
+
+	} catch (error) {
+		console.error("❌ Error al registrar inicio de juego:", error);
+		return reply.code(500).send({ error: 'Error al registrar inicio de juego', details: error.message });
+	}
+});
+
 // User check (compatibilidad)
 fastify.post('/users/check', async (request, reply) => {
 	if (!request.session || !request.session.user) {
@@ -828,6 +967,11 @@ fastify.post('/pong/scores', async (req, reply) => {
 							fecha: new Date().toISOString()
 						};
 						console.log("✅ Puntuación guardada:", result);
+						
+						// Incrementar contador de juegos completados para métricas
+						metrics.games_played++;
+						console.log(`🎮 Juego completado - Total de juegos: ${metrics.games_played}`);
+						
 						resolve(result);
 					}
 				}

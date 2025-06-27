@@ -22,237 +22,253 @@
 	<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 
 	<!-- Cargar el jwt -->
-<!-- Estilos para el modal visual de error -->
-<style>
-    #errorModal {
-        position: fixed;
-        top: 0; left: 0;
-        width: 100%; height: 100%;
-        background: rgba(0, 0, 0, 0.6);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 9999;
-    }
+	<!-- Estilos para el modal visual de error -->
+	<style>
+		#errorModal {
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			background: rgba(0, 0, 0, 0.6);
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			z-index: 9999;
+		}
 
-    #errorBox {
-        background: white;
-        padding: 2rem;
-        border-radius: 12px;
-        text-align: center;
-        max-width: 200px;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-        animation: fadeIn 0.3s ease-in-out;
-    }
+		#errorBox {
+			background: white;
+			padding: 2rem;
+			border-radius: 12px;
+			text-align: center;
+			max-width: 200px;
+			box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+			animation: fadeIn 0.3s ease-in-out;
+		}
 
-    #errorIcon {
-        font-size: 60px;
-        color: red;
-    }
+		#errorIcon {
+			font-size: 60px;
+			color: red;
+		}
 
-    @keyframes fadeIn {
-        from { opacity: 0; transform: scale(0.9); }
-        to { opacity: 1; transform: scale(1); }
-    }
-</style>
+		@keyframes fadeIn {
+			from {
+				opacity: 0;
+				transform: scale(0.9);
+			}
 
-<script>
-(function() {
-    'use strict';
+			to {
+				opacity: 1;
+				transform: scale(1);
+			}
+		}
+	</style>
 
-    // Backend URL automático
-    const BACKEND_URL = window.location.protocol + '//' + window.location.hostname + ':3000';
+	<script>
+		(function () {
+			'use strict';
 
-    // Mostrar ventana de error visual y redirigir
-    function showVisualRedirect(delay = 3000, redirectUrl = '/') {
-        const modal = document.createElement('div');
-        modal.id = 'errorModal';
-        modal.innerHTML = `
+			// Backend URL automático
+			const BACKEND_URL = window.location.protocol + '//' + window.location.hostname + ':3001';
+
+			// Mostrar ventana de error visual y redirigir
+			function showVisualRedirect(delay = 3000, redirectUrl = '/') {
+				const modal = document.createElement('div');
+				modal.id = 'errorModal';
+				modal.innerHTML = `
             <div id="errorBox">
                 <div id="errorIcon">✖</div>
             </div>
         `;
-        document.body.appendChild(modal);
+				document.body.appendChild(modal);
 
-        setTimeout(() => {
-            window.location.href = redirectUrl;
-        }, delay);
-    }
+				setTimeout(() => {
+					window.location.href = redirectUrl;
+				}, delay);
+			}
 
-    // Verificar si el token es válido
-    function isTokenValid() {
-        const token = localStorage.getItem('authToken');
-        if (!token) {
-            console.log('🔒 No auth token found');
-            return false;
-        }
+			// Verificar si el token es válido
+			function isTokenValid() {
+				const token = localStorage.getItem('authToken');
+				console.log('🐛 DEBUG: Token encontrado:', !!token);
 
-        try {
-            const payload = JSON.parse(atob(token.split('.')[1]));
-            const now = Date.now() / 1000;
+				if (!token) {
+					console.log('🔒 No auth token found');
+					return false;
+				}
 
-            if (payload.exp && payload.exp < now) {
-                console.log('🔒 Token expired');
-                localStorage.removeItem('authToken');
-                return false;
-            }
+				try {
+					const payload = JSON.parse(atob(token.split('.')[1]));
+					const now = Date.now() / 1000;
 
-            return true;
-        } catch (error) {
-            console.error('🔒 Token malformed:', error);
-            localStorage.removeItem('authToken');
-            return false;
-        }
-    }
+					console.log('🐛 DEBUG: Token payload:', payload);
+					console.log('🐛 DEBUG: Token expira:', new Date(payload.exp * 1000));
+					console.log('🐛 DEBUG: Hora actual:', new Date());
+					console.log('🐛 DEBUG: Token válido:', payload.exp > now);
 
-    // Redirigir al login con ventana flotante
-    function redirectToLogin() {
-        console.log('🔒 Redirecting to login with visual indicator');
-        localStorage.removeItem('authToken');
-        showVisualRedirect();
-    }
+					if (payload.exp && payload.exp < now) {
+						console.log('🔒 Token expired');
+						localStorage.removeItem('authToken');
+						return false;
+					}
 
-    // Helper para fetch autenticado
-    window.authenticatedFetch = function(url, options = {}) {
-        const token = localStorage.getItem('authToken');
+					return true;
+				} catch (error) {
+					console.error('🔒 Token malformed:', error);
+					console.log('🐛 DEBUG: Token original:', token);
+					localStorage.removeItem('authToken');
+					return false;
+				}
+			}
+			// Redirigir al login con ventana flotante
+			function redirectToLogin() {
+				console.log('🔒 Redirecting to login with visual indicator');
+				localStorage.removeItem('authToken');
+				showVisualRedirect();
+			}
 
-        if (!token) throw new Error('No auth token');
+			// Helper para fetch autenticado
+			window.authenticatedFetch = function (url, options = {}) {
+				const token = localStorage.getItem('authToken');
 
-        return fetch(url, {
-            ...options,
-            headers: {
-                ...options.headers,
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            },
-            credentials: 'include'
-        });
-    };
+				if (!token) throw new Error('No auth token');
 
-    // Verificación inicial
-    document.addEventListener('DOMContentLoaded', async function() {
-        console.log('🔍 Verificando autenticación...');
+				return fetch(url, {
+					...options,
+					headers: {
+						...options.headers,
+						'Authorization': `Bearer ${token}`,
+						'Content-Type': 'application/json'
+					},
+					credentials: 'include'
+				});
+			};
 
-        if (!isTokenValid()) {
-            redirectToLogin();
-            return;
-        }
+			// Verificación inicial
+			document.addEventListener('DOMContentLoaded', async function () {
+				console.log('🔍 Verificando autenticación...');
 
-        try {
-            const response = await window.authenticatedFetch(BACKEND_URL + '/user/me');
-            if (!response.ok) {
-                console.log('🔒 Token rechazado por backend');
-                redirectToLogin();
-                return;
-            }
+				if (!isTokenValid()) {
+					redirectToLogin();
+					return;
+				}
 
-            const data = await response.json();
-            console.log('✅ Usuario autenticado:', data.user?.email);
+				try {
+					const response = await window.authenticatedFetch(BACKEND_URL + '/user/me');
+					if (!response.ok) {
+						console.log('🔒 Token rechazado por backend');
+						redirectToLogin();
+						return;
+					}
 
-        } catch (error) {
-            console.error('❌ Error verificando autenticación:', error);
-            redirectToLogin();
-        }
-    });
+					const data = await response.json();
+					console.log('✅ Usuario autenticado:', data.user?.email);
 
-    // Interceptor global
-    const originalFetch = window.fetch;
-    window.fetch = async function(...args) {
-        const response = await originalFetch(...args);
+				} catch (error) {
+					console.error('❌ Error verificando autenticación:', error);
+					redirectToLogin();
+				}
+			});
 
-        if ((response.status === 401 || response.status === 403) &&
-            !window.location.pathname.includes('login') &&
-            !window.location.pathname.includes('2fa')) {
-            console.log('🔒 Global auth error');
-            redirectToLogin();
-        }
+			// Interceptor global
+			const originalFetch = window.fetch;
+			window.fetch = async function (...args) {
+				const response = await originalFetch(...args);
 
-        return response;
-    };
+				if ((response.status === 401 || response.status === 403) &&
+					!window.location.pathname.includes('login') &&
+					!window.location.pathname.includes('2fa')) {
+					console.log('🔒 Global auth error');
+					redirectToLogin();
+				}
 
-    // Revalidación periódica
-    setInterval(() => {
-        if (!isTokenValid()) {
-            console.log('🔒 Periodic token check failed');
-            redirectToLogin();
-        }
-    }, 5 * 60 * 1000);
+				return response;
+			};
 
-    // Logout protegido
-    document.addEventListener('DOMContentLoaded', () => {
-        const logoutBtn = document.getElementById('logoutButton');
-        if (logoutBtn) {
-            const newLogoutBtn = logoutBtn.cloneNode(true);
-            logoutBtn.parentNode.replaceChild(newLogoutBtn, logoutBtn);
+			// Revalidación periódica
+			setInterval(() => {
+				if (!isTokenValid()) {
+					console.log('🔒 Periodic token check failed');
+					redirectToLogin();
+				}
+			}, 5 * 60 * 1000);
 
-            newLogoutBtn.addEventListener('click', async function() {
-                console.log('👆 Logout iniciado');
-                this.textContent = 'Cerrando sesión...';
-                this.disabled = true;
+			// Logout protegido
+			document.addEventListener('DOMContentLoaded', () => {
+				const logoutBtn = document.getElementById('logoutButton');
+				if (logoutBtn) {
+					const newLogoutBtn = logoutBtn.cloneNode(true);
+					logoutBtn.parentNode.replaceChild(newLogoutBtn, logoutBtn);
 
-                try {
-                    await window.authenticatedFetch(BACKEND_URL + '/auth/logout', {
-                        method: 'POST',
-                        body: JSON.stringify({ action: 'logout' })
-                    });
-                } catch (error) {
-                    console.error('Error durante logout:', error);
-                } finally {
-                    localStorage.clear();
-                    window.location.href = '/';
-                }
-            });
-        }
-    });
+					newLogoutBtn.addEventListener('click', async function () {
+						console.log('👆 Logout iniciado');
+						this.textContent = 'Cerrando sesión...';
+						this.disabled = true;
 
-    console.log('✅ Sistema de autenticación JWT inicializado');
-})();
-</script>
+						try {
+							await window.authenticatedFetch(BACKEND_URL + '/auth/logout', {
+								method: 'POST',
+								body: JSON.stringify({ action: 'logout' })
+							});
+						} catch (error) {
+							console.error('Error durante logout:', error);
+						} finally {
+							localStorage.clear();
+							window.location.href = '/';
+						}
+					});
+				}
+			});
 
-<!-- Protección de páginas de juego -->
-<script>
-window.protectGamePages = function() {
-    const gamePages = ['/pong.html', '/pong-ia.html', '/pong-4p.html', '/pong-tournament.html'];
-    const currentPath = window.location.pathname;
+			console.log('✅ Sistema de autenticación JWT inicializado');
+		})();
+	</script>
 
-    if (gamePages.some(page => currentPath.includes(page.replace('.html', '')))) {
-        const token = localStorage.getItem('authToken');
+	<!-- Protección de páginas de juego -->
+	<script>
+		window.protectGamePages = function () {
+			const gamePages = ['/pong.html', '/pong-ia.html', '/pong-4p.html', '/pong-tournament.html'];
+			const currentPath = window.location.pathname;
 
-        if (!token) {
-            console.log('🔒 Game page - no token');
-            showVisualRedirect();
-            return false;
-        }
+			if (gamePages.some(page => currentPath.includes(page.replace('.html', '')))) {
+				const token = localStorage.getItem('authToken');
 
-        try {
-            const payload = JSON.parse(atob(token.split('.')[1]));
-            const now = Date.now() / 1000;
+				if (!token) {
+					console.log('🔒 Game page - no token');
+					showVisualRedirect();
+					return false;
+				}
 
-            if (payload.exp && payload.exp < now) {
-                console.log('🔒 Game page - token expired');
-                localStorage.removeItem('authToken');
-                showVisualRedirect();
-                return false;
-            }
+				try {
+					const payload = JSON.parse(atob(token.split('.')[1]));
+					const now = Date.now() / 1000;
 
-            console.log('✅ Game page access granted');
-            return true;
-        } catch (error) {
-            console.error('🔒 Game page - token malformed');
-            localStorage.removeItem('authToken');
-            showVisualRedirect();
-            return false;
-        }
-    }
+					if (payload.exp && payload.exp < now) {
+						console.log('🔒 Game page - token expired');
+						localStorage.removeItem('authToken');
+						showVisualRedirect();
+						return false;
+					}
 
-    return true;
-};
+					console.log('✅ Game page access granted');
+					return true;
+				} catch (error) {
+					console.error('🔒 Game page - token malformed');
+					localStorage.removeItem('authToken');
+					showVisualRedirect();
+					return false;
+				}
+			}
 
-// AÑADIDO JWT!!!!!
+			return true;
+		};
 
-// Auto-ejecutar protección si estamos en página de juego
-document.addEventListener('DOMContentLoaded', window.protectGamePages);
-</script>
+		// AÑADIDO JWT!!!!!
+
+		// Auto-ejecutar protección si estamos en página de juego
+		document.addEventListener('DOMContentLoaded', window.protectGamePages);
+	</script>
 	<!-- Debug del sistema i18n -->
 	<script>
 		function createWorkingSelector() {
@@ -563,7 +579,7 @@ document.addEventListener('DOMContentLoaded', window.protectGamePages);
 		function cargarDatosUsuario() {
 			console.log("🔄 Iniciando carga de emergencia");
 
-			fetch(`${window.env?.BACKEND_URL || 'http://localhost:3000'}/user/me`, {
+			fetch(`${window.env?.BACKEND_URL || 'https://localhost:3001'}/user/me`, {
 				credentials: 'include'
 			})
 				.then(response => {
@@ -591,7 +607,7 @@ document.addEventListener('DOMContentLoaded', window.protectGamePages);
 							this.textContent = 'Cerrando sesión...';
 							this.disabled = true;
 
-							fetch(`${window.env?.BACKEND_URL || 'http://localhost:3000'}/auth/logout`, {
+							fetch(`${window.env?.BACKEND_URL || 'https://localhost:3001'}/auth/logout`, {
 								method: 'POST',
 								headers: { 'Content-Type': 'application/json' },
 								credentials: 'include',

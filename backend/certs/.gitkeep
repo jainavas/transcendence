@@ -1,0 +1,3 @@
+# Este archivo mantiene el directorio en el repositorio
+# Los certificados SSL se generan automáticamente con scripts/generate-certs.sh
+# No subir certificados al repositorio por seguridad
