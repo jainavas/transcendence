@@ -7,7 +7,7 @@ PROJECT_NAME=transcender
 all up start: setup
 	@echo "Iniciando contenedores..."
 	COMPOSE_BAKE=true docker compose build --no-cache
-	docker compose up --force-recreate
+	docker compose up --force-recreate || true
 
 # Setup automático del proyecto
 setup:

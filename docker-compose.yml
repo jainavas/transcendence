@@ -123,7 +123,7 @@ services:
                   summary: "High memory usage detected"
                   description: "Memory usage is above 85% for more than 2 minutes"
               - alert: ServiceDown
-                expr: up == 0
+                expr: up{job="backend"} == 0
                 for: 1m
                 labels:
                   severity: critical
@@ -138,8 +138,9 @@ services:
     image: grafana/grafana:latest
     ports:
       - "3002:3000"
+    env_file:
+      - .env
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
       - GF_USERS_ALLOW_SIGN_UP=false
     entrypoint:
       - /bin/sh

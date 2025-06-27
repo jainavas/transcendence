@@ -367,7 +367,7 @@ window.addEventListener("DOMContentLoaded", () => {
         this.disabled = true;
         this.textContent = window.t ? window.t('common.saving') : "Guardando...";
 
-        fetch(`${window.env?.BACKEND_URL || 'http://localhost:3000'}/pong/scores`, {
+        fetch(`${window.env?.BACKEND_URL || 'https://localhost:3001'}/pong/scores`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
