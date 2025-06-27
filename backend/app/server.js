@@ -1132,3 +1132,90 @@ async function checkUserInDatabase(id, user_name, email, picture) {
 		});
 	});
 }
+
+// Proxy endpoint for external images to handle CORS
+fastify.get('/api/proxy-image', async (req, reply) => {
+	try {
+		const { url } = req.query;
+		
+		if (!url || typeof url !== 'string') {
+			return reply.code(400).send({ error: 'URL parameter is required' });
+		}
+		
+		console.log('🌐 Proxy request for image:', url);
+		
+		// Validate URL
+		try {
+			new URL(url);
+		} catch (error) {
+			return reply.code(400).send({ error: 'Invalid URL format' });
+		}
+		
+		// Security check - only allow image URLs
+		const allowedDomains = [
+			'imgur.com',
+			'i.imgur.com',
+			'ipwatchdog.com',
+			'example.com',
+			'unsplash.com',
+			'images.unsplash.com',
+			'pixabay.com',
+			'pexels.com',
+			'githubusercontent.com'
+		];
+		
+		const urlObj = new URL(url);
+		const isAllowedDomain = allowedDomains.some(domain => 
+			urlObj.hostname === domain || urlObj.hostname.endsWith('.' + domain)
+		);
+		
+		if (!isAllowedDomain) {
+			console.warn('🚫 Domain not allowed for proxy:', urlObj.hostname);
+			return reply.code(403).send({ error: 'Domain not allowed' });
+		}
+		
+		// Fetch the image
+		const imageResponse = await fetch(url, {
+			headers: {
+				'User-Agent': 'Mozilla/5.0 (compatible; TranscendenceBot/1.0)',
+				'Accept': 'image/*,*/*;q=0.8',
+				'Accept-Language': 'en-US,en;q=0.5',
+				'Cache-Control': 'no-cache'
+			},
+			timeout: 10000 // 10 second timeout
+		});
+		
+		if (!imageResponse.ok) {
+			console.error('❌ Failed to fetch image:', imageResponse.status, imageResponse.statusText);
+			return reply.code(imageResponse.status).send({ error: 'Failed to fetch image' });
+		}
+		
+		// Check content type
+		const contentType = imageResponse.headers.get('content-type');
+		if (!contentType || !contentType.startsWith('image/')) {
+			console.error('❌ Invalid content type:', contentType);
+			return reply.code(400).send({ error: 'URL does not point to an image' });
+		}
+		
+		// Set appropriate headers
+		reply.type(contentType);
+		reply.header('Access-Control-Allow-Origin', '*');
+		reply.header('Access-Control-Allow-Methods', 'GET');
+		reply.header('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
+		
+		// Stream the image
+		const buffer = await imageResponse.buffer();
+		
+		console.log('✅ Image proxied successfully:', {
+			url,
+			contentType,
+			size: buffer.length
+		});
+		
+		return reply.send(buffer);
+		
+	} catch (error) {
+		console.error('❌ Error in image proxy:', error);
+		return reply.code(500).send({ error: 'Internal server error' });
+	}
+});

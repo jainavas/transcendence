@@ -291,7 +291,7 @@ function updateAllStatusMessages(): void {
 }
 
 // ============================================================================
-// CLASE PARA MANEJO DE CACHE DE IMÁGENES
+// CLASE PARA MANEJO DE CACHE DE IMÁGENES CON SOPORTE PARA CORS
 // ============================================================================
 class ImageCache {
 	private cache = new Map<string, string>();
@@ -325,17 +325,43 @@ class ImageCache {
 		this.loading.add(url);
 
 		try {
-			// Intentar cargar la imagen
-			const isValid = await this.testImageLoad(url);
-
-			if (isValid) {
-				this.cache.set(url, url);
-				this.loading.delete(url);
-				return url;
+			// Detectar si es una imagen externa (no de Google) y usar proxy si es necesario
+			const isExternalImage = !this.isGoogleOrLocalImage(url);
+			
+			if (isExternalImage) {
+				console.log('🌐 Imagen externa detectada, intentando cargar con proxy:', url);
+				
+				// Intentar cargar directamente primero
+				const directLoadSuccess = await this.testImageLoad(url);
+				if (directLoadSuccess) {
+					this.cache.set(url, url);
+					this.loading.delete(url);
+					return url;
+				}
+				
+				// Si falla, usar el proxy del backend
+				try {
+					const proxiedUrl = await this.loadImageThroughProxy(url);
+					this.cache.set(url, proxiedUrl);
+					this.loading.delete(url);
+					return proxiedUrl;
+				} catch (proxyError) {
+					console.warn('⚠️ Proxy falló, usando fallback:', proxyError);
+					throw new Error('Proxy failed');
+				}
 			} else {
-				throw new Error('Image failed to load');
+				// Para imágenes de Google o locales, intentar cargar directamente
+				const isValid = await this.testImageLoad(url);
+				if (isValid) {
+					this.cache.set(url, url);
+					this.loading.delete(url);
+					return url;
+				} else {
+					throw new Error('Image failed to load');
+				}
 			}
 		} catch (error) {
+			console.warn('🖼️ Error cargando imagen, usando fallback:', error);
 			// Generar fallback y guardarlo en cache
 			const fallbackUrl = this.generateFallbackImage(fallbackName, size);
 			this.cache.set(url, fallbackUrl);
@@ -344,19 +370,61 @@ class ImageCache {
 		}
 	}
 
+	private isGoogleOrLocalImage(url: string): boolean {
+		return url.includes('googleusercontent.com') || 
+			   url.includes('lh3.googleusercontent.com') ||
+			   url.includes('localhost') ||
+			   url.includes('127.0.0.1') ||
+			   url.startsWith('/') ||
+			   url.startsWith('data:');
+	}
+
+	private async loadImageThroughProxy(url: string): Promise<string> {
+		try {
+			// Crear una nueva imagen usando el backend como proxy
+			const proxyUrl = `${BACKEND_URL}/api/proxy-image?url=${encodeURIComponent(url)}`;
+			
+			// Verificar que el proxy funciona
+			const isValid = await this.testImageLoad(proxyUrl);
+			if (isValid) {
+				return proxyUrl;
+			} else {
+				throw new Error('Proxy image load failed');
+			}
+		} catch (error) {
+			console.error('❌ Error en proxy de imagen:', error);
+			throw error;
+		}
+	}
+
 	private async testImageLoad(url: string): Promise<boolean> {
 		// Skip validation for Google profile pictures - trust them
-		if (url.includes('googleusercontent.com') || url.includes('lh3.googleusercontent.com')) {
+		if (this.isGoogleOrLocalImage(url)) {
 			return true;
 		}
 		
-		// For other images, test with crossOrigin attribute
 		return new Promise((resolve) => {
 			const img = new Image();
-			img.onload = () => resolve(true);
-			img.onerror = () => resolve(false);
+			const timeout = setTimeout(() => {
+				img.onload = null;
+				img.onerror = null;
+				console.log('⏱️ Timeout validando imagen:', url);
+				resolve(false);
+			}, 5000);
+
+			img.onload = () => {
+				clearTimeout(timeout);
+				console.log('✅ Imagen validada correctamente:', url);
+				resolve(true);
+			};
 			
-			// Set crossOrigin for better compatibility
+			img.onerror = (error) => {
+				clearTimeout(timeout);
+				console.log('❌ Error al validar imagen:', url, error);
+				resolve(false);
+			};
+			
+			// Usar crossOrigin para intentar acceso CORS
 			img.crossOrigin = 'anonymous';
 			img.src = url;
 		});
@@ -507,7 +575,7 @@ export class ProfileManager {
 	}
 
 	private async testImageLoad(url: string): Promise<boolean> {
-		// Skip validation for Google profile pictures
+		// Skip validation for Google profile pictures - trust them
 		if (url.includes('googleusercontent.com') || url.includes('lh3.googleusercontent.com')) {
 			return true;
 		}

@@ -56,6 +56,9 @@
     "change_image": "Changer l'image de profil",
     "image_url": "URL de l'image:",
     "image_url_placeholder": "https://exemple.com/mon-image.jpg",
+    "modal": {
+      "title": "Changer la photo de profil"
+    },
     "error": {
       "url_or_alias_required": "Veuillez saisir une URL ou un alias",
       "alias_length": "L'alias doit contenir entre 3 et 20 caractères",
