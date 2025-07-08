@@ -4,11 +4,35 @@
 ![Version](https://img.shields.io/badge/version-16.1-blue?style=flat-square)
 ![Docker](https://img.shields.io/badge/docker-required-blue?style=flat-square&logo=docker)
 
+![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=flat-square&logo=typescript&logoColor=white)
+![JavaScript](https://img.shields.io/badge/javascript-%23323330.svg?style=flat-square&logo=javascript&logoColor=%23F7DF1E)
+![HTML5](https://img.shields.io/badge/html5-%23E34F26.svg?style=flat-square&logo=html5&logoColor=white)
+![CSS3](https://img.shields.io/badge/css3-%231572B6.svg?style=flat-square&logo=css3&logoColor=white)
+![TailwindCSS](https://img.shields.io/badge/tailwindcss-%2338B2AC.svg?style=flat-square&logo=tailwind-css&logoColor=white)
+![NodeJS](https://img.shields.io/badge/node.js-6DA55F?style=flat-square&logo=node.js&logoColor=white)
+![Fastify](https://img.shields.io/badge/fastify-%23000000.svg?style=flat-square&logo=fastify&logoColor=white)
+![SQLite](https://img.shields.io/badge/sqlite-%2307405e.svg?style=flat-square&logo=sqlite&logoColor=white)
+![Babylon.js](https://img.shields.io/badge/babylon.js-%23BB464A.svg?style=flat-square&logo=babylondotjs&logoColor=white)
+![Grafana](https://img.shields.io/badge/grafana-%23F46800.svg?style=flat-square&logo=grafana&logoColor=white)
+![Prometheus](https://img.shields.io/badge/Prometheus-E6522C?style=flat-square&logo=Prometheus&logoColor=white)
+![Webpack](https://img.shields.io/badge/webpack-%238DD6F9.svg?style=flat-square&logo=webpack&logoColor=black)
+
 > **Surprise.** 
 > 
 > This project involves undertaking tasks you have never done before.  
 > Remember the beginning of your journey in computer science.  
 > Look at you now; it's time to shine!
+
+<table>
+  <tr>
+    <td><img src="images/2p.jpeg" alt="2P Game Mode" width="400"></td>
+    <td><img src="images/4p.jpeg" alt="4P Game Mode" width="400"></td>
+  </tr>
+  <tr>
+    <td><img src="images/dashboard_stats.jpeg" alt="Dashboard Stats" width="400"></td>
+    <td><img src="images/dashboard_overview.jpeg" alt="Dashboard Overview" width="400"></td>
+  </tr>
+</table>
 
 **ft_transcendence** is the final project of the 42 School Common Core curriculum. It's a comprehensive web application that recreates the classic Pong game with modern web technologies, real-time multiplayer capabilities, and advanced features.
 
@@ -21,7 +45,8 @@ This project is about creating a **single-page application (SPA)** for hosting P
 - 🏓 **4 side gamemode** - Play against 3 friends
 - 🏆 **Tournament system** - Organize and participate in competitive tournaments  
 - 👥 **User management with Google Sign-In** - Registration, authentication, and user profiles
-- 🕹️ **3D Interactive Gameplay** - Communicate with other players
+- **2-factor authentication** - Enhanced security with two-factor verification
+-�🕹️ **3D Interactive Gameplay** - Communicate with other players
 - 📊 **Statistics & leaderboards** - Track your progress and rankings
 - 🔒 **Security features** - HTTPS, input validation, and secure authentication
 
@@ -43,6 +68,8 @@ The project allows for various technology combinations through modules:
 - **Backend Options**: PHP (default), Fastify with Node.js
 - **Frontend Options**: TypeScript (default), Tailwind CSS
 - **Database Options**: SQLite (when database module is selected)
+- **Monitoring**: Grafana, Prometheus for system monitoring and metrics
+- **Security**: 2-factor authentication for enhanced user security
 - **Advanced Features**: Blockchain integration (Avalanche), 3D graphics (Babylon.js)
 
 ## 🚀 Quick Start
@@ -129,19 +156,24 @@ JWT_EXPIRATION=3600
 
 The project uses a modular approach where you must implement **7 major modules** to achieve 100% completion. Modules are categorized as:
 
-### Major Modules (10 points each)
+<details>
+<summary><strong>Major Modules (10 points each)</strong></summary>
+
 - **Web Framework**: Backend framework implementation ✅
 - **User Management**: Advanced authentication and user features
-- **Remote Players**: Network-based multiplayer
 - **Multiplayer for more than 2**: Local or online multiplayer with +2 player ✅
 - **Remote Auth**: Google Sign-In auth ✅
 - **AI Integration**: Artificial intelligence opponents ✅
-- **Blockchain**: Tournament score storage on blockchain
-- **Infrastructure setup for log management**:  ELK (Elasticsearch, Logstash, Kibana) ✅
+- **Infrastructure setup for log management**: Grafana and Prometheus monitoring ✅
 - **Microservices**: Backend architecture as microservices
 - **Advanced Graphics**: 3D rendering with modern techniques ✅
+- **Internationalization**: i18n multi-language support ✅
 
-### Minor Modules (5 points each)
+</details>
+
+<details>
+<summary><strong>Minor Modules (5 points each)</strong></summary>
+
 - **Web Framework**: Frontend framework implementation ✅
 - **Database Integration**: Data persistence layer ✅
 - **Game Customization**: Enhanced gameplay options ✅
@@ -150,6 +182,8 @@ The project uses a modular approach where you must implement **7 major modules**
 - **Accessibility**: Support for disabled users
 - **Multi-language**: Internationalization support ✅
 - **Multi-browser compatibility**: Multiple browser support ✅
+
+</details>
 
 *Note: Two minor modules count as one major module*
 
